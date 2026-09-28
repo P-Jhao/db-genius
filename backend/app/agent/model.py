@@ -1,7 +1,9 @@
-"""LangChain model retaining provider reasoning on tool-call round trips."""
+"""OpenAI-compatible LangChain chat model with reasoning and tool streaming."""
+
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 from typing import cast
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -10,22 +12,139 @@ from langchain_core.outputs import ChatGenerationChunk, ChatResult
 from pydantic import SecretStr
 
 
+def completion_url(base_url: str) -> str:
+    """Keep an explicit endpoint, or append the compatible API path once."""
+    parsed = urlsplit(base_url.strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError("Model base URL must be an absolute HTTP(S) URL")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("Model base URL must not contain credentials, query, or fragment")
+    path = parsed.path.rstrip("/")
+    if path.endswith("/chat/completions"):
+        pass
+    elif path.endswith("/v1"):
+        path += "/chat/completions"
+    else:
+        path += "/v1/chat/completions"
+    return urlunsplit((parsed.scheme, parsed.netloc, path, "", ""))
+
+
 def wire_message(message: BaseMessage) -> dict[str, object]:
     roles = {"human": "user", "ai": "assistant", "system": "system", "tool": "tool"}
+    if message.type not in roles:
+        raise TypeError(f"Unsupported model message type: {message.type}")
     result: dict[str, object] = {"role": roles[message.type], "content": message.content}
     if isinstance(message, ToolMessage):
+        if not message.tool_call_id:
+            raise ValueError("Tool response requires tool_call_id")
         result["tool_call_id"] = message.tool_call_id
     if isinstance(message, AIMessage):
         if message.tool_calls:
             result["tool_calls"] = [
-                {"id": call["id"], "type": "function", "function": {
-                    "name": call["name"], "arguments": json.dumps(call["args"], ensure_ascii=False)}}
+                {
+                    "id": call["id"],
+                    "type": "function",
+                    "function": {
+                        "name": call["name"],
+                        "arguments": json.dumps(call["args"], ensure_ascii=False),
+                    },
+                }
                 for call in message.tool_calls
             ]
         reasoning = message.additional_kwargs.get("reasoning_content")
-        if reasoning is not None:
+        if isinstance(reasoning, str) and reasoning:
             result["reasoning_content"] = reasoning
     return result
+
+
+def _sse_data(lines: Iterable[str]) -> str | None:
+    parts = [line[5:].lstrip(" ") for line in lines if line.startswith("data:")]
+    return "\n".join(parts) if parts else None
+
+
+def _usage_chunk(value: object) -> ChatGenerationChunk | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise TypeError("Invalid model usage packet")
+    prompt = value.get("prompt_tokens")
+    completion = value.get("completion_tokens")
+    total = value.get("total_tokens")
+    if not isinstance(prompt, int) or not isinstance(completion, int):
+        raise TypeError("Model usage requires prompt and completion token counts")
+    if total is None:
+        total = prompt + completion
+    if not isinstance(total, int) or min(prompt, completion, total) < 0:
+        raise ValueError("Invalid model usage values")
+    return ChatGenerationChunk(
+        message=AIMessageChunk(
+            content="",
+            usage_metadata={
+                "input_tokens": prompt,
+                "output_tokens": completion,
+                "total_tokens": total,
+            },
+        )
+    )
+
+
+def _delta_chunk(packet: dict[str, object]) -> ChatGenerationChunk | None:
+    choices = packet.get("choices")
+    if choices is None:
+        return None
+    if not isinstance(choices, list):
+        raise TypeError("Invalid model choices")
+    if not choices:
+        return None
+    first = choices[0]
+    if not isinstance(first, dict):
+        raise TypeError("Invalid model choice")
+    delta = first.get("delta")
+    if not isinstance(delta, dict):
+        return None
+    content = delta.get("content")
+    reasoning = delta.get("reasoning_content")
+    if content is not None and not isinstance(content, str):
+        raise ValueError("Invalid model content delta")
+    if reasoning is not None and not isinstance(reasoning, str):
+        raise ValueError("Invalid model reasoning delta")
+    additional: dict[str, object] = {}
+    if reasoning:
+        additional["reasoning_content"] = reasoning
+    chunks: list[dict[str, object]] = []
+    calls = delta.get("tool_calls")
+    if calls is not None:
+        if not isinstance(calls, list):
+            raise ValueError("Invalid model tool calls")
+        for call in calls:
+            if not isinstance(call, dict) or not isinstance(call.get("index"), int):
+                raise TypeError("Model tool call requires an index")
+            function = call.get("function")
+            if function is not None and not isinstance(function, dict):
+                raise ValueError("Invalid model tool function")
+            function = function or {}
+            if function.get("name") is not None and not isinstance(function["name"], str):
+                raise ValueError("Invalid model tool name")
+            if function.get("arguments") is not None and not isinstance(function["arguments"], str):
+                raise ValueError("Invalid model tool arguments")
+            chunks.append(
+                {
+                    "name": function.get("name"),
+                    "args": function.get("arguments"),
+                    "id": call.get("id"),
+                    "index": call["index"],
+                    "type": "tool_call_chunk",
+                }
+            )
+    if not content and not reasoning and not chunks:
+        return None
+    return ChatGenerationChunk(
+        message=AIMessageChunk(
+            content=content or "",
+            additional_kwargs=additional,
+            tool_call_chunks=cast(list, chunks),
+        )
+    )
 
 
 class CompatibleChatModel(BaseChatModel):
@@ -37,54 +156,68 @@ class CompatibleChatModel(BaseChatModel):
     def _llm_type(self) -> str:
         return "sqlchat-openai-compatible"
 
-    def _generate(self, messages: list[BaseMessage], stop: list[str] | None = None,
-                  run_manager: object = None, **kwargs: object) -> ChatResult:
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: object = None,
+        **kwargs: object,
+    ) -> ChatResult:
         raise RuntimeError("Use the async chat interface")
 
-    async def _astream(self, messages: list[BaseMessage], stop: list[str] | None = None,
-                       run_manager: object = None, **kwargs: object) -> AsyncIterator[ChatGenerationChunk]:
+    async def _astream(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: object = None,
+        **kwargs: object,
+    ) -> AsyncIterator[ChatGenerationChunk]:
         payload: dict[str, object] = {
-            "model": self.model_name, "messages": [wire_message(m) for m in messages],
-            "stream": True, "stream_options": {"include_usage": True},
+            "model": self.model_name,
+            "messages": [wire_message(message) for message in messages],
+            "stream": True,
+            "stream_options": {"include_usage": True},
         }
         payload.update(kwargs)
         if stop is not None:
             payload["stop"] = stop
         headers = {"Authorization": f"Bearer {self.api_key.get_secret_value()}"}
-        async with httpx.AsyncClient(timeout=httpx.Timeout(180, connect=15)) as client:
-            async with client.stream("POST", self.base_url.rstrip("/") + "/chat/completions",
-                                     headers=headers, json=payload) as response:
-                if response.status_code >= 400:
-                    await response.aread()
-                    raise RuntimeError(f"Model provider returned HTTP {response.status_code}")
-                async for line in response.aiter_lines():
-                    if not line.startswith("data:"):
-                        continue
-                    data = line[5:].strip()
-                    if data == "[DONE]":
-                        break
-                    packet = json.loads(data)
-                    if "error" in packet:
-                        raise RuntimeError("Model provider returned a stream error")
-                    usage = packet.get("usage")
-                    if usage:
-                        yield ChatGenerationChunk(message=AIMessageChunk(content="", usage_metadata={
-                            "input_tokens": usage["prompt_tokens"],
-                            "output_tokens": usage["completion_tokens"],
-                            "total_tokens": usage["total_tokens"],
-                        }))
-                    choices = packet.get("choices", [])
-                    if not choices:
-                        continue
-                    delta = choices[0].get("delta", {})
-                    additional = {}
-                    if delta.get("reasoning_content"):
-                        additional["reasoning_content"] = delta["reasoning_content"]
-                    chunks = [{"name": c.get("function", {}).get("name"),
-                               "args": c.get("function", {}).get("arguments"),
-                               "id": c.get("id"), "index": c["index"], "type": "tool_call_chunk"}
-                              for c in delta.get("tool_calls", [])]
-                    yield ChatGenerationChunk(message=AIMessageChunk(
-                        content=delta.get("content") or "", additional_kwargs=additional,
-                        tool_call_chunks=cast(list, chunks),
-                    ))
+        async with (
+            httpx.AsyncClient(timeout=httpx.Timeout(180, connect=15)) as client,
+            client.stream("POST", completion_url(self.base_url), headers=headers, json=payload) as response,
+        ):
+            if response.status_code >= 400:
+                raise RuntimeError(f"Model provider returned HTTP {response.status_code}")
+            frame: list[str] = []
+            async for line in response.aiter_lines():
+                if line:
+                    frame.append(line)
+                    continue
+                data = _sse_data(frame)
+                frame.clear()
+                if data is None:
+                    continue
+                if data == "[DONE]":
+                    return
+                for chunk in self._parse_packet(data):
+                    yield chunk
+            data = _sse_data(frame)
+            if data and data != "[DONE]":
+                for chunk in self._parse_packet(data):
+                    yield chunk
+
+    @staticmethod
+    def _parse_packet(data: str) -> list[ChatGenerationChunk]:
+        packet = json.loads(data)
+        if not isinstance(packet, dict):
+            raise TypeError("Invalid model stream packet")
+        if "error" in packet:
+            raise RuntimeError("Model provider returned a stream error")
+        result: list[ChatGenerationChunk] = []
+        delta = _delta_chunk(packet)
+        if delta is not None:
+            result.append(delta)
+        usage = _usage_chunk(packet.get("usage"))
+        if usage is not None:
+            result.append(usage)
+        return result
