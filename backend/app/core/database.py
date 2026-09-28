@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.core.config import get_settings
@@ -8,22 +8,17 @@ class Base(DeclarativeBase):
     pass
 
 
-settings = get_settings()
-connect_args: dict[str, object] = {}
-if settings.database_url.startswith("postgresql"):
-    connect_args["options"] = "-csearch_path=app"
-elif settings.database_url.startswith("sqlite"):
-    connect_args["check_same_thread"] = False
-engine = create_engine(settings.database_url, pool_pre_ping=True, connect_args=connect_args)
+def make_engine() -> Engine:
+    url = get_settings().database_url
+    connect_args: dict[str, object] = {}
+    if url.startswith("postgresql"):
+        connect_args["options"] = "-csearch_path=app"
+    elif url.startswith("sqlite"):
+        connect_args["check_same_thread"] = False
+    else:
+        raise ValueError("System database must be PostgreSQL or an explicit SQLite test database")
+    return create_engine(url, pool_pre_ping=True, connect_args=connect_args)
+
+
+engine = make_engine()
 SessionLocal = sessionmaker(engine, expire_on_commit=False)
-
-
-def initialize_database() -> None:
-    from app import models  # noqa: F401
-    from app.services.bootstrap import bootstrap
-    if settings.auto_create_schema:
-        if engine.dialect.name == "postgresql":
-            with engine.begin() as connection:
-                connection.execute(text("CREATE SCHEMA IF NOT EXISTS app"))
-        Base.metadata.create_all(engine)
-    bootstrap()

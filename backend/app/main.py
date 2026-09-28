@@ -1,24 +1,15 @@
-from contextlib import asynccontextmanager
-from collections.abc import AsyncIterator
-
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import auth, chat, db_configs, files, model_configs, system
+from app.api.auth import router as auth_router
+from app.api.system import router as system_router
 from app.core.config import get_settings
-from app.core.database import initialize_database
 from app.core.errors import BusinessError
+from app.core.localization import translate
 
-
-@asynccontextmanager
-async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-    initialize_database()
-    yield
-
-
-app = FastAPI(title="SQLChat", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="SQLChat", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
@@ -30,20 +21,20 @@ app.add_middleware(
 
 @app.exception_handler(BusinessError)
 async def business_error_handler(request: Request, error: BusinessError) -> JSONResponse:
+    message = translate(error.message, request.headers.get("accept-language"), *error.message_args)
     return JSONResponse(
         status_code=error.status_code,
-        content={"code": error.code, "message": error.message, "data": None},
+        content={"code": error.code, "message": message, "data": None},
     )
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_error_handler(request: Request, error: RequestValidationError) -> JSONResponse:
     details = "; ".join(
-        f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}"
-        for item in error.errors()
+        f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}" for item in error.errors()
     )
-    return JSONResponse(status_code=422, content={"code": 422, "message": details, "data": None})
+    return JSONResponse(status_code=400, content={"code": 400, "message": details, "data": None})
 
 
-for router in (auth.router, db_configs.router, model_configs.router, files.router, system.router, chat.router):
-    app.include_router(router, prefix="/api")
+app.include_router(system_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
