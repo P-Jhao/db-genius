@@ -1,0 +1,22 @@
+export default {
+  languageName: '简体中文',
+  switchLanguage: '切换语言',
+  actions: {
+    ok: '确定',
+    cancel: '取消',
+    confirm: '确认',
+    delete: '删除',
+    save: '保存',
+    close: '关闭',
+    copy: '复制',
+    copied: '已复制',
+    loading: '加载中…',
+    retry: '重试',
+    back: '返回',
+    login: '登录',
+    logout: '退出登录',
+    submit: '提交',
+    search: '搜索',
+    reset: '重置',
+  },
+}

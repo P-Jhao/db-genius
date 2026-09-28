@@ -1,0 +1,22 @@
+export default {
+  languageName: '繁體中文',
+  switchLanguage: '切換語言',
+  actions: {
+    ok: '確定',
+    cancel: '取消',
+    confirm: '確認',
+    delete: '刪除',
+    save: '儲存',
+    close: '關閉',
+    copy: '複製',
+    copied: '已複製',
+    loading: '載入中…',
+    retry: '重試',
+    back: '返回',
+    login: '登入',
+    logout: '登出',
+    submit: '送出',
+    search: '搜尋',
+    reset: '重設',
+  },
+}

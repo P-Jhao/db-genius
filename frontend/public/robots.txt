@@ -1,0 +1,8 @@
+# DB-Genius robots.txt
+Sitemap: https://db-genius.com/sitemap.xml
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /login
+Disallow: /api

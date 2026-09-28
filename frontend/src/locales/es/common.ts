@@ -1,0 +1,22 @@
+export default {
+  languageName: 'Español',
+  switchLanguage: 'Cambiar idioma',
+  actions: {
+    ok: 'Aceptar',
+    cancel: 'Cancelar',
+    confirm: 'Confirmar',
+    delete: 'Eliminar',
+    save: 'Guardar',
+    close: 'Cerrar',
+    copy: 'Copiar',
+    copied: 'Copiado',
+    loading: 'Cargando…',
+    retry: 'Reintentar',
+    back: 'Volver',
+    login: 'Iniciar sesión',
+    logout: 'Cerrar sesión',
+    submit: 'Enviar',
+    search: 'Buscar',
+    reset: 'Restablecer',
+  },
+}

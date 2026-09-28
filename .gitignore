@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+**/.qoder/
+**/.vscode/
+**/node_modules/
+**/dist/
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/*.tsbuildinfo
+uploads/

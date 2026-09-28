@@ -1,0 +1,22 @@
+export default {
+  languageName: '日本語',
+  switchLanguage: '言語を切り替える',
+  actions: {
+    ok: 'OK',
+    cancel: 'キャンセル',
+    confirm: '確認',
+    delete: '削除',
+    save: '保存',
+    close: '閉じる',
+    copy: 'コピー',
+    copied: 'コピーしました',
+    loading: '読み込み中…',
+    retry: '再試行',
+    back: '戻る',
+    login: 'ログイン',
+    logout: 'ログアウト',
+    submit: '送信',
+    search: '検索',
+    reset: 'リセット',
+  },
+}

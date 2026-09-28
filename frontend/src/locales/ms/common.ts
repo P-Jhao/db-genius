@@ -1,0 +1,22 @@
+export default {
+  languageName: 'Bahasa Melayu',
+  switchLanguage: 'Tukar bahasa',
+  actions: {
+    ok: 'OK',
+    cancel: 'Batal',
+    confirm: 'Sahkan',
+    delete: 'Padam',
+    save: 'Simpan',
+    close: 'Tutup',
+    copy: 'Salin',
+    copied: 'Disalin',
+    loading: 'Memuatkan…',
+    retry: 'Cuba semula',
+    back: 'Kembali',
+    login: 'Log masuk',
+    logout: 'Log keluar',
+    submit: 'Hantar',
+    search: 'Cari',
+    reset: 'Set semula',
+  },
+}

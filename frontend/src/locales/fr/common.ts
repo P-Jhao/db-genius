@@ -1,0 +1,22 @@
+export default {
+  languageName: 'Français',
+  switchLanguage: 'Changer de langue',
+  actions: {
+    ok: 'OK',
+    cancel: 'Annuler',
+    confirm: 'Confirmer',
+    delete: 'Supprimer',
+    save: 'Enregistrer',
+    close: 'Fermer',
+    copy: 'Copier',
+    copied: 'Copié',
+    loading: 'Chargement…',
+    retry: 'Réessayer',
+    back: 'Retour',
+    login: 'Se connecter',
+    logout: 'Se déconnecter',
+    submit: 'Envoyer',
+    search: 'Rechercher',
+    reset: 'Réinitialiser',
+  },
+}
