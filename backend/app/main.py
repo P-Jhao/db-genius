@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.auth import router as auth_router
+from app.api.chat import router as chat_router
 from app.api.db_config import router as db_config_router
 from app.api.model_config import router as model_config_router
 from app.api.system import router as system_router
@@ -55,5 +56,6 @@ async def validation_error_handler(request: Request, error: RequestValidationErr
 
 app.include_router(system_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(chat_router, prefix="/api")
 app.include_router(db_config_router, prefix="/api")
 app.include_router(model_config_router, prefix="/api")

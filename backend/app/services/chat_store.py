@@ -1,6 +1,5 @@
 """Ownership-checked conversation persistence and context reconstruction."""
-import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from sqlalchemy import delete, select
@@ -15,7 +14,7 @@ from app.models import Conversation, Message
 def owned(session: Session, user_id: int, conversation_id: int) -> Conversation:
     conversation = session.get(Conversation, conversation_id)
     if conversation is None or conversation.user_id != user_id:
-        raise BusinessError("CONVERSATION_NOT_FOUND", "Conversation not found", 404)
+        raise BusinessError(404, "Conversation not found", 404)
     return conversation
 
 
@@ -59,9 +58,9 @@ def history(user_id: int, conversation_id: int) -> list[BaseMessage]:
         for row in rows:
             if row.type == "context_summary":
                 messages.append(SystemMessage(content="Previous conversation summary:\n" + row.content))
-            elif row.type == "user":
+            elif row.role == "user" and row.type in ("user", None):
                 messages.append(HumanMessage(content=row.content))
-            elif row.type == "summary":
+            elif row.role == "assistant" and row.type in ("summary", "content", None):
                 messages.append(AIMessage(content=row.content))
         return messages
 
@@ -70,10 +69,10 @@ def update_usage(user_id: int, conversation_id: int, usage: Usage) -> None:
     with SessionLocal() as session:
         row = session.scalar(select(Conversation).where(Conversation.id == conversation_id).with_for_update())
         if row is None or row.user_id != user_id:
-            raise BusinessError("CONVERSATION_NOT_FOUND", "Conversation not found", 404)
+            raise BusinessError(404, "Conversation not found", 404)
         row.total_tokens = row.total_tokens + usage.totalTokens
         row.context_tokens = usage.contextTokens
-        row.updated_at = datetime.now(timezone.utc)
+        row.updated_at = datetime.now(UTC).replace(tzinfo=None)
         usage.conversationTotalTokens = row.total_tokens
         session.commit()
 

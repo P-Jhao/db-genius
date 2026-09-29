@@ -3,6 +3,7 @@ import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Message } from '@arco-design/web-vue'
 import { useChatStore } from '../../stores/chat'
+import type { ChatMessage } from '../../stores/chat'
 import { useTrialStore } from '../../stores/trial'
 import { useSse } from '../../composables/useSse'
 import type { UploadedFile, IntentType, UnifiedChatRequest } from '../../types'
@@ -22,7 +23,6 @@ const preDbId = ref<number | null>(null)
 const testDbId = ref<number | null>(null)
 const compareMode = ref(false)
 const uploadedFiles = ref<UploadedFile[]>([])
-const lastUserMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLElement | null>(null)
 
@@ -93,7 +93,6 @@ function handleSend() {
   if (!canSend.value) return
 
   const userText = inputText.value.trim()
-  lastUserMessage.value = userText
   chatStore.addUserMessage(userText)
   inputText.value = ''
 
@@ -101,9 +100,16 @@ function handleSend() {
   send(buildRequest(userText))
 }
 
-function handleConfirmIntent(intent: string) {
-  if (!lastUserMessage.value) return
-  send(buildRequest(lastUserMessage.value, intent as IntentType))
+function handleConfirmIntent(message: ChatMessage, intent: string) {
+  if (intent !== 'simple_chat' && intent !== 'sql_query' &&
+      intent !== 'workflow' && intent !== 'db_compare') {
+    throw new Error(`Invalid confirmed intent: ${intent}`)
+  }
+  const index = chatStore.messages.findIndex((item) => item.id === message.id)
+  if (index < 0) throw new Error('Clarification message is no longer in this conversation')
+  const userMessage = chatStore.messages.slice(0, index).reverse().find((item) => item.role === 'user')
+  if (!userMessage) throw new Error('Clarification has no preceding user message')
+  send(buildRequest(userMessage.content, intent))
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -120,7 +126,6 @@ function handleNewChat() {
   testDbId.value = null
   compareMode.value = false
   uploadedFiles.value = []
-  lastUserMessage.value = ''
 }
 
 function handleFilesChanged(files: UploadedFile[]) {
@@ -173,7 +178,7 @@ const agentCapabilityTooltip = computed(() => t('admin.chat.capabilityTooltip'))
         v-for="msg in chatStore.messages"
         :key="msg.id"
         :message="msg"
-        @confirm-intent="handleConfirmIntent"
+        @confirm-intent="intent => handleConfirmIntent(msg, intent)"
       />
     </div>
 

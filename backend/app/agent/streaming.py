@@ -36,11 +36,16 @@ class ModelStream:
         if json_mode:
             options["response_format"] = {"type": "json_object"}
         try:
-            async for chunk in self.model.astream(messages, **options):
+            async for chunk in self.model.astream(messages, **options):  # type: ignore[arg-type]
                 if not isinstance(chunk, AIMessageChunk):
                     raise TypeError("Model returned a non-assistant chunk")
                 if chunk.usage_metadata is not None:
-                    latest_usage = dict(chunk.usage_metadata)
+                    metadata = chunk.usage_metadata
+                    latest_usage = {
+                        "input_tokens": int(metadata["input_tokens"]),
+                        "output_tokens": int(metadata["output_tokens"]),
+                        "total_tokens": int(metadata["total_tokens"]),
+                    }
                 content_chunk = chunk.model_copy(update={"usage_metadata": None})
                 aggregate = content_chunk if aggregate is None else aggregate + content_chunk
                 if isinstance(chunk.content, str):

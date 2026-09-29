@@ -75,7 +75,8 @@ export interface Message {
     | 'step'
     | 'summary'
     | 'done'
-  | 'aborted'
+    | 'aborted'
+    | 'compressed'
     | 'classifying'
     | 'classified'
     | 'clarify'
@@ -133,6 +134,7 @@ export type SseEventType =
   | 'summary'
   | 'error'
   | 'usage'
+  | 'context_compact'
   | 'done'
   | 'aborted'
 
@@ -146,6 +148,15 @@ export interface TokenUsageVO {
   callCount: number
   conversationTotalTokens?: number | null
   contextWindow?: number | null
+}
+
+export interface ContextCompactContent {
+  phase: 'start' | 'end'
+  tier: 'elide' | 'summarize'
+  message: string
+  beforeTokens?: number | null
+  afterTokens?: number | null
+  affectedUnits?: number | null
 }
 
 /** 上下文压缩结果 */
@@ -176,7 +187,7 @@ export interface SseEvent {
   taskId: string
   step: number
   type: SseEventType
-  content: string | number | ClassifiedContent | ClarifyContent | TokenUsageVO | null
+  content: string | number | ClassifiedContent | ClarifyContent | TokenUsageVO | ContextCompactContent | null
   timestamp: number
 }
 

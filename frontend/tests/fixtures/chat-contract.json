@@ -1,0 +1,67 @@
+{
+  "simple": {
+    "request": { "message": "Hello", "conversationId": null },
+    "events": [
+      { "taskId": "simple-1", "step": 0, "type": "classifying", "content": "Classifying", "timestamp": 1790000000000 },
+      { "taskId": "simple-1", "step": 0, "type": "classified", "content": { "intent": "simple_chat", "confidence": 0.98, "reasoning": "Greeting", "needsClarification": false }, "timestamp": 1790000000001 },
+      { "taskId": "simple-1", "step": 0, "type": "routing", "content": "Simple chat", "timestamp": 1790000000002 },
+      { "taskId": "simple-1", "step": 0, "type": "conversation", "content": 31, "timestamp": 1790000000003 },
+      { "taskId": "simple-1", "step": 0, "type": "reasoning", "content": "Think", "timestamp": 1790000000004 },
+      { "taskId": "simple-1", "step": 0, "type": "content", "content": "Hello", "timestamp": 1790000000005 },
+      { "taskId": "simple-1", "step": 0, "type": "content", "content": " there", "timestamp": 1790000000006 },
+      { "taskId": "simple-1", "step": -1, "type": "usage", "content": { "promptTokens": 10, "completionTokens": 2, "totalTokens": 12, "contextTokens": 10, "callCount": 2, "conversationTotalTokens": 12, "contextWindow": 1000 }, "timestamp": 1790000000007 },
+      { "taskId": "simple-1", "step": -1, "type": "done", "content": null, "timestamp": 1790000000008 }
+    ],
+    "history": [
+      { "id": 1, "conversationId": 31, "role": "user", "content": "Hello", "step": null, "type": "user", "reasoningContent": null, "toolCalls": null, "fileUrl": null, "createdAt": "2026-09-29T10:00:00" },
+      { "id": 2, "conversationId": 31, "role": "assistant", "content": "Hello there", "step": -1, "type": "summary", "reasoningContent": "Think", "toolCalls": null, "fileUrl": null, "createdAt": "2026-09-29T10:00:01" }
+    ]
+  },
+  "sql": {
+    "request": { "message": "Count orders", "conversationId": null, "dbConfigIds": [12] },
+    "events": [
+      { "taskId": "sql-1", "step": 0, "type": "classifying", "content": "Classifying", "timestamp": 1790000001000 },
+      { "taskId": "sql-1", "step": 0, "type": "classified", "content": { "intent": "sql_query", "confidence": 0.97, "reasoning": "Needs database", "needsClarification": false }, "timestamp": 1790000001001 },
+      { "taskId": "sql-1", "step": 0, "type": "routing", "content": "SQL query", "timestamp": 1790000001002 },
+      { "taskId": "sql-1", "step": 0, "type": "conversation", "content": 32, "timestamp": 1790000001003 },
+      { "taskId": "sql-1", "step": 0, "type": "thinking", "content": "Reading schema", "timestamp": 1790000001004 },
+      { "taskId": "sql-1", "step": 1, "type": "step", "content": "SELECT COUNT(*) FROM orders returned 3", "timestamp": 1790000001005 },
+      { "taskId": "sql-1", "step": 1, "type": "summary_delta", "content": "There are ", "timestamp": 1790000001006 },
+      { "taskId": "sql-1", "step": 1, "type": "summary_delta", "content": "three orders.", "timestamp": 1790000001007 },
+      { "taskId": "sql-1", "step": 1, "type": "summary", "content": "There are 3 orders.", "timestamp": 1790000001008 },
+      { "taskId": "sql-1", "step": -1, "type": "usage", "content": { "promptTokens": 20, "completionTokens": 5, "totalTokens": 25, "contextTokens": 20, "callCount": 3, "conversationTotalTokens": 25 }, "timestamp": 1790000001009 },
+      { "taskId": "sql-1", "step": -1, "type": "done", "content": null, "timestamp": 1790000001010 }
+    ],
+    "history": [
+      { "id": 3, "conversationId": 32, "role": "user", "content": "Count orders", "step": null, "type": "user", "reasoningContent": null, "toolCalls": null, "fileUrl": null, "createdAt": "2026-09-29T10:01:00" },
+      { "id": 4, "conversationId": 32, "role": "tool", "content": "[{\"id\":\"call-1\",\"name\":\"sqlExecute\",\"result\":\"{\\\"count\\\":3}\"}]", "step": 1, "type": "tool", "reasoningContent": null, "toolCalls": null, "fileUrl": null, "createdAt": "2026-09-29T10:01:01" },
+      { "id": 5, "conversationId": 32, "role": "assistant", "content": "There are 3 orders.", "step": 1, "type": "summary", "reasoningContent": null, "toolCalls": null, "fileUrl": null, "createdAt": "2026-09-29T10:01:02" }
+    ]
+  },
+  "clarify": {
+    "request": { "message": "Show orders" },
+    "events": [
+      { "taskId": "clarify-1", "step": 0, "type": "classifying", "content": "Classifying", "timestamp": 1790000002000 },
+      { "taskId": "clarify-1", "step": 0, "type": "classified", "content": { "intent": "sql_query", "confidence": 0.44, "reasoning": "No data source", "needsClarification": true }, "timestamp": 1790000002001 },
+      { "taskId": "clarify-1", "step": 0, "type": "clarify", "content": { "question": "Choose an intent", "options": [{ "intent": "sql_query", "label": "SQL query" }, { "intent": "simple_chat", "label": "Simple chat" }], "reasoning": "No data source" }, "timestamp": 1790000002002 },
+      { "taskId": "clarify-1", "step": -1, "type": "usage", "content": { "promptTokens": 8, "completionTokens": 2, "totalTokens": 10, "contextTokens": 8, "callCount": 1 }, "timestamp": 1790000002003 }
+    ],
+    "history": [
+      { "id": 6, "conversationId": 33, "role": "user", "content": "Show orders", "step": -1, "type": "user", "reasoningContent": null, "toolCalls": null, "fileUrl": null, "createdAt": "2026-09-29T10:02:00" },
+      { "id": 7, "conversationId": 33, "role": "assistant", "content": "{\"question\":\"Choose an intent\",\"options\":[{\"intent\":\"sql_query\",\"label\":\"SQL query\"},{\"intent\":\"simple_chat\",\"label\":\"Simple chat\"}],\"reasoning\":\"No data source\"}", "step": -1, "type": "clarify", "reasoningContent": null, "toolCalls": null, "fileUrl": null, "createdAt": "2026-09-29T10:02:01" }
+    ]
+  },
+  "error": {
+    "request": { "message": "Fail" },
+    "events": [
+      { "taskId": "error-1", "step": 0, "type": "classifying", "content": "Classifying", "timestamp": 1790000003000 },
+      { "taskId": "error-1", "step": -1, "type": "error", "content": "Model unavailable", "timestamp": 1790000003001 }
+    ]
+  },
+  "eof": {
+    "request": { "message": "Partial answer" },
+    "events": [
+      { "taskId": "eof-1", "step": 0, "type": "content", "content": "Partial", "timestamp": 1790000004000 }
+    ]
+  }
+}

@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Message, Modal } from '@arco-design/web-vue'
-import type { ConversationVO, SseEvent } from '../../types'
+import type { ClarifyContent, ConversationVO, IntentType, SseEvent } from '../../types'
 import { getConversations, deleteConversation, getMessages } from '../../api/chat'
 import type { Message as MessageType } from '../../types'
 import { useChatStore } from '../../stores/chat'
@@ -114,6 +114,27 @@ function toSseEvent(m: MessageType, type: SseEvent['type']): SseEvent {
   }
 }
 
+function isIntentType(value: unknown): value is IntentType {
+  return value === 'simple_chat' || value === 'sql_query' || value === 'workflow' || value === 'db_compare'
+}
+
+function parseClarifyContent(content: string): ClarifyContent {
+  const parsed: unknown = JSON.parse(content)
+  if (parsed === null || typeof parsed !== 'object') {
+    throw new Error('Invalid clarification history content')
+  }
+  const value = parsed as Record<string, unknown>
+  if (typeof value.question !== 'string' || typeof value.reasoning !== 'string' ||
+      !Array.isArray(value.options) || !value.options.every((option: unknown) => {
+        if (option === null || typeof option !== 'object') return false
+        const item = option as Record<string, unknown>
+        return isIntentType(item.intent) && typeof item.label === 'string'
+      })) {
+    throw new Error('Invalid clarification history content')
+  }
+  return parsed as ClarifyContent
+}
+
 // 归并历史消息：user 行切分回合，连续 assistant/tool 行合并为一条气泡的 blocks 时间线
 function buildChatMessages(list: MessageType[]): ChatMessage[] {
   const msgs: ChatMessage[] = []
@@ -179,8 +200,14 @@ function buildChatMessages(list: MessageType[]): ChatMessage[] {
       case 'error':
         current.blocks.push({ kind: 'event', event: toSseEvent(m, 'error') })
         break
+      case 'clarify':
+        current.blocks.push({
+          kind: 'event',
+          event: { ...toSseEvent(m, 'clarify'), content: parseClarifyContent(m.content) },
+        })
+        break
       default:
-        // classifying/classified/routing/thinking/clarify/done 等瞬时状态不回放
+        // classifying/classified/routing/thinking/done 等瞬时状态不回放
         break
     }
   }
