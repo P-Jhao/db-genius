@@ -23,4 +23,4 @@ All checks passed!
 
 未验证：真实 DeepSeek/OpenAI/Ollama/custom 供应商差异。S07 的聊天图、业务 SSE 和 S08 的驱动取消不属于本阶段结论。
 
-提交：本阶段提交号见 Git 历史；本记录与实现同次提交。
+提交：`e5b885b`。
