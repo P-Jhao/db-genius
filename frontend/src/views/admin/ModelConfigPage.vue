@@ -154,7 +154,8 @@ async function handleFetchContextWindow() {
   }
 }
 
-function handleProviderChange(code: string | number | boolean | Record<string, any> | undefined) {
+function handleProviderChange(code: unknown) {
+  if (typeof code !== 'string') return
   const provider = providers.value.find((p) => p.providerCode === code)
   if (!provider) return
   form.baseUrl = provider.defaultBaseUrl || ''

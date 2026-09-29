@@ -19,7 +19,8 @@ function getHeaders(): Record<string, string> {
 export function streamChat(
   body: UnifiedChatRequest,
   onEvent: (event: SseEvent) => void,
-  onError: (err: Error) => void
+  onError: (err: Error) => void,
+  onComplete: () => void
 ): AbortController {
   const ctrl = new AbortController()
 
@@ -47,10 +48,14 @@ export function streamChat(
       throw err // stop retry
     },
     openWhenHidden: true,
-  }).catch((error: unknown) => {
-    if (ctrl.signal.aborted) return
-    onError(error instanceof Error ? error : new Error(String(error)))
   })
+    .then(() => {
+      if (!ctrl.signal.aborted) onComplete()
+    })
+    .catch((error: unknown) => {
+      if (ctrl.signal.aborted) return
+      onError(error instanceof Error ? error : new Error(String(error)))
+    })
 
   return ctrl
 }

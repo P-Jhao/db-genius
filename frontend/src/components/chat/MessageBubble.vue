@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { SseEvent } from '../../types'
+import type { ClarifyContent, SseEvent } from '../../types'
 import type { ChatMessage, ChatBlock } from '../../stores/chat'
 import SseStepCard from './SseStepCard.vue'
 import SummaryCard from './SummaryCard.vue'
@@ -23,8 +23,8 @@ const hasSummary = computed(() => props.message.blocks.some((b) => b.kind === 's
 const hasContent = computed(() => props.message.content && !hasSummary.value)
 const lastEventIndex = computed(() => eventBlocks.value.length - 1)
 
-function isClarifyEvent(event: SseEvent): boolean {
-  return event.type === 'clarify'
+function isClarifyContent(content: SseEvent['content']): content is ClarifyContent {
+  return content !== null && typeof content === 'object' && 'question' in content && 'options' in content && 'reasoning' in content
 }
 
 function eventIndex(block: ChatBlock): number {
@@ -69,8 +69,8 @@ function handleConfirm(intent: string) {
               :timestamp="block.timestamp"
             />
             <ClarifyCard
-              v-else-if="isClarifyEvent(block.event) && block.event.content && typeof block.event.content === 'object'"
-              :content="block.event.content as any"
+              v-else-if="block.event.type === 'clarify' && isClarifyContent(block.event.content)"
+              :content="block.event.content"
               @confirm="handleConfirm"
             />
             <SseStepCard

@@ -146,7 +146,7 @@ async function handleViewDoc(config: DbConfigVO) {
   }
 }
 
-function getStatusType(status: number): string {
+function getStatusType(status: number): 'warning' | 'success' | 'danger' {
   if (status === 0) return 'warning'
   if (status === 1) return 'success'
   return 'danger'
@@ -188,7 +188,7 @@ onMounted(() => {
               <span>{{ config.name }}</span>
             </div>
             <a-badge
-              :status="getStatusType(config.status) as any"
+              :status="getStatusType(config.status)"
               :text="config.statusDesc"
             />
           </div>
