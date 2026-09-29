@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.schemas.base import ApiModel
 
@@ -16,18 +16,48 @@ class ModelProviderVO(ApiModel):
     sort_order: int
 
 
-class UserModelConfigRequest(ApiModel):
+class UserModelConfigBase(ApiModel):
     provider_code: str = Field(min_length=1)
     provider_type: str = Field(min_length=1)
     display_name: str = Field(min_length=1, max_length=128)
     base_url: str | None = Field(default=None, max_length=256)
-    api_key: str = Field(min_length=1)
     model_name: str = Field(min_length=1, max_length=128)
     context_window: int | None = Field(default=None, gt=0)
 
+    @field_validator("provider_code", "provider_type", "display_name", "model_name")
+    @classmethod
+    def not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("must not be blank")
+        return value
 
-class UserModelConfigUpdate(UserModelConfigRequest):
+
+class UserModelConfigRequest(UserModelConfigBase):
+    api_key: str = Field(min_length=1)
+
+    @field_validator("api_key")
+    @classmethod
+    def api_key_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("must not be blank")
+        return value
+
+
+class UserModelConfigUpdate(UserModelConfigBase):
     api_key: str = ""
+
+
+class ContextWindowLookupRequest(ApiModel):
+    base_url: str = Field(min_length=1, max_length=256)
+    api_key: str = Field(min_length=1)
+    model_name: str = Field(min_length=1, max_length=128)
+
+    @field_validator("base_url", "api_key", "model_name")
+    @classmethod
+    def not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("must not be blank")
+        return value
 
 
 class UserModelConfigVO(ApiModel):

@@ -80,8 +80,8 @@ def test_java_aes_layout_is_compatible(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_health_route_is_real() -> None:
-    with TestClient(app) as client:
-        response = client.get("/api/health")
-        assert response.status_code == 200
-        assert response.json()["data"]["status"] == "UP"
-        assert client.post("/api/auth/login", json={}).status_code == 400
+    client = TestClient(app)
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    assert response.json()["data"]["status"] == "UP"
+    assert client.post("/api/auth/login", json={}).status_code == 400

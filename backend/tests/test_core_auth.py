@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, delete, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from app import main
 from app.api import auth as api_auth
 from app.core import auth as core_auth
 from app.core.auth import authenticated_user, utc_now
@@ -25,6 +26,7 @@ def pg_session_factory(monkeypatch: pytest.MonkeyPatch) -> Iterator[sessionmaker
         pytest.skip("SQLCHAT_TEST_DATABASE_URL is required for PostgreSQL authentication integration")
     engine = create_engine(url, connect_args={"options": "-csearch_path=app"})
     factory = sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(main, "SessionLocal", factory)
     monkeypatch.setattr(core_auth, "SessionLocal", factory)
     monkeypatch.setattr(api_auth, "SessionLocal", factory)
     try:
