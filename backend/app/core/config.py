@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     encrypt_key: str = Field(default="", validation_alias=AliasChoices("SQLCHAT_ENCRYPT_KEY", "DB_GENIUS_ENCRYPT_KEY"))
     broker_url: str = "amqp://guest:guest@localhost:5672//"
     task_always_eager: bool = False
+    verification_timeout_seconds: int = Field(default=180, gt=120)
     storage_backend: Literal["oss", "local"] = "oss"
     storage_root: str = "./uploads"
     oss_endpoint: str = ""

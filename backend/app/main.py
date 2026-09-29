@@ -7,12 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.auth import router as auth_router
+from app.api.db_config import router as db_config_router
 from app.api.model_config import router as model_config_router
 from app.api.system import router as system_router
 from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.errors import BusinessError
 from app.core.localization import translate
+from app.services.db_config_init import initialize_trial_database
 from app.services.model_config import initialize_providers
 
 
@@ -20,6 +22,7 @@ from app.services.model_config import initialize_providers
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     with SessionLocal() as session:
         initialize_providers(session)
+        initialize_trial_database(session)
     yield
 
 
@@ -52,4 +55,5 @@ async def validation_error_handler(request: Request, error: RequestValidationErr
 
 app.include_router(system_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(db_config_router, prefix="/api")
 app.include_router(model_config_router, prefix="/api")
