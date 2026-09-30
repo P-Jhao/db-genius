@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import math
+import threading
 import time as clock
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -14,9 +15,17 @@ from uuid import UUID
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine import URL, Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 from sqlalchemy.pool import NullPool
 
+from app.adapters.cancellation import (
+    DatabaseExecutionInterrupted,
+    DatabaseWriteOutcomeUnknown,
+    ExecutionWatchdog,
+    cancel_mysql_statement,
+    cancel_postgresql_statement,
+    server_confirmed_interrupt,
+)
 from app.adapters.document import render_document
 from app.adapters.safety import check_statement
 from app.adapters.types import (
@@ -59,6 +68,8 @@ class RelationalAdapter:
     driver: str
     default_port: int
     metadata_schema: str | None = None
+    mysql_protocol: bool = False
+    watchdog_on_timeout: bool = False
 
     def validate_config(self, config: DbConnectionConfig) -> None:
         if config.db_type != self.db_type:
@@ -76,7 +87,7 @@ class RelationalAdapter:
             raise ValueError("timeout_seconds must be positive")
         url = URL.create(self.driver, username=config.username, password=config.password,
                          host=config.host, port=config.port, database=config.db_name)
-        if self.db_type == "mysql":
+        if self.mysql_protocol:
             arguments: dict[str, object] = {"connect_timeout": min(timeout_seconds, 10),
                                             "read_timeout": timeout_seconds,
                                             "write_timeout": timeout_seconds, "charset": "utf8mb4"}
@@ -110,44 +121,130 @@ class RelationalAdapter:
             if trial_mode:
                 connection.exec_driver_sql("START TRANSACTION READ ONLY")
 
+    def _cancel_running_statement(self, config: DbConnectionConfig, connection: Connection,
+                                  connection_id: int | None) -> None:
+        if self.db_type == "postgresql":
+            cancel_postgresql_statement(connection)
+            return
+        if connection_id is None:
+            raise RuntimeError("MySQL connection ID is unavailable for cancellation")
+        cancel_mysql_statement(connection_id, lambda: self._connection(config, 3))
+
+    def _server_confirmed_interrupt(self, exc: SQLAlchemyError) -> bool:
+        return server_confirmed_interrupt(exc)
+
+    def _driver_timeout(self, exc: SQLAlchemyError) -> bool:
+        return False
+
+    def _json_value(self, value: object) -> object:
+        return _json_value(value)
+
     def execute(self, config: DbConnectionConfig, statement: str, *, trial_mode: bool = False,
-                timeout_seconds: int = 30, max_rows: int = 100) -> QueryResult:
+                timeout_seconds: int = 30, max_rows: int = 100,
+                cancel_event: threading.Event | None = None) -> QueryResult:
         policy = check_statement(statement, self.dialect, trial_mode=trial_mode)
         if not isinstance(max_rows, int) or isinstance(max_rows, bool) or max_rows <= 0:
             raise ValueError("max_rows must be positive")
+        if cancel_event is not None and cancel_event.is_set():
+            raise DatabaseExecutionInterrupted("cancelled", cancel_request_sent=False,
+                                               server_termination_confirmed=False,
+                                               write_outcome_unknown=False)
         with self._connection(config, timeout_seconds) as connection:
+            watchdog: ExecutionWatchdog | None = None
+            dispatched = False
             try:
                 self._set_timeout(connection, timeout_seconds, trial_mode)
+                connection_id = (int(connection.exec_driver_sql("SELECT CONNECTION_ID()").scalar_one())
+                                 if self.mysql_protocol else None)
+                if cancel_event is not None and cancel_event.is_set():
+                    raise DatabaseExecutionInterrupted("cancelled", cancel_request_sent=False,
+                                                       server_termination_confirmed=False,
+                                                       write_outcome_unknown=False)
+                if self.mysql_protocol or self.watchdog_on_timeout or cancel_event is not None:
+                    watchdog = ExecutionWatchdog(
+                        cancel_event, timeout_seconds,
+                        lambda: self._cancel_running_statement(config, connection, connection_id),
+                    )
                 target = connection.execution_options(no_parameters=True, stream_results=policy.read_only)
                 started = clock.monotonic()
-                result = target.exec_driver_sql(statement)
+                if watchdog is not None:
+                    watchdog.start()
                 try:
-                    if result.returns_rows:
-                        rows = result.fetchmany(max_rows + 1)
-                        data = [{key: _json_value(value) for key, value in row._mapping.items()}
-                                for row in rows[:max_rows]]
-                        response: QueryResult = {"success": True, "rowCount": len(data), "data": data,
-                                                 "truncated": len(rows) > max_rows}
-                    else:
-                        affected = result.rowcount if result.rowcount >= 0 else None
-                        detail = (f"{affected} row(s) affected." if affected is not None
-                                  else "Affected row count unavailable.")
-                        response = {"success": True, "affectedRows": affected,
-                                    "message": f"SQL executed successfully. {detail}"}
+                    dispatched = True
+                    result = target.exec_driver_sql(statement)
+                    try:
+                        if result.returns_rows:
+                            rows = result.fetchmany(max_rows + 1)
+                            data = [{key: self._json_value(value) for key, value in row._mapping.items()}
+                                    for row in rows[:max_rows]]
+                            response: QueryResult = {"success": True, "rowCount": len(data), "data": data,
+                                                     "truncated": len(rows) > max_rows}
+                        else:
+                            affected = result.rowcount if result.rowcount >= 0 else None
+                            detail = (f"{affected} row(s) affected." if affected is not None
+                                      else "Affected row count unavailable.")
+                            response = {"success": True, "affectedRows": affected,
+                                        "message": f"SQL executed successfully. {detail}"}
+                    finally:
+                        result.close()
                 finally:
-                    result.close()
-                if clock.monotonic() - started >= timeout_seconds:
-                    raise TimeoutError("SQL execution exceeded its time limit; write outcome may be unknown")
+                    if watchdog is not None:
+                        watchdog.stop()
+                reason = watchdog.reason if watchdog is not None else None
+                if reason is None and cancel_event is not None and cancel_event.is_set():
+                    reason = "cancelled"
+                if reason is None and clock.monotonic() - started >= timeout_seconds:
+                    reason = "timeout"
+                if reason is not None:
+                    raise DatabaseExecutionInterrupted(
+                        reason, cancel_request_sent=watchdog.cancel_request_sent if watchdog else False,
+                        server_termination_confirmed=False,
+                        write_outcome_unknown=dispatched and not policy.read_only,
+                        cancel_error=watchdog.cancel_error if watchdog else None,
+                    )
                 if trial_mode:
                     connection.rollback()
                 else:
-                    connection.commit()
+                    try:
+                        connection.commit()
+                    except SQLAlchemyError as exc:
+                        if not policy.read_only:
+                            raise DatabaseWriteOutcomeUnknown(
+                                "Database write commit failed; outcome may be unknown"
+                            ) from exc
+                        raise
                 return response
             except Exception as exc:
+                interrupted: DatabaseExecutionInterrupted | None = None
+                uncertain: DatabaseWriteOutcomeUnknown | None = None
+                if isinstance(exc, SQLAlchemyError) and dispatched:
+                    reason = watchdog.reason if watchdog is not None else None
+                    if reason is None and cancel_event is not None and cancel_event.is_set():
+                        reason = "cancelled"
+                    if reason is None and clock.monotonic() - started >= timeout_seconds:
+                        reason = "timeout"
+                    if reason is None and self._driver_timeout(exc):
+                        reason = "timeout"
+                    if reason is not None:
+                        interrupted = DatabaseExecutionInterrupted(
+                            reason, cancel_request_sent=watchdog.cancel_request_sent if watchdog else False,
+                            server_termination_confirmed=self._server_confirmed_interrupt(exc),
+                            write_outcome_unknown=not policy.read_only,
+                            cancel_error=watchdog.cancel_error if watchdog else None,
+                        )
+                    elif (isinstance(exc, DBAPIError) and exc.connection_invalidated
+                          and not policy.read_only):
+                        uncertain = DatabaseWriteOutcomeUnknown(
+                            "Database connection failed during a write; outcome may be unknown"
+                        )
                 try:
                     connection.rollback()
                 except SQLAlchemyError as rollback_exc:
-                    exc.add_note(f"Rollback also failed: {rollback_exc}")
+                    (interrupted or uncertain or exc).add_note(f"Rollback also failed: {rollback_exc}")
+                if interrupted is not None:
+                    raise interrupted from exc
+                if uncertain is not None:
+                    raise uncertain from exc
                 raise
 
     def _qualified_name(self, connection: Connection, table: str) -> str:

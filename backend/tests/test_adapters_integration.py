@@ -1,13 +1,14 @@
 """Runs only with credentials for the isolated migration test containers."""
 
 import os
-from time import monotonic
+import threading
+from time import monotonic, sleep
 from uuid import uuid4
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.adapters import DbConnectionConfig, get_adapter
+from app.adapters import DatabaseExecutionInterrupted, DbConnectionConfig, get_adapter
 from app.adapters.safety import UnsafeStatement
 
 
@@ -132,3 +133,52 @@ def test_postgresql_failed_count_does_not_poison_other_tables() -> None:
             connection.exec_driver_sql(f"REVOKE ALL ON SCHEMA public FROM {user}")
             connection.exec_driver_sql(f"DROP ROLE IF EXISTS {user}")
             connection.commit()
+
+
+@pytest.mark.parametrize("db_type", ["mysql", "postgresql"])
+def test_real_running_slow_query_cancel(db_type: str) -> None:
+    config = _config(db_type)
+    adapter = get_adapter(db_type)
+    marker = f"s08_{uuid4().hex}"
+    statement = (f"SELECT COUNT(*) FROM information_schema.COLUMNS a "
+                 f"CROSS JOIN information_schema.COLUMNS b "
+                 f"CROSS JOIN information_schema.COLUMNS c "
+                 f"CROSS JOIN information_schema.COLUMNS d /* {marker} */" if db_type == "mysql"
+                 else f"SELECT pg_sleep(10) /* {marker} */")
+    observer_sql = (
+        f"SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID <> CONNECTION_ID() "
+        f"AND INFO IS NOT NULL AND LOCATE('{marker}', INFO) > 0"
+        if db_type == "mysql" else
+        "SELECT COUNT(*) FROM pg_stat_activity WHERE pid <> pg_backend_pid() "
+        "AND state = 'active' AND wait_event_type = 'Timeout' AND wait_event = 'PgSleep'"
+    )
+    signal = threading.Event()
+    errors: list[Exception] = []
+
+    def run() -> None:
+        try:
+            adapter.execute(config, statement, cancel_event=signal, timeout_seconds=15)
+        except Exception as exc:  # noqa: BLE001 - assert the exact outcome after joining the worker
+            errors.append(exc)
+
+    worker = threading.Thread(target=run)
+    worker.start()
+    try:
+        with adapter._connection(config, 5) as observer:
+                deadline = monotonic() + 5
+                while int(observer.exec_driver_sql(observer_sql).scalar_one()) == 0:
+                    assert monotonic() < deadline, "Slow query never became visible to the observer"
+                    observer.rollback()  # pg_stat_activity snapshots are cached for a transaction.
+                    sleep(0.05)
+        signal.set()
+        worker.join(6)
+        assert not worker.is_alive(), "Database driver did not return after cancellation"
+        assert len(errors) == 1
+        assert isinstance(errors[0], DatabaseExecutionInterrupted)
+        assert errors[0].reason == "cancelled"
+        assert errors[0].cancel_request_sent is True
+        assert errors[0].server_termination_confirmed is True
+        assert errors[0].write_outcome_unknown is False
+    finally:
+        signal.set()
+        worker.join(16)
