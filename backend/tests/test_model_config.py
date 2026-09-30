@@ -11,12 +11,12 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.api import auth as api_auth
 from app.core import auth as core_auth
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.security import decrypt, hash_password
 from app.main import app
-from app.models import AuthSession, User, UserModelConfig
+from app.models import AuthSession, ModelProvider, User, UserModelConfig
 from app.services import model_config as model_service
-from app.services.model_config_info import lookup_context_window
+from app.services.model_config_info import known_context_window, lookup_context_window
 
 
 @pytest.fixture
@@ -110,6 +110,8 @@ def test_provider_init_crud_defaults_ownership_and_secret(
         assert client.get("/api/model-config/providers", headers=second_auth).json() == providers
         fallback = client.get("/api/model-config/active", headers=first_auth).json()["data"]
         assert fallback["id"] is None and fallback["providerCode"] == "system"
+        assert fallback["modelName"] == "deepseek-flash"
+        assert fallback["contextWindow"] == 1048576
         assert "apiKey" not in fallback and "system-secret" not in str(fallback)
         with pg_factory() as session:
             resolved = model_service.resolve_active_model(session, first.id)
@@ -220,3 +222,39 @@ def test_registry_and_local_http_probe(model_server: tuple[str, list[tuple[str, 
                              ("/api/models", "Bearer third")]
     failed = lookup_context_window("not-a-url", "secret", "unknown-model")
     assert failed.source == "not_found" and failed.context_window is None
+
+
+def test_deepseek_flash_default_and_window_without_env_file(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SQLCHAT_DEFAULT_MODEL_NAME", raising=False)
+    settings = Settings(_env_file=None)
+    assert settings.default_model_base_url == "https://api.deepseek.com"
+    assert settings.default_model_name == "deepseek-flash"
+    assert known_context_window(settings.default_model_name) == 1048576
+    provider = next(item for item in model_service.BUILTIN_PROVIDERS if item[0] == "deepseek")
+    assert provider[2:4] == ("https://api.deepseek.com", "deepseek-flash")
+    assert known_context_window("deepseek-v4-pro") == 65536
+
+
+def test_provider_seed_upgrades_only_builtin_default_and_is_idempotent() -> None:
+    engine = create_engine("sqlite://")
+    try:
+        with engine.begin() as connection:
+            connection.exec_driver_sql("ATTACH DATABASE ':memory:' AS app")
+        ModelProvider.__table__.create(engine)
+        with Session(engine) as session:
+            model_service.initialize_providers(session)
+            provider = session.scalar(select(ModelProvider).where(ModelProvider.provider_code == "deepseek"))
+            assert provider is not None and provider.default_model == "deepseek-flash"
+            provider.default_model = "deepseek-v4-pro"
+            session.commit()
+            model_service.initialize_providers(session)
+            assert provider.default_model == "deepseek-flash"
+            model_service.initialize_providers(session)
+            assert provider.default_model == "deepseek-flash"
+            provider.builtin = False
+            provider.default_model = "custom-deepseek"
+            session.commit()
+            model_service.initialize_providers(session)
+            assert provider.default_model == "custom-deepseek"
+    finally:
+        engine.dispose()

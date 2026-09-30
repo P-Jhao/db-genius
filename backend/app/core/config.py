@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     default_model_api_key: str = Field(
         default="", validation_alias=AliasChoices("SQLCHAT_DEFAULT_MODEL_API_KEY", "DEEPSEEK_API_KEY")
     )
-    default_model_name: str = "deepseek-v4-pro"
+    default_model_name: str = "deepseek-flash"
     trial_enabled: bool = False
     trial_builtin_db_name: str = "db-genius"
     trial_builtin_host: str = ""

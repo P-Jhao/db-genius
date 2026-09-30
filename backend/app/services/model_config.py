@@ -21,7 +21,7 @@ from app.schemas.model_config import (
 from app.services.model_config_info import known_context_window, lookup_context_window
 
 BUILTIN_PROVIDERS = (
-    ("deepseek", "DeepSeek", "https://api.deepseek.com", "deepseek-v4-pro", 10),
+    ("deepseek", "DeepSeek", "https://api.deepseek.com", "deepseek-flash", 10),
     ("openai", "OpenAI", "https://api.openai.com", "gpt-4o", 20),
     ("ollama", "Ollama", "http://localhost:11434", "llama3.1", 60),
     ("custom", "自定义（OpenAI 兼容）", None, None, 90),
@@ -44,9 +44,12 @@ class ResolvedModel:
 
 
 def initialize_providers(session: Session) -> None:
-    existing = set(session.scalars(select(ModelProvider.provider_code)).all())
+    existing = {provider.provider_code: provider for provider in session.scalars(select(ModelProvider)).all()}
     for code, name, base_url, model, order in BUILTIN_PROVIDERS:
         if code in existing:
+            provider = existing[code]
+            if code == "deepseek" and provider.builtin and provider.default_model != model:
+                provider.default_model = model
             continue
         try:
             with session.begin_nested():

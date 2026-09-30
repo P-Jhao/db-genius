@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 EXACT_WINDOWS = {
     "deepseek-chat": 65536, "deepseek-reasoner": 65536,
     "deepseek-v3": 65536, "deepseek-v4-pro": 65536,
+    "deepseek-flash": 1048576,
     "gpt-4-turbo": 131072, "gpt-3.5-turbo": 16385,
     "qwen-max": 32768, "qwen-plus": 131072, "qwen-turbo": 131072,
     "glm-4": 131072, "glm-4-plus": 131072,
