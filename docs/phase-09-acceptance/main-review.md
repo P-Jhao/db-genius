@@ -1,6 +1,6 @@
 # S09 主代理验收
 
-2026-10-01，基于冻结清单独立复验。实际 PostgreSQL/MySQL 凭据仅在子进程环境；模型使用受控 HTTP 流。
+2026-10-01，基于冻结清单独立复验；阶段提交 `0bd3fc8`。实际 PostgreSQL/MySQL 凭据仅在子进程环境；模型使用受控 HTTP 流。
 
 - Ruff app/tests 全通过；mypy app 56 个源模块通过。
 - pytest tests：143 passed、3 skipped，97.96 秒。三个跳过项为已有 Worker/Broker 专用条件，不能计为通过；S14 真实 Worker 消费和控制另有 2 项主代理证据。
