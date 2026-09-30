@@ -50,6 +50,16 @@ export default {
     step: 'ステップ {n}',
     content: '返信',
     error: 'エラー',
+    contextCompact: {
+      label: 'コンテキスト圧縮',
+      phase: { label: '段階', start: '開始', end: '完了' },
+      tier: { label: '方式', elide: '省略', summarize: '要約' },
+      message: '内容',
+      beforeTokens: '圧縮前トークン',
+      afterTokens: '圧縮後トークン',
+      affectedUnits: '対象数',
+    },
+
   },
   summary: {
     streaming: '要約を生成中…',

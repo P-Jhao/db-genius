@@ -50,6 +50,16 @@ export default {
     step: '步驟 {n}',
     content: '回覆',
     error: '錯誤',
+    contextCompact: {
+      label: '上下文壓縮',
+      phase: { label: '階段', start: '開始', end: '完成' },
+      tier: { label: '策略', elide: '裁剪', summarize: '摘要' },
+      message: '說明',
+      beforeTokens: '壓縮前 Token',
+      afterTokens: '壓縮後 Token',
+      affectedUnits: '影響項目數',
+    },
+
   },
   summary: {
     streaming: '正在產生總結…',

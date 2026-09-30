@@ -50,6 +50,16 @@ export default {
     step: 'Étape {n}',
     content: 'Réponse',
     error: 'Erreur',
+    contextCompact: {
+      label: 'Compression du contexte',
+      phase: { label: 'Phase', start: 'Début', end: 'Terminé' },
+      tier: { label: 'Méthode', elide: 'Élagage', summarize: 'Résumé' },
+      message: 'Message',
+      beforeTokens: 'Tokens avant',
+      afterTokens: 'Tokens après',
+      affectedUnits: 'Unités concernées',
+    },
+
   },
   summary: {
     streaming: 'Génération du résumé…',

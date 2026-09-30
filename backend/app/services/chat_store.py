@@ -47,16 +47,75 @@ def save(conversation_id: int, role: str, content: str, kind: str, step: int = -
         return message_id
 
 
+def _context_rows(session: Session, conversation_id: int) -> list[Message]:
+    rows = list(session.scalars(select(Message).where(Message.conversation_id == conversation_id)
+                                .order_by(Message.id)))
+    active = [row for row in rows if (
+        row.type == "context_summary" or
+        (row.role == "user" and row.type in ("user", None)) or
+        (row.role == "assistant" and row.type in ("summary", "content", None))
+    )]
+    markers = [row for row in active if row.type == "context_summary" or
+               (row.type == "summary" and row.step == -2)]
+    if not markers:
+        return active
+    latest = markers[-1]
+    retained_ids: list[int] = []
+    if latest.type == "summary":
+        raw_ids = (latest.metadata_json or {}).get("retainedMessageIds", [])
+        if not isinstance(raw_ids, list) or not all(isinstance(value, int) and not isinstance(value, bool)
+                                                    for value in raw_ids) or len(raw_ids) != len(set(raw_ids)):
+            raise ValueError("Invalid context summary retained message IDs")
+        retained_ids = raw_ids
+    retained = [row for row in active if row.id in retained_ids and row.id < latest.id]
+    if len(retained) != len(retained_ids):
+        raise ValueError("Context summary references missing retained messages")
+    following = [row for row in active if row.id > latest.id and row not in markers]
+    return [latest, *retained, *following]
+
+
+def context_snapshot(user_id: int, conversation_id: int) -> tuple[list[Message], int | None]:
+    with SessionLocal() as session:
+        conversation = owned(session, user_id, conversation_id)
+        return _context_rows(session, conversation_id), conversation.context_tokens
+
+
+def apply_compression(user_id: int, conversation_id: int, expected_ids: list[int],
+                      compressed_ids: list[int], summary: str, after_tokens: int) -> int:
+    """Atomically replace one validated context snapshot; preserve all message bodies."""
+    with SessionLocal() as session:
+        conversation = session.scalar(select(Conversation).where(Conversation.id == conversation_id)
+                                      .with_for_update())
+        if conversation is None or conversation.user_id != user_id:
+            raise BusinessError(404, "Conversation not found", 404)
+        active = _context_rows(session, conversation_id)
+        if [row.id for row in active] != expected_ids:
+            raise RuntimeError("Conversation changed during compression")
+        if not compressed_ids or not set(compressed_ids).issubset(set(expected_ids)):
+            raise ValueError("Invalid compressed message IDs")
+        retained_ids = [row.id for row in active if row.id not in compressed_ids]
+        for row in active:
+            if row.id in compressed_ids:
+                row.type = "compressed"
+        summary_row = Message(conversation_id=conversation_id, role="assistant", content=summary,
+                              type="summary", step=-2,
+                              metadata_json={"retainedMessageIds": retained_ids})
+        session.add(summary_row)
+        conversation.context_tokens = after_tokens
+        conversation.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        session.flush()
+        summary_id = summary_row.id
+        session.commit()
+        return summary_id
+
+
 def history(user_id: int, conversation_id: int) -> list[BaseMessage]:
     with SessionLocal() as session:
         owned(session, user_id, conversation_id)
-        rows = list(session.scalars(select(Message).where(Message.conversation_id == conversation_id).order_by(Message.id)))
-        latest_summary = next((i for i in range(len(rows) - 1, -1, -1) if rows[i].type == "context_summary"), None)
-        if latest_summary is not None:
-            rows = rows[latest_summary:]
+        rows = _context_rows(session, conversation_id)
         messages: list[BaseMessage] = []
         for row in rows:
-            if row.type == "context_summary":
+            if row.type == "context_summary" or (row.type == "summary" and row.step == -2):
                 messages.append(SystemMessage(content="Previous conversation summary:\n" + row.content))
             elif row.role == "user" and row.type in ("user", None):
                 messages.append(HumanMessage(content=row.content))
@@ -80,7 +139,7 @@ def update_usage(user_id: int, conversation_id: int, usage: Usage) -> None:
 def finalize_run(user_id: int, conversation_id: int, task_id: str, usage: Usage,
                  status: str, content: str, kind: str,
                  details: dict[str, object] | None = None) -> bool:
-    """Apply terminal content and known provider usage once per task."""
+    """Write one terminal message and apply known provider usage once per task."""
     if status not in {"done", "error", "aborted"}:
         raise ValueError(f"Unsupported chat run status: {status}")
     with SessionLocal() as session:

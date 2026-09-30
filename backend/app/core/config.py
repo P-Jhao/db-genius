@@ -1,8 +1,10 @@
+import json
+import re
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import AliasChoices, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import AliasChoices, Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -46,6 +48,50 @@ class Settings(BaseSettings):
     workflow_agent_max_steps: int = Field(default=20, gt=0)
     compare_agent_max_steps: int = Field(default=15, gt=0)
     checkpoint_database_url: str = ""
+    context_auto_compress_enabled: bool = False
+    context_auto_compress_threshold: float = Field(default=0.8, gt=0, le=1)
+    context_keep_last_messages: int = Field(default=6, gt=0)
+    observation_elision_enabled: bool = True
+    observation_elision_threshold: float = Field(default=0.6, gt=0, le=1)
+    observation_elision_keep_last_steps: int = Field(default=3, gt=0)
+    step_summary_enabled: bool = True
+    step_summary_threshold: float = Field(default=0.8, gt=0, le=1)
+    step_summary_keep_last_steps: int = Field(default=4, gt=0)
+    stale_reasoning_discard_enabled: bool = False
+    repeated_tool_call_warning_count: int = Field(default=3, gt=0)
+    repeated_tool_call_stop_count: int = Field(default=5, gt=0)
+    tool_output_max_characters: int = Field(default=4000, gt=0)
+    tool_output_max_rows: int = Field(default=50, gt=0)
+    tool_output_per_tool_max_characters: Annotated[dict[str, int], NoDecode] = Field(default_factory=dict)
+    tool_artifact_ttl_seconds: int = Field(default=1800, gt=0)
+    tool_artifact_max_per_task: int = Field(default=20, gt=0)
+
+    @field_validator("tool_output_per_tool_max_characters", mode="before")
+    @classmethod
+    def tool_output_overrides(cls, value: object) -> dict[str, int]:
+        if isinstance(value, str):
+            if not value.strip():
+                return {}
+            if value.lstrip().startswith("{"):
+                value = json.loads(value)
+            else:
+                parsed: dict[str, int] = {}
+                for item in value.split(","):
+                    name, separator, limit = item.partition("=")
+                    if not separator or name.strip() in parsed:
+                        raise ValueError("Invalid or duplicate tool output override")
+                    parsed[name.strip()] = int(limit.strip())
+                value = parsed
+        if not isinstance(value, dict):
+            raise TypeError("Tool output overrides must be a mapping")
+        result: dict[str, int] = {}
+        for name, limit in value.items():
+            if not isinstance(name, str) or re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", name) is None:
+                raise ValueError("Invalid tool name in output overrides")
+            if not isinstance(limit, int) or isinstance(limit, bool) or limit <= 0:
+                raise ValueError("Tool output override must be a positive integer")
+            result[name] = limit
+        return result
 
 
 @lru_cache

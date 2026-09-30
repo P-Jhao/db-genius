@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { SseEvent } from '../../types'
+import type { ContextCompactContent, SseEvent } from '../../types'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     event: SseEvent
     isActive?: boolean
@@ -14,6 +14,25 @@ withDefaults(
 )
 
 const { t, locale } = useI18n()
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isContextCompactContent(value: unknown): value is ContextCompactContent {
+  return isRecord(value) && (value.phase === 'start' || value.phase === 'end') &&
+    (value.tier === 'elide' || value.tier === 'summarize') && typeof value.message === 'string' &&
+    ['beforeTokens', 'afterTokens', 'affectedUnits'].every((field) =>
+      !(field in value) || value[field] === undefined || value[field] === null || typeof value[field] === 'number')
+}
+
+const contextCompactContent = computed(() => {
+  if (props.event.type !== 'context_compact') return null
+  if (!isContextCompactContent(props.event.content)) {
+    throw new Error('Invalid context_compact SSE content')
+  }
+  return props.event.content
+})
 
 const displayContent = computed(() => (event: SseEvent) => {
   if (event.type === 'classified' && event.content && typeof event.content === 'object') {
@@ -38,6 +57,8 @@ const stepLabel = computed(() => (event: SseEvent) => {
       return t('chat.steps.step', { n: event.step })
     case 'content':
       return t('chat.steps.content')
+    case 'context_compact':
+      return t('chat.steps.contextCompact.label')
     case 'error':
       return t('chat.steps.error')
     default:
@@ -65,7 +86,33 @@ const stepTime = computed(() => (event: SseEvent) => {
       <span class="step-time">{{ stepTime(event) }}</span>
     </div>
     <div class="step-content">
-      <pre>{{ displayContent(event) }}</pre>
+      <dl v-if="contextCompactContent" class="context-compact-details">
+        <div>
+          <dt>{{ t('chat.steps.contextCompact.phase.label') }}</dt>
+          <dd>{{ t(`chat.steps.contextCompact.phase.${contextCompactContent.phase}`) }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('chat.steps.contextCompact.tier.label') }}</dt>
+          <dd>{{ t(`chat.steps.contextCompact.tier.${contextCompactContent.tier}`) }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('chat.steps.contextCompact.message') }}</dt>
+          <dd>{{ contextCompactContent.message }}</dd>
+        </div>
+        <div v-if="contextCompactContent.beforeTokens !== undefined && contextCompactContent.beforeTokens !== null">
+          <dt>{{ t('chat.steps.contextCompact.beforeTokens') }}</dt>
+          <dd>{{ contextCompactContent.beforeTokens }}</dd>
+        </div>
+        <div v-if="contextCompactContent.afterTokens !== undefined && contextCompactContent.afterTokens !== null">
+          <dt>{{ t('chat.steps.contextCompact.afterTokens') }}</dt>
+          <dd>{{ contextCompactContent.afterTokens }}</dd>
+        </div>
+        <div v-if="contextCompactContent.affectedUnits !== undefined && contextCompactContent.affectedUnits !== null">
+          <dt>{{ t('chat.steps.contextCompact.affectedUnits') }}</dt>
+          <dd>{{ contextCompactContent.affectedUnits }}</dd>
+        </div>
+      </dl>
+      <pre v-else>{{ displayContent(event) }}</pre>
     </div>
   </div>
 </template>
@@ -110,6 +157,11 @@ const stepTime = computed(() => (event: SseEvent) => {
     .step-badge { color: #722ED1; background: #f5e8ff; }
   }
 
+  &.context_compact {
+    border-color: #d3adf7;
+    background: #f9f0ff;
+    .step-badge { color: #722ED1; background: #efdbff; }
+  }
   &.summary {
     border-color: #aff0b5;
     background: #e8ffea;
@@ -164,6 +216,30 @@ const stepTime = computed(() => (event: SseEvent) => {
     font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
     color: var(--color-text-2);
     margin: 0;
+  }
+}
+
+.context-compact-details {
+  display: grid;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+
+  > div {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
+  dt {
+    color: var(--color-text-3);
+    font-weight: 500;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--color-text-2);
+    overflow-wrap: anywhere;
   }
 }
 

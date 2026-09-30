@@ -1,23 +1,20 @@
 """S07 chat graph: classification, clarification, answering, and SQL tools."""
 
-import json
 import threading
-from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal, TypedDict
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
-from langchain_core.tools import BaseTool
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 from pydantic import ValidationError
 
 from app.agent.cancellation import check_cancelled
+from app.agent.graph_sql import SQLNodes
 from app.agent.prompts import classification_prompt, system_prompt
 from app.agent.streaming import ModelStream
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Classification, EventSink, Intent
 from app.core.config import get_settings
-from app.core.errors import BusinessError
 
 
 class RunState(TypedDict):
@@ -69,15 +66,9 @@ def _max_steps(intent: Intent) -> int:
             "db_compare": settings.compare_agent_max_steps}[intent]
 
 
-def _tool_by_name(tools: Sequence[BaseTool], name: str) -> BaseTool:
-    for tool in tools:
-        if tool.name == name:
-            return tool
-    raise BusinessError(400, f"Unknown model tool: {name}")
-
-
 def build_graph(context: RunContext):
     """Compile real conditional StateGraph nodes for one authorized request."""
+    sql_nodes = SQLNodes(context, _max_steps("sql_query"))
 
     async def classify(state: RunState) -> dict[str, object]:
         check_cancelled(context.cancel_event)
@@ -132,83 +123,6 @@ def build_graph(context: RunContext):
             raise TypeError("Simple answer must be text")
         return {"answer": answer.content, "finished": True}
 
-    async def prepare_sql(state: RunState) -> dict[str, object]:
-        check_cancelled(context.cancel_event)
-        intent = state["intent"]
-        if intent != "sql_query":
-            raise BusinessError(501, f"{intent} workflow is scheduled for a later phase")
-        schemas: list[str] = []
-        for db_id in context.request.db_config_ids or []:
-            check_cancelled(context.cancel_event)
-            schema = await context.tools.schema(db_id)
-            schemas.append(f"Database {db_id} schema:\n{schema}")
-            await context.emit("step", f"Read schema for database {db_id}", 0)
-        messages: list[BaseMessage] = [
-            SystemMessage(content=system_prompt(intent, context.request, context.locale)),
-            *context.history,
-            SystemMessage(content="\n\n".join(schemas)),
-            HumanMessage(content=context.request.message),
-        ]
-        return {"messages": messages}
-
-    async def decide(state: RunState) -> dict[str, object]:
-        check_cancelled(context.cancel_event)
-        intent = state["intent"]
-        if intent is None or intent == "simple_chat":
-            raise RuntimeError("Tool branch requires a database intent")
-        await context.emit("thinking", "Planning database step", state["step"])
-        decision = await context.model_stream.call(
-            state["messages"], step=state["step"], event=None,
-            tools=context.tools.for_intent(intent),
-        )
-        check_cancelled(context.cancel_event)
-        if not decision.tool_calls:
-            if context.tools.statements_executed == 0:
-                raise RuntimeError("SQL agent answered without executing a statement")
-            if not isinstance(decision.content, str):
-                raise TypeError("Database answer must be text")
-            await context.emit("summary", decision.content, state["step"])
-            return {"decision": decision, "answer": decision.content, "finished": True}
-        return {"decision": decision}
-
-    async def execute_tools(state: RunState) -> dict[str, object]:
-        check_cancelled(context.cancel_event)
-        intent = state["intent"]
-        decision = state["decision"]
-        if intent is None or decision is None:
-            raise RuntimeError("Tool decision is missing")
-        available = context.tools.for_intent(intent)
-        additions: list[BaseMessage] = [decision]
-        for call in decision.tool_calls:
-            check_cancelled(context.cancel_event)
-            if context.tools.terminated:
-                additions.append(ToolMessage(content="Skipped after doTerminate", tool_call_id=call["id"]))
-                continue
-            tool = _tool_by_name(available, call["name"])
-            args = call["args"]
-            if not isinstance(args, dict):
-                raise TypeError("Tool arguments must be an object")
-            result = await tool.ainvoke(args)
-            check_cancelled(context.cancel_event)
-            output = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False, default=str)
-            additions.append(ToolMessage(content=output, tool_call_id=call["id"]))
-            await context.emit("step", f"{call['name']}: {output[:8000]}", state["step"] + 1)
-        return {"messages": [*state["messages"], *additions], "step": state["step"] + 1,
-                "finished": context.tools.terminated}
-
-    async def summarize(state: RunState) -> dict[str, object]:
-        check_cancelled(context.cancel_event)
-        warning = "Step limit reached; report unfinished work." if not state["finished"] else "Summarize completed work."
-        answer = await context.model_stream.call(
-            [*state["messages"], SystemMessage(content=warning)],
-            step=state["step"], event="summary_delta",
-        )
-        check_cancelled(context.cancel_event)
-        if not isinstance(answer.content, str):
-            raise TypeError("Summary must be text")
-        await context.emit("summary", answer.content, state["step"])
-        return {"answer": answer.content, "finished": True}
-
     def after_classify(state: RunState) -> Literal["clarify", "prerequisites"]:
         return "clarify" if state["clarification"] is not None else "prerequisites"
 
@@ -228,8 +142,8 @@ def build_graph(context: RunContext):
 
     graph = StateGraph(RunState)
     for name, node in (("classify", classify), ("prerequisites", prerequisites), ("clarify", clarify),
-                       ("simple", simple), ("prepare_sql", prepare_sql), ("decide", decide),
-                       ("execute_tools", execute_tools), ("summarize", summarize)):
+                       ("simple", simple), ("prepare_sql", sql_nodes.prepare), ("decide", sql_nodes.decide),
+                       ("execute_tools", sql_nodes.execute), ("summarize", sql_nodes.summarize)):
         graph.add_node(name, node)
     graph.add_edge(START, "classify")
     graph.add_conditional_edges("classify", after_classify)
@@ -246,4 +160,7 @@ def build_graph(context: RunContext):
 async def run_graph(context: RunContext) -> RunState:
     initial: RunState = {"messages": [], "intent": None, "clarification": None,
                          "step": 0, "decision": None, "answer": "", "finished": False}
-    return await build_graph(context).ainvoke(initial)
+    try:
+        return await build_graph(context).ainvoke(initial)
+    finally:
+        context.tools.close()

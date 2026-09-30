@@ -50,6 +50,16 @@ export default {
     step: 'Langkah {n}',
     content: 'Balasan',
     error: 'Ralat',
+    contextCompact: {
+      label: 'Pemadatan konteks',
+      phase: { label: 'Fasa', start: 'Mula', end: 'Selesai' },
+      tier: { label: 'Kaedah', elide: 'Pemangkasan', summarize: 'Ringkasan' },
+      message: 'Mesej',
+      beforeTokens: 'Token sebelum',
+      afterTokens: 'Token selepas',
+      affectedUnits: 'Unit terjejas',
+    },
+
   },
   summary: {
     streaming: 'Menjana ringkasan…',

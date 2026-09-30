@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.adapters.cancellation import DatabaseExecutionInterrupted, DatabaseWriteOutcomeUnknown
 from app.agent.cancellation import RunAborted, check_cancelled
+from app.agent.output_guard import OutputArtifacts, bound_json
 from app.agent.types import ChatRequest, Intent
 from app.core.errors import BusinessError
 
@@ -45,18 +46,23 @@ class TerminateInput(BaseModel):
 
 class RunTools:
     def __init__(self, user_id: int, request: ChatRequest,
-                 cancel_event: threading.Event | None = None) -> None:
+                 cancel_event: threading.Event | None = None, task_id: str | None = None) -> None:
         self.user_id = user_id
+        self.task_id = uuid4().hex if task_id is None else task_id
         self.database_ids = set(request.db_config_ids or [])
         self.database_ids.update(i for i in (request.pre_db_config_id, request.test_db_config_id) if i is not None)
         self.file_ids = set(request.file_ids or [])
-        self.artifacts: dict[str, str] = {}
+        self.artifacts = OutputArtifacts(user_id, self.task_id)
         self.terminated = False
         self.successful_writes: set[tuple[int, str]] = set()
         self.statements_executed = 0
         self.cancel_event = cancel_event
         self.interruption: dict[str, object] | None = None
         self.completed_write_count = 0
+        self.loop_stop_reason: str | None = None
+        self.last_result: object = None
+        self.last_output: str | None = None
+        self.statement_errors: list[str] = []
 
     def require_database(self, db_id: int) -> None:
         if db_id not in self.database_ids:
@@ -66,19 +72,14 @@ class RunTools:
         if file_id not in self.file_ids:
             raise BusinessError(403, "File was not attached to this request", 403)
 
-    def bound(self, value: object) -> str:
+    def bound(self, value: object, tool_name: str | None = None) -> str:
         if isinstance(value, BaseModel):
             value = value.model_dump(by_alias=True)
         elif is_dataclass(value) and not isinstance(value, type):
             value = asdict(value)
-        text = json.dumps(value, ensure_ascii=False, default=str)
-        if len(text) <= 16000:
-            return text
-        artifact_id = uuid4().hex
-        self.artifacts[artifact_id] = text
-        return json.dumps({"artifactId": artifact_id, "totalCharacters": len(text),
-                           "preview": text[:12000], "truncated": True,
-                           "instruction": "Use readToolOutput to page the remaining output."}, ensure_ascii=False)
+        self.last_result = value
+        self.last_output = json.dumps(value, ensure_ascii=False, default=str, allow_nan=False)
+        return bound_json(value, self.artifacts, tool_name=tool_name)
 
     async def schema(self, db_id: int) -> str:
         from app.services import database_tools
@@ -87,7 +88,7 @@ class RunTools:
         self.require_database(db_id)
         result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
         check_cancelled(self.cancel_event)
-        return self.bound(result)
+        return self.bound(result, "getDatabaseSchema")
 
     async def execute(self, db_id: int, statement: str) -> str:
         from app.services import database_tools
@@ -121,11 +122,15 @@ class RunTools:
             raise RunAborted("write_outcome_unknown") from error
         if result.get("success") is True:
             self.statements_executed += 1
+        elif result.get("success") is False:
+            statement_error = result.get("error")
+            if isinstance(statement_error, str):
+                self.statement_errors.append(statement_error)
         if isinstance(result, dict) and result.get("success") is True and "affectedRows" in result:
             self.successful_writes.add(signature)
             self.completed_write_count += 1
         check_cancelled(self.cancel_event)
-        return self.bound(result)
+        return self.bound(result, "executeSql")
 
     async def compare(self, pre_id: int, test_id: int) -> str:
         check_cancelled(self.cancel_event)
@@ -139,7 +144,7 @@ class RunTools:
         service = import_module("app.services.file_tools")
         result = await asyncio.to_thread(service.read_file, self.user_id, file_id)
         check_cancelled(self.cancel_event)
-        return self.bound(result)
+        return self.bound(result, "readFile")
 
     async def image(self, file_id: int) -> str:
         check_cancelled(self.cancel_event)
@@ -147,17 +152,18 @@ class RunTools:
         service = import_module("app.services.file_tools")
         result = await asyncio.to_thread(service.read_image, self.user_id, file_id)
         check_cancelled(self.cancel_event)
-        return self.bound(result)
+        return self.bound(result, "readImage")
 
     async def read_output(self, artifact_id: str, offset: int = 0, length: int = 8000) -> str:
         check_cancelled(self.cancel_event)
-        if artifact_id not in self.artifacts:
-            raise BusinessError(404, "Output artifact is not part of this run", 404)
-        text = self.artifacts[artifact_id]
-        if offset > len(text):
-            raise BusinessError(400, "Offset exceeds output length")
-        return json.dumps({"content": text[offset:offset + length], "offset": offset,
-                           "totalCharacters": len(text), "hasMore": offset + length < len(text)})
+        page = self.artifacts.read(artifact_id, user_id=self.user_id, task_id=self.task_id,
+                                   offset=offset, length=length)
+        self.last_output = page
+        self.last_result = json.loads(page)
+        return page
+
+    def close(self) -> None:
+        self.artifacts.clear()
 
     async def terminate(self, reason: str) -> str:
         check_cancelled(self.cancel_event)

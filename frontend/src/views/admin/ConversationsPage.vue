@@ -191,6 +191,9 @@ function buildChatMessages(list: MessageType[]): ChatMessage[] {
       case 'content':
         current.content += m.content
         break
+      case 'compressed':
+        current.blocks.push({ kind: 'event', event: toSseEvent(m, 'content') })
+        break
       case 'step':
       case 'sql':
       case 'result':

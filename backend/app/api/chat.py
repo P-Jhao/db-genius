@@ -24,7 +24,8 @@ from app.api.auth import CurrentUser, DatabaseSession
 from app.core.errors import BusinessError, success
 from app.core.localization import translate
 from app.models import DbConfig, UploadedFile
-from app.services import chat_store, model_config
+from app.schemas.context_compress import CompressOptions
+from app.services import chat_store, context_compress, model_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat")
@@ -65,8 +66,9 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
     partial_content = ""
     partial_summary = ""
     complete_summary: str | None = None
-    tools = RunTools(user_id, body, cancel_event)
+    tools = RunTools(user_id, body, cancel_event, task_id=task_id)
     timeout_fired = False
+    user_saved = False
 
     async def expire() -> None:
         nonlocal timeout_fired
@@ -91,9 +93,21 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
 
     try:
         conversation_id = await asyncio.to_thread(chat_store.prepare, user_id, body)
-        await asyncio.to_thread(chat_store.save, conversation_id, "user", body.message, "user")
-        await emit("conversation", conversation_id)
         stream = ModelStream(model, emit, usage, cancel_event)
+        compression_message: str | None = None
+        if body.conversation_id is not None:
+            compression = await context_compress.compress_if_needed(
+                user_id, conversation_id, model, context_window, locale, stream,
+            )
+            if compression is not None:
+                compression_message = compression.message
+                history = await asyncio.to_thread(chat_store.history, user_id, conversation_id)
+        check_cancelled(cancel_event)
+        await asyncio.to_thread(chat_store.save, conversation_id, "user", body.message, "user")
+        user_saved = True
+        await emit("conversation", conversation_id)
+        if compression_message is not None:
+            await emit("step", compression_message)
         context = RunContext(body, history, locale, stream, tools, emit, cancel_event)
         result = await run_graph(context)
         check_cancelled(cancel_event)
@@ -121,6 +135,8 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
             if tools.interruption is not None:
                 details["databaseInterruption"] = tools.interruption
             try:
+                if not user_saved:
+                    await asyncio.to_thread(chat_store.save, conversation_id, "user", body.message, "user")
                 await asyncio.to_thread(chat_store.finalize_run, user_id, conversation_id, task_id,
                                         usage, "aborted", content, kind, details)
                 await queue.put(_frame(task_id, "usage", usage.model_dump(), 0))
@@ -154,6 +170,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
         await queue.put(_frame(task_id, "done", None, 0))
     finally:
         timer.cancel()
+        tools.close()
         await queue.put(None)
 
 
@@ -207,6 +224,22 @@ async def chat(body: ChatRequest, request: Request, user: CurrentUser,
 @router.get("/conversations")
 def conversations(user: CurrentUser) -> dict[str, object]:
     return success(chat_store.conversations(user.id))
+
+
+@router.post("/conversations/{conversation_id}/compress")
+async def compress_conversation(conversation_id: int, request: Request, user: CurrentUser,
+                                session: DatabaseSession,
+                                body: CompressOptions | None = None) -> dict[str, object]:
+    chat_store.context_snapshot(user.id, conversation_id)
+    active = model_config.resolve_active_model(session, user.id)
+    model = CompatibleChatModel(base_url=active.base_url, api_key=active.api_key,
+                                model_name=active.model_name)
+    options = body if body is not None else CompressOptions()
+    result = await context_compress.compress(
+        user.id, conversation_id, model, request.headers.get("accept-language", "en"),
+        options.target_tokens,
+    )
+    return success(result.model_dump(by_alias=True))
 
 
 @router.get("/conversations/{conversation_id}/messages")

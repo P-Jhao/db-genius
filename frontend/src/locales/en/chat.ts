@@ -50,6 +50,16 @@ export default {
     step: 'Step {n}',
     content: 'Reply',
     error: 'Error',
+    contextCompact: {
+      label: 'Context compaction',
+      phase: { label: 'Phase', start: 'Start', end: 'Complete' },
+      tier: { label: 'Tier', elide: 'Elide', summarize: 'Summarize' },
+      message: 'Message',
+      beforeTokens: 'Before tokens',
+      afterTokens: 'After tokens',
+      affectedUnits: 'Affected units',
+    },
+
   },
   summary: {
     streaming: 'Generating summary…',

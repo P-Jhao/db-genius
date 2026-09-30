@@ -50,6 +50,16 @@ export default {
     step: '步骤 {n}',
     content: '回复',
     error: '错误',
+    contextCompact: {
+      label: '上下文压缩',
+      phase: { label: '阶段', start: '开始', end: '完成' },
+      tier: { label: '策略', elide: '裁剪', summarize: '摘要' },
+      message: '说明',
+      beforeTokens: '压缩前 Token',
+      afterTokens: '压缩后 Token',
+      affectedUnits: '影响项数',
+    },
+
   },
   summary: {
     streaming: '正在生成总结…',

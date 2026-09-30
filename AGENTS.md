@@ -9,6 +9,7 @@
 - backend/app/core、models、services：配置、鉴权、持久化及领域服务。
 - backend/app/adapters：目标数据库连接、元数据、SQL 安全检查与执行。
 - backend/app/agent：LangChain 模型和 LangGraph 工作流。
+- backend/app/resources/prompts：从原项目迁移的中英文 Agent 提示词资源。
 - backend/app/tasks：Celery 后台任务。
 - docs：架构、运行和阶段交接文档。
 - docker-compose.yml：PostgreSQL、RabbitMQ、API、Worker、前端部署。
