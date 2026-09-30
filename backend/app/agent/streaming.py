@@ -1,22 +1,29 @@
 """Model streaming with token accounting and partial-answer capture."""
 
+import asyncio
 import json
+import threading
+from collections.abc import AsyncGenerator, AsyncIterator
+from contextlib import suppress
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, message_chunk_to_message
 from langchain_core.tools import BaseTool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 
+from app.agent.cancellation import check_cancelled
 from app.agent.types import EventSink, Usage
 
 
 class ModelStream:
-    def __init__(self, model: BaseChatModel, emit: EventSink, usage: Usage) -> None:
+    def __init__(self, model: BaseChatModel, emit: EventSink, usage: Usage,
+                 cancel_event: threading.Event | None = None) -> None:
         self.model = model
         self.emit = emit
         self.usage = usage
         self.partial = ""
         self.reasoning = ""
+        self.cancel_event = cancel_event
 
     async def call(
         self,
@@ -35,8 +42,27 @@ class ModelStream:
             options["tools"] = [convert_to_openai_tool(tool) for tool in tools]
         if json_mode:
             options["response_format"] = {"type": "json_object"}
+        check_cancelled(self.cancel_event)
+        iterator = self.model.astream(messages, **options).__aiter__()  # type: ignore[arg-type]
+
+        async def next_chunk(source: AsyncIterator[AIMessageChunk]) -> AIMessageChunk:
+            return await anext(source)
+
+        pending: asyncio.Task[AIMessageChunk] | None = None
         try:
-            async for chunk in self.model.astream(messages, **options):  # type: ignore[arg-type]
+            while True:
+                check_cancelled(self.cancel_event)
+                pending = asyncio.create_task(next_chunk(iterator))
+                while not pending.done():
+                    await asyncio.wait({pending}, timeout=0.05)
+                    check_cancelled(self.cancel_event)
+                try:
+                    chunk = await pending
+                except StopAsyncIteration:
+                    break
+                finally:
+                    pending = None
+                check_cancelled(self.cancel_event)
                 if not isinstance(chunk, AIMessageChunk):
                     raise TypeError("Model returned a non-assistant chunk")
                 if chunk.usage_metadata is not None:
@@ -57,8 +83,17 @@ class ModelStream:
                     self.reasoning += reasoning
                     if event is not None:
                         await self.emit("reasoning", reasoning, step)
+                check_cancelled(self.cancel_event)
         finally:
+            if pending is not None:
+                pending.cancel()
+                with suppress(asyncio.CancelledError):
+                    await pending
+            if isinstance(iterator, AsyncGenerator):
+                with suppress(Exception):
+                    await iterator.aclose()
             self.usage.record(latest_usage)
+        check_cancelled(self.cancel_event)
         if aggregate is None:
             raise RuntimeError("Model returned an empty stream")
         for call in aggregate.tool_call_chunks:

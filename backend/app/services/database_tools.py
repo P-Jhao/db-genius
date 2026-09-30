@@ -1,3 +1,5 @@
+import threading
+
 from app.adapters import get_adapter
 from app.adapters.types import QueryResult, SchemaMetadata
 from app.core.config import get_settings
@@ -35,11 +37,13 @@ def get_schema(user_id: int, db_id: int) -> SchemaMetadata:
     return metadata
 
 
-def execute_statement(user_id: int, db_id: int, statement: str) -> QueryResult:
+def execute_statement(user_id: int, db_id: int, statement: str,
+                      cancel_event: threading.Event | None = None) -> QueryResult:
     config = _ready_config(user_id, db_id)
     connection = connection_for(config)
     settings = get_settings()
     return get_adapter(config.db_type).execute(
         connection, statement, trial_mode=settings.trial_enabled,
         timeout_seconds=settings.query_timeout_seconds, max_rows=settings.query_max_rows,
+        cancel_event=cancel_event,
     )

@@ -1,6 +1,7 @@
 """Per-run capabilities: model arguments can never expand resource permissions."""
 import asyncio
 import json
+import threading
 from collections.abc import Awaitable, Callable
 from dataclasses import asdict, is_dataclass
 from importlib import import_module
@@ -9,6 +10,8 @@ from uuid import uuid4
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel, Field
 
+from app.adapters.cancellation import DatabaseExecutionInterrupted, DatabaseWriteOutcomeUnknown
+from app.agent.cancellation import RunAborted, check_cancelled
 from app.agent.types import ChatRequest, Intent
 from app.core.errors import BusinessError
 
@@ -41,7 +44,8 @@ class TerminateInput(BaseModel):
 
 
 class RunTools:
-    def __init__(self, user_id: int, request: ChatRequest) -> None:
+    def __init__(self, user_id: int, request: ChatRequest,
+                 cancel_event: threading.Event | None = None) -> None:
         self.user_id = user_id
         self.database_ids = set(request.db_config_ids or [])
         self.database_ids.update(i for i in (request.pre_db_config_id, request.test_db_config_id) if i is not None)
@@ -50,6 +54,9 @@ class RunTools:
         self.terminated = False
         self.successful_writes: set[tuple[int, str]] = set()
         self.statements_executed = 0
+        self.cancel_event = cancel_event
+        self.interruption: dict[str, object] | None = None
+        self.completed_write_count = 0
 
     def require_database(self, db_id: int) -> None:
         if db_id not in self.database_ids:
@@ -76,39 +83,74 @@ class RunTools:
     async def schema(self, db_id: int) -> str:
         from app.services import database_tools
 
+        check_cancelled(self.cancel_event)
         self.require_database(db_id)
-        return self.bound(await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id))
+        result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
+        check_cancelled(self.cancel_event)
+        return self.bound(result)
 
     async def execute(self, db_id: int, statement: str) -> str:
         from app.services import database_tools
 
+        check_cancelled(self.cancel_event)
         self.require_database(db_id)
         signature = (db_id, statement.strip())
         if signature in self.successful_writes:
             raise BusinessError(409, "A successful write was already executed in this run")
-        result = await asyncio.to_thread(database_tools.execute_statement, self.user_id, db_id, statement)
+        try:
+            if self.cancel_event is None:
+                result = await asyncio.to_thread(database_tools.execute_statement, self.user_id, db_id, statement)
+            else:
+                result = await asyncio.to_thread(database_tools.execute_statement, self.user_id, db_id, statement,
+                                                 cancel_event=self.cancel_event)
+        except DatabaseExecutionInterrupted as error:
+            self.interruption = {
+                "reason": error.reason,
+                "cancelRequestSent": error.cancel_request_sent,
+                "serverTerminationConfirmed": error.server_termination_confirmed,
+                "writeOutcomeUnknown": error.write_outcome_unknown,
+                "cancelErrorType": type(error.cancel_error).__name__ if error.cancel_error else None,
+            }
+            if self.cancel_event is not None:
+                self.cancel_event.set()
+            raise RunAborted(error.reason) from error
+        except DatabaseWriteOutcomeUnknown as error:
+            self.interruption = {"reason": "write_outcome_unknown", "writeOutcomeUnknown": True}
+            if self.cancel_event is not None:
+                self.cancel_event.set()
+            raise RunAborted("write_outcome_unknown") from error
         if result.get("success") is True:
             self.statements_executed += 1
         if isinstance(result, dict) and result.get("success") is True and "affectedRows" in result:
             self.successful_writes.add(signature)
+            self.completed_write_count += 1
+        check_cancelled(self.cancel_event)
         return self.bound(result)
 
     async def compare(self, pre_id: int, test_id: int) -> str:
+        check_cancelled(self.cancel_event)
         self.require_database(pre_id)
         self.require_database(test_id)
         raise BusinessError(501, "Database comparison is scheduled for a later phase")
 
     async def document(self, file_id: int) -> str:
+        check_cancelled(self.cancel_event)
         self.require_file(file_id)
         service = import_module("app.services.file_tools")
-        return self.bound(await asyncio.to_thread(service.read_file, self.user_id, file_id))
+        result = await asyncio.to_thread(service.read_file, self.user_id, file_id)
+        check_cancelled(self.cancel_event)
+        return self.bound(result)
 
     async def image(self, file_id: int) -> str:
+        check_cancelled(self.cancel_event)
         self.require_file(file_id)
         service = import_module("app.services.file_tools")
-        return self.bound(await asyncio.to_thread(service.read_image, self.user_id, file_id))
+        result = await asyncio.to_thread(service.read_image, self.user_id, file_id)
+        check_cancelled(self.cancel_event)
+        return self.bound(result)
 
     async def read_output(self, artifact_id: str, offset: int = 0, length: int = 8000) -> str:
+        check_cancelled(self.cancel_event)
         if artifact_id not in self.artifacts:
             raise BusinessError(404, "Output artifact is not part of this run", 404)
         text = self.artifacts[artifact_id]
@@ -118,6 +160,7 @@ class RunTools:
                            "totalCharacters": len(text), "hasMore": offset + length < len(text)})
 
     async def terminate(self, reason: str) -> str:
+        check_cancelled(self.cancel_event)
         self.terminated = True
         return reason
 

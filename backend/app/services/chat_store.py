@@ -77,6 +77,38 @@ def update_usage(user_id: int, conversation_id: int, usage: Usage) -> None:
         session.commit()
 
 
+def finalize_run(user_id: int, conversation_id: int, task_id: str, usage: Usage,
+                 status: str, content: str, kind: str,
+                 details: dict[str, object] | None = None) -> bool:
+    """Apply terminal content and known provider usage once per task."""
+    if status not in {"done", "error", "aborted"}:
+        raise ValueError(f"Unsupported chat run status: {status}")
+    with SessionLocal() as session:
+        row = session.scalar(select(Conversation).where(Conversation.id == conversation_id).with_for_update())
+        if row is None or row.user_id != user_id:
+            raise BusinessError(404, "Conversation not found", 404)
+        metadata = dict(row.metadata_json or {})
+        task_ids = metadata.get("finalizedTaskIds", [])
+        if not isinstance(task_ids, list) or not all(isinstance(value, str) for value in task_ids):
+            raise ValueError("Invalid conversation run ledger")
+        if task_id in task_ids:
+            usage.conversationTotalTokens = row.total_tokens
+            return False
+        terminal_details = dict(details or {})
+        terminal_details.update({"taskId": task_id, "runStatus": status,
+                                 "usage": usage.model_dump(exclude={"conversationTotalTokens"})})
+        session.add(Message(conversation_id=conversation_id, role="assistant", content=content,
+                            type=kind, step=-1, metadata_json=terminal_details))
+        row.total_tokens += usage.totalTokens
+        row.context_tokens = usage.contextTokens
+        row.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        metadata["finalizedTaskIds"] = [*task_ids, task_id]
+        row.metadata_json = metadata
+        usage.conversationTotalTokens = row.total_tokens
+        session.commit()
+        return True
+
+
 def set_intent(user_id: int, conversation_id: int, intent: str) -> None:
     with SessionLocal() as session:
         row = owned(session, user_id, conversation_id)

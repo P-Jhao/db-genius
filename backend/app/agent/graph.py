@@ -1,6 +1,7 @@
 """S07 chat graph: classification, clarification, answering, and SQL tools."""
 
 import json
+import threading
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal, TypedDict
@@ -10,6 +11,7 @@ from langchain_core.tools import BaseTool
 from langgraph.graph import END, START, StateGraph
 from pydantic import ValidationError
 
+from app.agent.cancellation import check_cancelled
 from app.agent.prompts import classification_prompt, system_prompt
 from app.agent.streaming import ModelStream
 from app.agent.tools import RunTools
@@ -36,6 +38,7 @@ class RunContext:
     model_stream: ModelStream
     tools: RunTools
     emit: EventSink
+    cancel_event: threading.Event | None = None
 
 
 def _clarification(intent: Intent, reason: str, locale: str) -> dict[str, object]:
@@ -77,6 +80,7 @@ def build_graph(context: RunContext):
     """Compile real conditional StateGraph nodes for one authorized request."""
 
     async def classify(state: RunState) -> dict[str, object]:
+        check_cancelled(context.cancel_event)
         if context.request.confirmed_intent is not None:
             return {"intent": context.request.confirmed_intent}
         await context.emit("classifying", "Classifying intent", 0)
@@ -85,6 +89,7 @@ def build_graph(context: RunContext):
              *context.history, HumanMessage(content=context.request.message)],
             event=None, json_mode=True,
         )
+        check_cancelled(context.cancel_event)
         if not isinstance(response.content, str):
             raise TypeError("Intent classification must be a JSON object")
         try:
@@ -98,6 +103,7 @@ def build_graph(context: RunContext):
         return {"intent": value.intent}
 
     async def prerequisites(state: RunState) -> dict[str, object]:
+        check_cancelled(context.cancel_event)
         intent = state["intent"]
         if intent is None:
             raise RuntimeError("Classification did not choose an intent")
@@ -108,6 +114,7 @@ def build_graph(context: RunContext):
         return {}
 
     async def clarify(state: RunState) -> dict[str, object]:
+        check_cancelled(context.cancel_event)
         payload = state["clarification"]
         if payload is None:
             raise RuntimeError("Clarification payload is missing")
@@ -115,20 +122,24 @@ def build_graph(context: RunContext):
         return {"finished": True}
 
     async def simple(state: RunState) -> dict[str, object]:
+        check_cancelled(context.cancel_event)
         messages = [SystemMessage(content=system_prompt("simple_chat", context.request, context.locale)),
                     *context.history, HumanMessage(content=context.request.message)]
         await context.emit("thinking", "Answering", 0)
         answer = await context.model_stream.call(messages, event="content")
+        check_cancelled(context.cancel_event)
         if not isinstance(answer.content, str):
             raise TypeError("Simple answer must be text")
         return {"answer": answer.content, "finished": True}
 
     async def prepare_sql(state: RunState) -> dict[str, object]:
+        check_cancelled(context.cancel_event)
         intent = state["intent"]
         if intent != "sql_query":
             raise BusinessError(501, f"{intent} workflow is scheduled for a later phase")
         schemas: list[str] = []
         for db_id in context.request.db_config_ids or []:
+            check_cancelled(context.cancel_event)
             schema = await context.tools.schema(db_id)
             schemas.append(f"Database {db_id} schema:\n{schema}")
             await context.emit("step", f"Read schema for database {db_id}", 0)
@@ -141,6 +152,7 @@ def build_graph(context: RunContext):
         return {"messages": messages}
 
     async def decide(state: RunState) -> dict[str, object]:
+        check_cancelled(context.cancel_event)
         intent = state["intent"]
         if intent is None or intent == "simple_chat":
             raise RuntimeError("Tool branch requires a database intent")
@@ -149,6 +161,7 @@ def build_graph(context: RunContext):
             state["messages"], step=state["step"], event=None,
             tools=context.tools.for_intent(intent),
         )
+        check_cancelled(context.cancel_event)
         if not decision.tool_calls:
             if context.tools.statements_executed == 0:
                 raise RuntimeError("SQL agent answered without executing a statement")
@@ -159,6 +172,7 @@ def build_graph(context: RunContext):
         return {"decision": decision}
 
     async def execute_tools(state: RunState) -> dict[str, object]:
+        check_cancelled(context.cancel_event)
         intent = state["intent"]
         decision = state["decision"]
         if intent is None or decision is None:
@@ -166,6 +180,7 @@ def build_graph(context: RunContext):
         available = context.tools.for_intent(intent)
         additions: list[BaseMessage] = [decision]
         for call in decision.tool_calls:
+            check_cancelled(context.cancel_event)
             if context.tools.terminated:
                 additions.append(ToolMessage(content="Skipped after doTerminate", tool_call_id=call["id"]))
                 continue
@@ -174,6 +189,7 @@ def build_graph(context: RunContext):
             if not isinstance(args, dict):
                 raise TypeError("Tool arguments must be an object")
             result = await tool.ainvoke(args)
+            check_cancelled(context.cancel_event)
             output = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False, default=str)
             additions.append(ToolMessage(content=output, tool_call_id=call["id"]))
             await context.emit("step", f"{call['name']}: {output[:8000]}", state["step"] + 1)
@@ -181,11 +197,13 @@ def build_graph(context: RunContext):
                 "finished": context.tools.terminated}
 
     async def summarize(state: RunState) -> dict[str, object]:
+        check_cancelled(context.cancel_event)
         warning = "Step limit reached; report unfinished work." if not state["finished"] else "Summarize completed work."
         answer = await context.model_stream.call(
             [*state["messages"], SystemMessage(content=warning)],
             step=state["step"], event="summary_delta",
         )
+        check_cancelled(context.cancel_event)
         if not isinstance(answer.content, str):
             raise TypeError("Summary must be text")
         await context.emit("summary", answer.content, state["step"])
