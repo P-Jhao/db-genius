@@ -1,0 +1,10 @@
+path	sha256	bytes
+backend/app/adapters/postgresql.py	edd0d8ae86c5156f885c0d6a52d0f233e5b8406bcee0acdf9c2fbd711cf549ff	619
+backend/app/adapters/relational.py	58ae901ece0eafeb02c189c1278ed8c594c12ebb01bc8ae35b8eaa1d6fbe6755	16636
+backend/tests/test_pg_read_cursors.py	b9910cdb3ed6ab671a71f18242263015d4c752ca824b6efb8bc8a00323f8456e	4544
+docs/phase-05-pg-read-cursors/README.md	a2cec4c6b04c75894e82597be1ea92a6b95758de0466fc7c67a3fa5c1b201a9b	3095
+docs/phase-05-pg-read-cursors/mypy.txt	b53a8850538df2d0a027862ba159e61e4e1d6e1bed4c84456c9af44b405ee56d	45
+docs/phase-05-pg-read-cursors/preserved.tsv	e896fd0944fde287d10816fc76fbd40cefa8a539f541d1ce0e1155f579d8d24d	47227
+docs/phase-05-pg-read-cursors/pytest.txt	9c6546ea37f817d5b2341fa0210d24e5f7ec2df00fbb890519ca873a3e74abe2	265
+docs/phase-05-pg-read-cursors/ruff.txt	a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0	20
+docs/phase-05-pg-read-cursors/run-checks.ps1	b7c851e246b678e78ddb3b72265588125680023cfe808104a987f7fb114065dc	3455

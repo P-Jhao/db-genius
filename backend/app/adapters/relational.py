@@ -139,6 +139,9 @@ class RelationalAdapter:
     def _json_value(self, value: object) -> object:
         return _json_value(value)
 
+    def _stream_results(self, statement: str, read_only: bool) -> bool:
+        return read_only
+
     def execute(self, config: DbConnectionConfig, statement: str, *, trial_mode: bool = False,
                 timeout_seconds: int = 30, max_rows: int = 100,
                 cancel_event: threading.Event | None = None) -> QueryResult:
@@ -165,7 +168,9 @@ class RelationalAdapter:
                         cancel_event, timeout_seconds,
                         lambda: self._cancel_running_statement(config, connection, connection_id),
                     )
-                target = connection.execution_options(no_parameters=True, stream_results=policy.read_only)
+                target = connection.execution_options(
+                    no_parameters=True, stream_results=self._stream_results(statement, policy.read_only),
+                )
                 started = clock.monotonic()
                 if watchdog is not None:
                     watchdog.start()
