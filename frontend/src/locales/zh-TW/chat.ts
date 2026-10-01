@@ -26,10 +26,11 @@ export default {
   },
   uploader: {
     excelOnly: '僅支援 Excel 檔案（.xlsx / .xls）',
-    sizeLimit: '檔案大小不能超過 50MB',
+    unsupportedType: '支援的檔案格式：{extensions}',
+    sizeLimit: '檔案大小不能超過 20 MiB',
     success: '上傳成功',
     failed: '上傳失敗',
-    button: '上傳 Excel',
+    button: '上傳檔案',
   },
   message: {
     me: '我',

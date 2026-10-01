@@ -26,10 +26,11 @@ export default {
   },
   uploader: {
     excelOnly: 'Only Excel files (.xlsx / .xls) are supported',
-    sizeLimit: 'File size must not exceed 50MB',
+    unsupportedType: 'Supported formats: {extensions}',
+    sizeLimit: 'File size must not exceed 20 MiB',
     success: 'Upload successful',
     failed: 'Upload failed',
-    button: 'Upload Excel',
+    button: 'Upload file',
   },
   message: {
     me: 'Me',

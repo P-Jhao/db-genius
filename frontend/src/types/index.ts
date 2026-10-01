@@ -193,11 +193,9 @@ export interface SseEvent {
 
 export interface UploadedFile {
   id: number
-  userId: number
   originalName: string
-  storedPath: string
-  fileSize: number
-  contentType: string
+  fileSize: number | null
+  contentType: string | null
   createdAt: string
 }
 

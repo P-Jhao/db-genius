@@ -26,10 +26,11 @@ export default {
   },
   uploader: {
     excelOnly: 'Hanya fail Excel (.xlsx / .xls) disokong',
-    sizeLimit: 'Saiz fail tidak boleh melebihi 50MB',
+    unsupportedType: 'Format yang disokong: {extensions}',
+    sizeLimit: 'Saiz fail tidak boleh melebihi 20 MiB',
     success: 'Muat naik berjaya',
     failed: 'Muat naik gagal',
-    button: 'Muat Naik Excel',
+    button: 'Muat Naik Fail',
   },
   message: {
     me: 'Saya',

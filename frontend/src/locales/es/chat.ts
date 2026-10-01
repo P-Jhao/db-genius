@@ -26,10 +26,11 @@ export default {
   },
   uploader: {
     excelOnly: 'Solo se admiten archivos Excel (.xlsx / .xls)',
-    sizeLimit: 'El tamaño del archivo no puede superar los 50 MB',
+    unsupportedType: 'Formatos admitidos: {extensions}',
+    sizeLimit: 'El archivo no puede superar los 20 MiB',
     success: 'Subida completada',
     failed: 'Error al subir',
-    button: 'Subir Excel',
+    button: 'Subir archivo',
   },
   message: {
     me: 'Yo',

@@ -26,10 +26,11 @@ export default {
   },
   uploader: {
     excelOnly: 'Seuls les fichiers Excel (.xlsx / .xls) sont pris en charge',
-    sizeLimit: 'La taille du fichier ne doit pas dépasser 50 Mo',
+    unsupportedType: 'Formats pris en charge : {extensions}',
+    sizeLimit: 'Le fichier ne doit pas dépasser 20 MiB',
     success: 'Téléversement réussi',
     failed: 'Échec du téléversement',
-    button: 'Téléverser un Excel',
+    button: 'Téléverser un fichier',
   },
   message: {
     me: 'Moi',

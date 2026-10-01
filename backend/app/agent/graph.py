@@ -161,6 +161,8 @@ async def run_graph(context: RunContext) -> RunState:
     initial: RunState = {"messages": [], "intent": None, "clarification": None,
                          "step": 0, "decision": None, "answer": "", "finished": False}
     try:
-        return await build_graph(context).ainvoke(initial)
+        recursion_limit = 2 * max(_max_steps(intent) for intent in
+                                  ("sql_query", "workflow", "db_compare")) + 10
+        return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
     finally:
         context.tools.close()

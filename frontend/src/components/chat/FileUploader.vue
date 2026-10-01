@@ -5,6 +5,13 @@ import { useI18n } from 'vue-i18n'
 import { uploadFile } from '../../api/file'
 import type { UploadedFile } from '../../types'
 
+const SUPPORTED_FILE_EXTENSIONS = [
+  '.xlsx', '.xls', '.csv', '.docx', '.pdf', '.md',
+  '.png', '.jpg', '.jpeg', '.webp', '.bmp',
+] as const
+const supportedFileExtensions = new Set<string>(SUPPORTED_FILE_EXTENSIONS)
+const maximumFileSizeBytes = 20 * 1024 * 1024
+
 const { t } = useI18n()
 
 const uploadedFiles = ref<UploadedFile[]>([])
@@ -24,17 +31,17 @@ async function handleUpload(event: Event) {
   const file = input.files?.[0]
   if (!file) return
 
-  const validTypes = [
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-excel',
-  ]
-  if (!validTypes.includes(file.type) && !file.name.match(/\.xlsx?$/i)) {
-    Message.warning(t('chat.uploader.excelOnly'))
+  const extensionSeparator = file.name.lastIndexOf('.')
+  const extension = extensionSeparator < 0 ? '' : file.name.slice(extensionSeparator).toLowerCase()
+  if (!supportedFileExtensions.has(extension)) {
+    Message.warning(t('chat.uploader.unsupportedType', {
+      extensions: SUPPORTED_FILE_EXTENSIONS.join(', '),
+    }))
     input.value = ''
     return
   }
 
-  if (file.size > 50 * 1024 * 1024) {
+  if (file.size > maximumFileSizeBytes) {
     Message.warning(t('chat.uploader.sizeLimit'))
     input.value = ''
     return
@@ -47,7 +54,7 @@ async function handleUpload(event: Event) {
     emit('filesChanged', [...uploadedFiles.value])
     Message.success(t('chat.uploader.success'))
   } catch (err: unknown) {
-    Message.error((err as Error).message || t('chat.uploader.failed'))
+    Message.error(getUploadErrorMessage(err))
   } finally {
     uploading.value = false
     input.value = ''
@@ -59,7 +66,28 @@ function removeFile(id: number) {
   emit('filesChanged', [...uploadedFiles.value])
 }
 
-function formatSize(bytes: number): string {
+function getUploadErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = error.response
+    if (typeof response === 'object' && response !== null && 'data' in response) {
+      const data = response.data
+      if (typeof data === 'object' && data !== null) {
+        if ('message' in data && typeof data.message === 'string' && data.message.trim()) {
+          return data.message
+        }
+        if ('detail' in data && typeof data.detail === 'string' && data.detail.trim()) {
+          return data.detail
+        }
+      }
+    }
+  }
+  if (error instanceof Error && error.message.trim()) return error.message
+  if (typeof error === 'string' && error.trim()) return error
+  return t('chat.uploader.failed')
+}
+
+function formatSize(bytes: number | null): string {
+  if (bytes === null) return '—'
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
@@ -82,7 +110,12 @@ function formatSize(bytes: number): string {
       </a-tag>
     </div>
     <div class="upload-btn" :class="{ uploading }">
-      <input ref="fileInput" type="file" accept=".xlsx,.xls" @change="handleUpload" />
+      <input
+        ref="fileInput"
+        type="file"
+        :accept="SUPPORTED_FILE_EXTENSIONS.join(',')"
+        @change="handleUpload"
+      />
       <a-button size="small" :loading="uploading" :disabled="uploading" @click="triggerUpload">
         <template #icon><icon-plus /></template>
         {{ $t('chat.uploader.button') }}

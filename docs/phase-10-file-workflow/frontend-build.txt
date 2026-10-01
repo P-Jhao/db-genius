@@ -1,0 +1,40 @@
+$ vue-tsc -b && vite build
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:20:20). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 1334 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                 9.40 kB │ gzip:   2.57 kB
+dist/assets/LanguageSwitcher-BTuf9pH6.css       0.96 kB │ gzip:   0.40 kB
+dist/assets/ReasoningCard-Auhrwg9v.css          1.18 kB │ gzip:   0.51 kB
+dist/assets/ConversationsPage-HLCIJwU6.css      1.20 kB │ gzip:   0.49 kB
+dist/assets/LoginPage-DSwOQAxu.css              1.56 kB │ gzip:   0.59 kB
+dist/assets/ModelConfigPage-DSJzWhGL.css        1.65 kB │ gzip:   0.58 kB
+dist/assets/DbConfigPage-Cl3Do5bJ.css           1.70 kB │ gzip:   0.62 kB
+dist/assets/AdminLayout-CriC5bru.css            1.72 kB │ gzip:   0.57 kB
+dist/assets/ChatPage-dG-f03YE.css              12.67 kB │ gzip:   2.65 kB
+dist/assets/LandingPage-DszhhUSO.css           13.67 kB │ gzip:   2.76 kB
+dist/assets/index-CsBlHWTB.css                397.28 kB │ gzip:  49.47 kB
+dist/assets/dbConfig-nfdI0EzN.js                0.37 kB │ gzip:   0.19 kB
+dist/assets/modelConfig-Bac3Cqvg.js             0.64 kB │ gzip:   0.24 kB
+dist/assets/LanguageSwitcher-BbQHV3GJ.js        1.42 kB │ gzip:   0.79 kB
+dist/assets/LoginPage-AQ8--qie.js               3.23 kB │ gzip:   1.52 kB
+dist/assets/AdminLayout-1-izIcb2.js             5.53 kB │ gzip:   1.80 kB
+dist/assets/DbConfigPage-Cijcrt9u.js            7.51 kB │ gzip:   2.36 kB
+dist/assets/ReasoningCard-T2G0guUT.js           7.58 kB │ gzip:   3.12 kB
+dist/assets/ConversationsPage-DdqL6IFY.js       8.08 kB │ gzip:   2.62 kB
+dist/assets/ModelConfigPage-D7Z9mnMb.js        10.59 kB │ gzip:   3.07 kB
+dist/assets/LandingPage-BMLTJ1Ac.js            19.97 kB │ gzip:   5.23 kB
+dist/assets/ChatPage-B6opEVAW.js               94.70 kB │ gzip:  31.45 kB
+dist/assets/i18n-cReBVSBC.js                  382.07 kB │ gzip: 123.73 kB
+dist/assets/index-3JDyaXWq.js               1,081.79 kB │ gzip: 259.22 kB
+
+✓ built in 2.08s
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.

@@ -26,10 +26,11 @@ export default {
   },
   uploader: {
     excelOnly: 'Excel ファイル（.xlsx / .xls）のみ対応しています',
-    sizeLimit: 'ファイルサイズは 50MB を超えることはできません',
+    unsupportedType: '対応形式：{extensions}',
+    sizeLimit: 'ファイルサイズは 20 MiB 以下にしてください',
     success: 'アップロードに成功しました',
     failed: 'アップロードに失敗しました',
-    button: 'Excel をアップロード',
+    button: 'ファイルをアップロード',
   },
   message: {
     me: '自分',
