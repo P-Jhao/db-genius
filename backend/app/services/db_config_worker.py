@@ -25,8 +25,6 @@ def verify_and_generate(config_id: int, version: int) -> None:
         if not adapter.test_connection(connection):
             raise ConnectionError("Connection test returned false")
         metadata = adapter.extract_metadata(connection)
-        if metadata["incomplete"]:
-            raise RuntimeError(f"Metadata incomplete: {metadata['errorMessage']}")
         document = render_document(metadata)
         values: dict[str, object] = {
             "status": 1, "verification_error": None, "doc_content": document,

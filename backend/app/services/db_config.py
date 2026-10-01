@@ -158,9 +158,10 @@ def generate_doc(session: Session, user_id: int, config_id: int) -> str:
     connection = connection_for(config)
     version = _start_sync(session, config)
     try:
-        metadata = get_adapter(connection.db_type).extract_metadata(connection)
-        if metadata["incomplete"]:
-            raise RuntimeError(f"Metadata incomplete: {metadata['errorMessage']}")
+        adapter = get_adapter(connection.db_type)
+        if not adapter.test_connection(connection):
+            raise ConnectionError("Connection test returned false")
+        metadata = adapter.extract_metadata(connection)
         document = render_document(metadata)
     except Exception as exc:
         _finish_sync(session, config_id, version, document=None,

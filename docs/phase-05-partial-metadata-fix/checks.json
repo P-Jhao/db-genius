@@ -1,0 +1,28 @@
+{
+  "baseCommit": "5b9c543757cb4e83031226762131f36b6fa6907b",
+  "kind": "isolated deterministic state-machine and existing contract regression",
+  "mainAcceptance": "pending",
+  "commands": [
+    {
+      "command": "python -m pytest tests/test_db_config_partial.py tests/test_db_config.py tests/test_adapters_contract.py tests/test_adapters_safety.py tests/test_sql_repair.py -q",
+      "passed": 54,
+      "skipped": 7,
+      "seconds": 18.99,
+      "exitCode": 0
+    },
+    {
+      "command": "python -m ruff check app/services/db_config_worker.py app/services/db_config.py tests/test_db_config_partial.py",
+      "result": "All checks passed!",
+      "exitCode": 0
+    },
+    {
+      "command": "python -m mypy app/services/db_config_worker.py app/services/db_config.py tests/test_db_config_partial.py",
+      "result": "Success: no issues found in 3 source files",
+      "exitCode": 0
+    }
+  ],
+  "realTargetTestsExecuted": false,
+  "containerLifecycleChanged": false,
+  "skipReason": "existing real system/target/broker credentials omitted",
+  "S11HighLevelCompareAcceptance": "independent stage pending; underlying schema authorization regression passed"
+}
