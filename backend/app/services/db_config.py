@@ -13,7 +13,13 @@ from app.core.ownership import require_owned
 from app.core.security import encrypt
 from app.models import DbConfig
 from app.schemas.db_config import DbConfigRequest, DbConfigVO
-from app.services.db_config_common import connection_for, diagnostic, to_vo, validate_request
+from app.services.db_config_common import (
+    connection_for,
+    diagnostic,
+    request_password,
+    to_vo,
+    validate_request,
+)
 from app.tasks.db_config import verify_config
 
 
@@ -67,13 +73,12 @@ def _enqueue(session: Session, config_id: int, version: int) -> bool:
 
 def create_config(session: Session, user_id: int, request: DbConfigRequest) -> DbConfigVO:
     deny_trial("error.trial.dbConfigCreate")
-    if request.password is None:
-        raise BusinessError(400, "password is required")
-    connection = validate_request(request, request.password)
+    connection = validate_request(request, request_password(request))
     config = DbConfig(
         user_id=user_id, name=request.name.strip(), db_type=connection.db_type,
         host=connection.host, port=connection.port, db_name=connection.db_name,
-        username=connection.username, password_encrypted=encrypt(connection.password),
+        username=connection.username,
+        password_encrypted=encrypt(connection.password) if connection.password else None,
         status=0, builtin=False, verification_version=1,
     )
     session.add(config)
@@ -86,16 +91,15 @@ def create_config(session: Session, user_id: int, request: DbConfigRequest) -> D
 def update_config(session: Session, user_id: int, config_id: int,
                   request: DbConfigRequest) -> DbConfigVO:
     config = mutable_config(session, user_id, config_id)
-    password = request.password if request.password is not None and request.password.strip() else connection_for(config).password
-    connection = validate_request(request, password)
+    connection = validate_request(request, request_password(request, config))
     config.name = request.name.strip()
     config.db_type = connection.db_type
     config.host = connection.host
     config.port = connection.port
     config.db_name = connection.db_name
     config.username = connection.username
-    if request.password is not None and request.password.strip():
-        config.password_encrypted = encrypt(connection.password)
+    if connection.db_type == "mongodb" or (request.password is not None and request.password.strip()):
+        config.password_encrypted = encrypt(connection.password) if connection.password else None
     config.status = 0
     config.doc_content = None
     config.doc_generated_at = None

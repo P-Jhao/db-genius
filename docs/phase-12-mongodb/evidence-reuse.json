@@ -1,0 +1,97 @@
+{
+  "realMongoPriorPassed": 20,
+  "priorBase": "3d1c5cc20ae76e692df19b4ec747932ff43e23ed",
+  "finalBase": "9703123f279b669276b3e655b926b63365047e89",
+  "sourceComparisons": [
+    {
+      "path": "backend/app/adapters/mongodb.py",
+      "oldSha256": "3302b85d7a61af14a8f9c4f969c6a1fc62c97f1f6bb134700b8eaa7bde6e4229",
+      "finalSha256": "6b054ce976793c5748e244faa42fa5870446c73b5992cc52a5666336620a21f6",
+      "bytesEqual": false,
+      "normalizedLineEndingsEqual": false
+    },
+    {
+      "path": "backend/app/adapters/mongodb_command.py",
+      "oldSha256": "429a201a3443768f15bd2f94945aaee5cf15c8c3ff137a8c8f8893700e9524ec",
+      "finalSha256": "429a201a3443768f15bd2f94945aaee5cf15c8c3ff137a8c8f8893700e9524ec",
+      "bytesEqual": true,
+      "normalizedLineEndingsEqual": true
+    },
+    {
+      "path": "backend/app/adapters/types.py",
+      "oldSha256": "e725517730b5981775cafc3b59393df14a946f1b2c35d89baabd8e810d0d3dd8",
+      "finalSha256": "b75cd0a061080038851b8191940c096dd578254819cf0e341366b2053b04cf8a",
+      "bytesEqual": false,
+      "normalizedLineEndingsEqual": true
+    },
+    {
+      "path": "backend/app/adapters/mongodb_metadata.py",
+      "oldSha256": "252b9344b873dc7c33ff7efd312e6ca6484d3a7c38e82060120ea0481795278c",
+      "finalSha256": "252b9344b873dc7c33ff7efd312e6ca6484d3a7c38e82060120ea0481795278c",
+      "bytesEqual": true,
+      "normalizedLineEndingsEqual": true
+    },
+    {
+      "path": "backend/app/agent/workflow.py",
+      "oldSha256": "5e8f8fe792e241962c6b5063039b4a542ad4c0824bef865c853361488221874d",
+      "finalSha256": "34d52abea253bd8581654fdb278b6ac3069593e1b2a33c40795d0e3543e4e8b9",
+      "bytesEqual": false,
+      "normalizedLineEndingsEqual": true
+    },
+    {
+      "path": "backend/app/agent/workflow_schema.py",
+      "oldSha256": "a91836fdd299838b7b70e156dc27a06a88d18e0439912d7ce87a508609a00d78",
+      "finalSha256": "53641dd40a91c3d17cf7dac0129fb5235caaa7aa4a6705f79e8532626574b21a",
+      "bytesEqual": false,
+      "normalizedLineEndingsEqual": true
+    },
+    {
+      "path": "backend/app/agent/workflow_rows.py",
+      "oldSha256": "f23edd8bb88c6f341e635f2e4cd6922de2d2fe3167d6ffef0d2f91cdd8397e8e",
+      "finalSha256": "5862ec5e3b8e5eb39d1a12f621ef5bb9471607e36639af6876cbe4c31d224e51",
+      "bytesEqual": false,
+      "normalizedLineEndingsEqual": true
+    },
+    {
+      "path": "backend/app/agent/workflow_mongodb.py",
+      "oldSha256": "db421f96da4a7dad7e7baea710cd239d0fe63d0834d3fa2e4ae603041cb828fe",
+      "finalSha256": "db421f96da4a7dad7e7baea710cd239d0fe63d0834d3fa2e4ae603041cb828fe",
+      "bytesEqual": true,
+      "normalizedLineEndingsEqual": true
+    },
+    {
+      "path": "backend/tests/test_mongodb_workflow_integration.py",
+      "oldSha256": "ff4290a392401d4486cc81442a630caad3e2c864dbaedf2aab4efa90a343247b",
+      "finalSha256": "ff4290a392401d4486cc81442a630caad3e2c864dbaedf2aab4efa90a343247b",
+      "bytesEqual": true,
+      "normalizedLineEndingsEqual": true
+    },
+    {
+      "path": "backend/tests/test_mongodb_integration.py",
+      "oldSha256": "7d6b440cc80c160d4dbc2fc620d57d031854745f8696bc7e6895c4ee8194c5ee",
+      "finalSha256": "7d6b440cc80c160d4dbc2fc620d57d031854745f8696bc7e6895c4ee8194c5ee",
+      "bytesEqual": true,
+      "normalizedLineEndingsEqual": true
+    },
+    {
+      "path": "backend/tests/test_mongodb_interruptions.py",
+      "oldSha256": "41f3ad0a44a5f4188b0aabeec99302257a5a3694479e47ed62273176c7ba7197",
+      "finalSha256": "41f3ad0a44a5f4188b0aabeec99302257a5a3694479e47ed62273176c7ba7197",
+      "bytesEqual": true,
+      "normalizedLineEndingsEqual": true
+    }
+  ],
+  "laterFaultPathChange": "Mongo diagnostic redaction only; 91 targeted tests passed",
+  "actualMongoRerunClaimed": false,
+  "historicalFrozenInventories": [
+    {
+      "inventorySha256": "759c60639b7f47571ba6e9ed5126ec1e9a319c4c5e6345d4758f0a297ebcf9eb",
+      "filesVerified": 24
+    },
+    {
+      "inventorySha256": "9a26ff8879f06069f6f30391b28c429164783ca0bf530cd477189b812eca0138",
+      "filesVerified": 6
+    }
+  ],
+  "generateDocPreservedSha256": "1dcf8e564c4e9df71e7d6dec89d4790660fea4d12b81d13310e41e5f7899cdc7"
+}

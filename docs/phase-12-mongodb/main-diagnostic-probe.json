@@ -1,0 +1,30 @@
+{
+  "kind": "root independent public diagnostic probe",
+  "actualCloudOrModel": false,
+  "checks": [
+    {
+      "case": 0,
+      "pass": true
+    },
+    {
+      "case": 1,
+      "pass": true
+    },
+    {
+      "case": 2,
+      "pass": true
+    },
+    {
+      "case": 3,
+      "pass": true
+    },
+    {
+      "case": 4,
+      "pass": true
+    },
+    {
+      "case": 5,
+      "pass": true
+    }
+  ]
+}

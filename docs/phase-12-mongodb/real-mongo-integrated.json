@@ -1,0 +1,27 @@
+{
+  "baseCommit": "3d1c5cc20ae76e692df19b4ec747932ff43e23ed",
+  "kind": "Integrated Mongo actual engine and HTTP-model protocol self-check",
+  "target": "dedicated loopback:17017",
+  "serverVersion": "8.0.32",
+  "command": "python -m pytest tests/test_mongodb_integration.py tests/test_mongodb_interruptions.py tests/test_mongodb_workflow_integration.py -q",
+  "exitCode": 0,
+  "passed": 20,
+  "elapsedSeconds": 44.969,
+  "databaseSetUnchanged": true,
+  "containerLifecycleChanged": false,
+  "publicWriteCommandsAdded": false,
+  "publicWorkflowIntegration": "production WorkflowProgress/WorkflowSchema/rows; model simulated over HTTP; system store temporary SQLite",
+  "codeSha256": {
+    "backend/app/adapters/mongodb.py": "3302b85d7a61af14a8f9c4f969c6a1fc62c97f1f6bb134700b8eaa7bde6e4229",
+    "backend/app/adapters/mongodb_command.py": "429a201a3443768f15bd2f94945aaee5cf15c8c3ff137a8c8f8893700e9524ec",
+    "backend/app/adapters/types.py": "e725517730b5981775cafc3b59393df14a946f1b2c35d89baabd8e810d0d3dd8",
+    "backend/app/adapters/mongodb_metadata.py": "252b9344b873dc7c33ff7efd312e6ca6484d3a7c38e82060120ea0481795278c",
+    "backend/app/agent/workflow.py": "5e8f8fe792e241962c6b5063039b4a542ad4c0824bef865c853361488221874d",
+    "backend/app/agent/workflow_schema.py": "a91836fdd299838b7b70e156dc27a06a88d18e0439912d7ce87a508609a00d78",
+    "backend/app/agent/workflow_rows.py": "f23edd8bb88c6f341e635f2e4cd6922de2d2fe3167d6ffef0d2f91cdd8397e8e",
+    "backend/app/agent/workflow_mongodb.py": "db421f96da4a7dad7e7baea710cd239d0fe63d0834d3fa2e4ae603041cb828fe",
+    "backend/tests/test_mongodb_workflow_integration.py": "ff4290a392401d4486cc81442a630caad3e2c864dbaedf2aab4efa90a343247b",
+    "backend/tests/test_mongodb_integration.py": "7d6b440cc80c160d4dbc2fc620d57d031854745f8696bc7e6895c4ee8194c5ee",
+    "backend/tests/test_mongodb_interruptions.py": "41f3ad0a44a5f4188b0aabeec99302257a5a3694479e47ed62273176c7ba7197"
+  }
+}

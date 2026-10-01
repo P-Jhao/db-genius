@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 from sqlglot import exp
 
+from app.agent.workflow_mongodb import MONGODB_FORMAT, MongoWorkflowEvidence
 from app.agent.workflow_values import ColumnTypes
 
 _DIALECTS = {"mysql": "mysql", "postgresql": "postgres", "sqlite": "sqlite",
@@ -27,6 +28,7 @@ def column_name(value: exp.Expression, dialect: str | None) -> str:
 
 @dataclass
 class WorkflowSchema:
+    mongo: MongoWorkflowEvidence = field(default_factory=MongoWorkflowEvidence)
     dialects: dict[int, str] = field(default_factory=dict)
     column_types: dict[Target, ColumnTypes] = field(default_factory=dict)
     default_namespaces: dict[int, str] = field(default_factory=dict)
@@ -34,6 +36,9 @@ class WorkflowSchema:
     def register(self, db_id: int, result: object) -> None:
         if not isinstance(result, dict):
             raise TypeError("Workflow schema must be an object")
+        if self.mongo.register(db_id, result):
+            self.dialects[db_id] = MONGODB_FORMAT
+            return
         db_type = result.get("dbType")
         if not isinstance(db_type, str) or db_type not in _DIALECTS:
             raise ValueError("Workflow schema has an unsupported database type")

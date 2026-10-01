@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from sqlglot import exp, parse_one
 
+from app.agent.workflow_mongodb import MONGODB_FORMAT
+from app.agent.workflow_mongodb import schema_mutation as mongo_mutation
 from app.agent.workflow_schema import column_name
 from app.agent.workflow_values import ColumnTypes, Row, RowKey, covers, key
 
@@ -51,6 +53,8 @@ def write_tables(statement: str, dialect: str | None = None) -> list[exp.Table]:
 
 
 def schema_mutation(statement: str, dialect: str | None = None) -> bool:
+    if dialect == MONGODB_FORMAT:
+        return mongo_mutation(statement)
     return isinstance(expression(statement, dialect), (exp.Create, exp.Alter))
 
 

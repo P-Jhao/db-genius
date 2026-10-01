@@ -1,5 +1,6 @@
+import threading
 from dataclasses import dataclass
-from typing import TypedDict
+from typing import NotRequired, Protocol, TypedDict
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,8 @@ class SchemaMetadata(TypedDict):
     tables: list[TableMetadata]
     incomplete: bool
     errorMessage: str | None
+    schemaInferred: NotRequired[bool]
+    sampleSize: NotRequired[int]
 
 
 class QueryResult(TypedDict, total=False):
@@ -50,6 +53,25 @@ class QueryResult(TypedDict, total=False):
     errorCode: int
     rowCount: int
     data: list[dict[str, object]]
+    result: list[dict[str, object]] | int | dict[str, object]
     truncated: bool
     affectedRows: int | None
     message: str
+
+
+class DatabaseAdapter(Protocol):
+    db_type: str
+
+    def validate_config(self, config: DbConnectionConfig) -> None: ...
+
+    def test_connection(self, config: DbConnectionConfig) -> bool: ...
+
+    def is_read_only(self, statement: str) -> bool: ...
+
+    def extract_metadata(self, config: DbConnectionConfig, *, timeout_seconds: int = 30) -> SchemaMetadata: ...
+
+    def generate_document(self, config: DbConnectionConfig, *, timeout_seconds: int = 30) -> str: ...
+
+    def execute(self, config: DbConnectionConfig, statement: str, *, trial_mode: bool = False,
+                timeout_seconds: int = 30, max_rows: int = 100,
+                cancel_event: threading.Event | None = None) -> QueryResult: ...

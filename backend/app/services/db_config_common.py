@@ -8,28 +8,46 @@ from app.models import DbConfig
 from app.schemas.db_config import DbConfigRequest, DbConfigVO
 
 
+def request_password(request: DbConfigRequest, current: DbConfig | None = None) -> str:
+    """Mongo updates replace the submitted credential pair; SQL edits retain blanks."""
+    db_type = request.db_type.strip().lower() if request.db_type else "mysql"
+    password = request.password
+    if db_type == "mongodb":
+        return "" if password is None or not password.strip() else password
+    if current is not None and (password is None or not password.strip()):
+        return connection_for(current).password
+    if password is None:
+        raise BusinessError(400, "password is required")
+    return password
+
+
 def validate_request(request: DbConfigRequest, password: str) -> DbConnectionConfig:
     db_type = request.db_type.strip().lower() if request.db_type else "mysql"
     try:
         adapter = get_adapter(db_type)
     except ValueError as exc:
         raise BusinessError(400, str(exc)) from exc
-    if request.host is None or request.port is None or request.username is None:
+    if request.host is None or request.port is None or (db_type != "mongodb" and request.username is None):
         raise BusinessError(400, "host, port and username are required")
     connection = DbConnectionConfig(db_type, request.host.strip(), request.port,
-                                    request.db_name.strip(), request.username.strip(), password)
+                                    request.db_name.strip(),
+                                    "" if request.username is None else request.username.strip(), password)
     try:
         adapter.validate_config(connection)
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         raise BusinessError(400, str(exc)) from exc
     return connection
 
 
 def connection_for(config: DbConfig) -> DbConnectionConfig:
     if config.password_encrypted is None:
-        raise ValueError("Database credential is missing")
+        if config.db_type != "mongodb" or config.username.strip():
+            raise ValueError("Database credential is missing")
+        password = ""
+    else:
+        password = decrypt(config.password_encrypted)
     return DbConnectionConfig(config.db_type, config.host, config.port, config.db_name,
-                              config.username, decrypt(config.password_encrypted))
+                              config.username, password)
 
 
 def to_vo(config: DbConfig) -> DbConfigVO:

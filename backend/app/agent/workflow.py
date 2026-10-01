@@ -42,6 +42,12 @@ class WorkflowProgress:
     def before_call(self, name: str, args: dict[str, object]) -> None:
         if self.failure is not None:
             raise RuntimeError("Workflow stopped after a failed tool")
+        if name == "executeSql" and (db_id := args.get("db_id")) in self.schema.mongo.database_ids:
+            statement = args.get("statement")
+            if not isinstance(db_id, int) or not isinstance(statement, str):
+                raise TypeError("Mongo tool arguments are invalid")
+            self.schema.mongo.before_command(db_id, statement)
+            return
         if name != "executeSql" or not self.attached_files:
             return
         statement = args.get("statement")
@@ -54,6 +60,14 @@ class WorkflowProgress:
             raise BusinessError(400, "Read an attached file before writing import data")
 
     def after_call(self, name: str, args: dict[str, object], result: object) -> None:
+        if name == "executeSql" and (db_id := args.get("db_id")) in self.schema.mongo.database_ids:
+            statement = args.get("statement")
+            if not isinstance(db_id, int) or not isinstance(statement, str):
+                raise TypeError("Mongo tool arguments are invalid")
+            self.schema.mongo.after_command(db_id, statement, result)
+            if isinstance(result, dict) and result.get("success") is True:
+                self.successful_tools += 1
+            return
         if name == "getDatabaseSchema":
             db_id = args.get("db_id")
             if not isinstance(db_id, int):
@@ -156,6 +170,9 @@ class WorkflowProgress:
                 self.inserted_rows += affected
 
     def status(self) -> str | None:
+        mongo_status = self.schema.mongo.status()
+        if mongo_status is not None:
+            return mongo_status
         reasons: list[str] = []
         if self.failure is not None:
             reasons.append(self.failure)

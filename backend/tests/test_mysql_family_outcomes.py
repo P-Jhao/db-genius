@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from test_mysql_family import FAMILY, config
 
 from app.adapters import DatabaseExecutionInterrupted, DbConnectionConfig, get_adapter
+from app.adapters.mysql_family import MysqlFamilyAdapter
 
 
 @pytest.mark.parametrize("db_type", FAMILY)
@@ -47,6 +48,7 @@ def test_inflight_proxy_cancel_preserves_unconfirmed_outcome(
     db_type: str, read_only: bool, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     adapter = get_adapter(db_type)
+    assert isinstance(adapter, MysqlFamilyAdapter)
     signal, entered, cancel_attempted = threading.Event(), threading.Event(), threading.Event()
     original_cancel = adapter._cancel_running_statement
 

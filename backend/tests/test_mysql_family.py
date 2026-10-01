@@ -58,6 +58,7 @@ def test_explicit_driver_port_and_connection_arguments(db_type: str) -> None:
 @pytest.mark.parametrize("db_type", FAMILY)
 def test_connection_probe_and_per_engine_timeout(db_type: str, monkeypatch: pytest.MonkeyPatch) -> None:
     adapter = get_adapter(db_type)
+    assert isinstance(adapter, MysqlFamilyAdapter)
     connection = Mock()
     connection.exec_driver_sql.return_value.scalar_one.return_value = 1
 
@@ -138,6 +139,7 @@ def test_write_dispatch_reports_affected_rows(db_type: str, monkeypatch: pytest.
 @pytest.mark.parametrize("db_type", ("tidb", "doris", "starrocks", "oceanbase"))
 def test_unpinned_proxy_cancel_never_kills_another_session(db_type: str) -> None:
     adapter = get_adapter(db_type)
+    assert isinstance(adapter, MysqlFamilyAdapter)
     with pytest.raises(RuntimeError, match="unpinned proxy"):
         adapter._cancel_running_statement(config(db_type), Mock(), 42)
 
