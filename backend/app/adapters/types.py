@@ -1,5 +1,5 @@
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import NotRequired, Protocol, TypedDict
 
 
@@ -10,7 +10,7 @@ class DbConnectionConfig:
     port: int
     db_name: str
     username: str
-    password: str
+    password: str = field(repr=False)
 
 
 class ColumnMetadata(TypedDict):
