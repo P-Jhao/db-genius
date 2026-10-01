@@ -1,6 +1,6 @@
 # S10 文件与数据库工作流交接
 
-功能基线：已验收 S09 `0bd3fc8`；独立 SQL repair 已由主代理验收并提交 `a83368f`，S10 feat 集合在此之后集成。开发仅在 `.git/acceptance/s10-integration-1790786050404` 隔离快照进行；共享工作区后续草稿及原 `db-genius` 未改动。当前为待主代理复验、提交的交付；不代表完整迁移完成。
+功能基线：已验收 S09 `0bd3fc8`；独立 SQL repair 已由主代理验收并提交 `a83368f`，S10 feat 集合在此之后集成。开发仅在 `.git/acceptance/s10-integration-1790786050404` 隔离快照进行；共享工作区后续草稿及原 `db-genius` 未改动。已由主代理独立复验并提交 `13d4595`；不代表完整迁移完成，主代理证据见 [main-review.md](main-review.md)。
 
 ## 范围与契约
 

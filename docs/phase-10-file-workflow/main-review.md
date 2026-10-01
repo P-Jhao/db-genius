@@ -1,6 +1,6 @@
 # S10 主代理独立验收
 
-状态：本地文件与工作流阶段门槛通过，待串行 feat 提交；真实 OSS/OCR 为环境阻塞，不代表完整迁移完成。
+状态：本地文件与工作流阶段门槛通过，已提交 `13d4595`；真实 OSS/OCR 为环境阻塞，不代表完整迁移完成。
 
 源冻结副本 `.git/acceptance/s10-integration-1790786050404` 的 files.tsv SHA256 `f4faa47d61cdc050fa0cb09672a16679053646b9270218f687dda9d88ca4b08a`；52 个文件全部逐项校验。主代理从已验收 index 新导出 `.git/acceptance/s10-main-4ddac703205846cbac1707aabc0ae37a`，仅复制冻结文件，保留此前独立 SQL repair a83368f；共享后续业务草稿、原 Java 未覆盖。
 
