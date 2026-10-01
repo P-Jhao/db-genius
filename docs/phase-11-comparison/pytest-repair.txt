@@ -1,0 +1,219 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_ test_comparison_read_error_can_be_repaired_before_actual_comparison[postgresql] _
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:149: in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:3284: in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:445: in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:1287: in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:709: in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\impl.py:301: in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:386: in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:671: in __init__
+    self.__connect()
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:895: in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:166: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:891: in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\create.py:645: in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py:857: in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\psycopg\connection.py:126: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.errors.ConnectionTimeout: connection timeout expired
+
+The above exception was the direct cause of the following exception:
+tests\test_compare_safety_integration.py:126: in test_comparison_read_error_can_be_repaired_before_actual_comparison
+    with temporary_pair(db_type) as targets:
+         ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+tests\test_schema_diff_integration.py:73: in temporary_pair
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+         ^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:3260: in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:151: in __init__
+    Connection._handle_dbapi_exception_noconnection(
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:2417: in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:149: in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:3284: in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:445: in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:1287: in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:709: in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\impl.py:301: in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:386: in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:671: in __init__
+    self.__connect()
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:895: in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:166: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:891: in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\create.py:645: in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py:857: in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\psycopg\connection.py:126: in connect
+    raise last_ex.with_traceback(None)
+E   sqlalchemy.exc.OperationalError: (psycopg.errors.ConnectionTimeout) connection timeout expired
+E   (Background on this error at: https://sqlalche.me/e/21/e3q8)
+_ test_comparison_read_error_can_be_repaired_before_actual_comparison[mysql] __
+..\..\..\..\backend\.venv\Lib\site-packages\pymysql\connections.py:681: in connect
+    sock = socket.create_connection(
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\socket.py:865: in create_connection
+    raise exceptions[0]
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\socket.py:850: in create_connection
+    sock.connect(sa)
+E   ConnectionRefusedError: [WinError 10061] 由于目标计算机积极拒绝，无法连接。
+
+During handling of the above exception, another exception occurred:
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:149: in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:3284: in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:445: in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:1287: in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:709: in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\impl.py:301: in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:386: in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:671: in __init__
+    self.__connect()
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:895: in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:166: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:891: in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\create.py:645: in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py:857: in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\pymysql\connections.py:373: in __init__
+    self.connect()
+..\..\..\..\backend\.venv\Lib\site-packages\pymysql\connections.py:744: in connect
+    raise exc
+E   pymysql.err.OperationalError: (2003, "Can't connect to MySQL server on '127.0.0.1' ([WinError 10061] 由于目标计算机积极拒绝，无法连接。)")
+
+The above exception was the direct cause of the following exception:
+tests\test_compare_safety_integration.py:126: in test_comparison_read_error_can_be_repaired_before_actual_comparison
+    with temporary_pair(db_type) as targets:
+         ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+tests\test_schema_diff_integration.py:73: in temporary_pair
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+         ^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:3260: in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:151: in __init__
+    Connection._handle_dbapi_exception_noconnection(
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:2417: in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:149: in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:3284: in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:445: in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:1287: in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:709: in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\impl.py:301: in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:386: in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:671: in __init__
+    self.__connect()
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:895: in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:166: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\pool\base.py:891: in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\create.py:645: in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py:857: in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\pymysql\connections.py:373: in __init__
+    self.connect()
+..\..\..\..\backend\.venv\Lib\site-packages\pymysql\connections.py:744: in connect
+    raise exc
+E   sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on '127.0.0.1' ([WinError 10061] 由于目标计算机积极拒绝，无法连接。)")
+E   (Background on this error at: https://sqlalche.me/e/21/e3q8)
+=========================== short test summary info ===========================
+FAILED tests/test_compare_safety_integration.py::test_comparison_read_error_can_be_repaired_before_actual_comparison[postgresql]
+FAILED tests/test_compare_safety_integration.py::test_comparison_read_error_can_be_repaired_before_actual_comparison[mysql]
+2 failed, 5 deselected in 16.79s

@@ -1,0 +1,4 @@
+path	sha256	bytes
+backend/app/agent/compare_locale.py	b2855d5d2f2271424608fc6ecee18653c8283e6f605a9fc9004d149d5f48d035	9340
+backend/tests/test_compare_locale_revision.py	61b0e216251deb0f3dad877cf5bad931ca8b65e80cb5b014aba804488b65c55d	2836
+docs/phase-11-comparison-revision/README.md	3f3efba46f990b04f489513f444d950a2c93560b2d9d380e96122c3cf4a311ae	2380

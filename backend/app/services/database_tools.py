@@ -39,11 +39,30 @@ def get_schema(user_id: int, db_id: int) -> SchemaMetadata:
 
 def execute_statement(user_id: int, db_id: int, statement: str,
                       cancel_event: threading.Event | None = None) -> QueryResult:
+    return _execute(user_id, db_id, statement, cancel_event, read_only=False)
+
+
+def execute_comparison_read(user_id: int, db_id: int, statement: str,
+                            cancel_event: threading.Event | None = None) -> QueryResult:
+    """Check and execute using the same owned configuration and target adapter."""
+    return _execute(user_id, db_id, statement, cancel_event, read_only=True)
+
+
+def _execute(user_id: int, db_id: int, statement: str,
+             cancel_event: threading.Event | None, *, read_only: bool) -> QueryResult:
     config = _ready_config(user_id, db_id)
+    adapter = get_adapter(config.db_type)
+    if read_only:
+        try:
+            allowed = adapter.is_read_only(statement)
+        except ValueError as error:
+            raise BusinessError(400, "Comparison statement could not be safely parsed") from error
+        if not allowed:
+            raise BusinessError(403, "Comparison cannot execute migration writes", 403)
     connection = connection_for(config)
     settings = get_settings()
-    return get_adapter(config.db_type).execute(
-        connection, statement, trial_mode=settings.trial_enabled,
+    return adapter.execute(
+        connection, statement, trial_mode=read_only or settings.trial_enabled,
         timeout_seconds=settings.query_timeout_seconds, max_rows=settings.query_max_rows,
         cancel_event=cancel_event,
     )

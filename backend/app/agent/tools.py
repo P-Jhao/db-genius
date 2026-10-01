@@ -54,6 +54,7 @@ class RunTools:
         self.database_ids = set(request.db_config_ids or [])
         self.database_ids.update(i for i in (request.pre_db_config_id, request.test_db_config_id) if i is not None)
         self.file_ids = set(request.file_ids or [])
+        self.comparison_ids = (request.pre_db_config_id, request.test_db_config_id)
         self.artifacts = OutputArtifacts(user_id, self.task_id)
         self.terminated = False
         self.successful_writes: set[tuple[int, str]] = set()
@@ -92,19 +93,22 @@ class RunTools:
         check_cancelled(self.cancel_event)
         return self.bound(result, "getDatabaseSchema")
 
-    async def execute(self, db_id: int, statement: str) -> str:
+    async def execute(self, db_id: int, statement: str, *, comparison: bool = False) -> str:
         from app.services import database_tools
 
         check_cancelled(self.cancel_event)
         self.require_database(db_id)
+        if comparison and db_id not in self.comparison_ids:
+            raise BusinessError(403, "Database is not a selected comparison target", 403)
+        execute = database_tools.execute_comparison_read if comparison else database_tools.execute_statement
         signature = (db_id, statement.strip())
         if signature in self.successful_writes:
             raise BusinessError(409, "A successful write was already executed in this run")
         try:
             if self.cancel_event is None:
-                result = await asyncio.to_thread(database_tools.execute_statement, self.user_id, db_id, statement)
+                result = await asyncio.to_thread(execute, self.user_id, db_id, statement)
             else:
-                result = await asyncio.to_thread(database_tools.execute_statement, self.user_id, db_id, statement,
+                result = await asyncio.to_thread(execute, self.user_id, db_id, statement,
                                                  cancel_event=self.cancel_event)
         except DatabaseExecutionInterrupted as error:
             self.interruption = {
@@ -139,11 +143,24 @@ class RunTools:
         check_cancelled(self.cancel_event)
         return self.bound(result, "executeSql")
 
+    async def comparison_read(self, db_id: int, statement: str) -> str:
+        return await self.execute(db_id, statement, comparison=True)
+
     async def compare(self, pre_id: int, test_id: int) -> str:
+        from app.services import schema_diff
+
         check_cancelled(self.cancel_event)
         self.require_database(pre_id)
         self.require_database(test_id)
-        raise BusinessError(501, "Database comparison is scheduled for a later phase")
+        if (pre_id, test_id) != self.comparison_ids:
+            raise BusinessError(403, "Comparison direction differs from the selected pre/test pair", 403)
+        if self.cancel_event is None:
+            result = await asyncio.to_thread(schema_diff.compare_databases, self.user_id, pre_id, test_id)
+        else:
+            result = await asyncio.to_thread(schema_diff.compare_databases, self.user_id, pre_id, test_id,
+                                             cancel_event=self.cancel_event)
+        check_cancelled(self.cancel_event)
+        return self.bound(result, "compareDatabases")
 
     async def document(self, file_id: int) -> str:
         check_cancelled(self.cancel_event)
@@ -180,7 +197,7 @@ class RunTools:
     def for_intent(self, intent: Intent) -> list[BaseTool]:
         definitions: list[tuple[str, str, type[BaseModel], Callable[..., Awaitable[str]]]] = [
             ("getDatabaseSchema", "Read selected database schema before generating statements.", DatabaseInput, self.schema),
-            ("executeSql", "Execute SQL or MongoDB command on a selected database. Follow server safety rules.", StatementInput, self.execute),
+            ("executeSql", "Execute SQL or MongoDB command on a selected database. Follow server safety rules.", StatementInput, self.comparison_read if intent == "db_compare" else self.execute),
             ("readToolOutput", "Page a large output using its artifactId.", OutputInput, self.read_output),
             ("doTerminate", "Finish tool execution and summarize results.", TerminateInput, self.terminate),
         ]

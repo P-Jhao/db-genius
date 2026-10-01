@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
 
 from app.agent.cancellation import check_cancelled
+from app.agent.compare import CompareProgress, prepare_compare
 from app.agent.context_runtime import RepeatedCalls, govern_messages, summary_request
 from app.agent.prompts import system_prompt
 from app.agent.workflow import WorkflowProgress
@@ -24,11 +25,14 @@ class SQLNodes:
         self.max_steps = max_steps
         self.repeated_calls = RepeatedCalls()
         self.workflow = WorkflowProgress(set(context.request.file_ids or []))
+        self.comparison = CompareProgress()
 
     async def prepare(self, state: RunState) -> dict[str, object]:
         context = self.context
         check_cancelled(context.cancel_event)
         intent = state["intent"]
+        if intent == "db_compare":
+            return {"messages": prepare_compare(context.request, context.history, context.locale)}
         if intent not in ("sql_query", "workflow"):
             raise BusinessError(501, f"{intent} workflow is scheduled for a later phase")
         schemas: list[str] = []
@@ -84,7 +88,8 @@ class SQLNodes:
                 raise RuntimeError("SQL agent answered without executing a statement")
             if not isinstance(decision.content, str):
                 raise TypeError("Database answer must be text")
-            status = self.workflow.status() if intent == "workflow" else None
+            status = (self.workflow.status() if intent == "workflow" else
+                      self.comparison.safe_report(context.locale) if intent == "db_compare" else None)
             content = decision.content if status is None else status
             await context.emit("summary", content, state["step"])
             return {"messages": messages, "decision": decision,
@@ -103,7 +108,8 @@ class SQLNodes:
         for call in decision.tool_calls:
             check_cancelled(context.cancel_event)
             if (context.tools.terminated or context.tools.loop_stop_reason is not None or
-                    (intent == "workflow" and self.workflow.failure is not None)):
+                    (intent == "workflow" and self.workflow.failure is not None) or
+                    (intent == "db_compare" and self.comparison.must_stop)):
                 additions.append(ToolMessage(content="Skipped after execution stopped", tool_call_id=call["id"]))
                 continue
             tool = available.get(call["name"])
@@ -127,6 +133,14 @@ class SQLNodes:
             if intent == "workflow":
                 self.workflow.after_call(call["name"], args, context.tools.last_result)
             output = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False, default=str)
+            if intent == "db_compare":
+                if call["name"] == "compareDatabases":
+                    report = context.tools.last_result
+                    if not isinstance(report, dict):
+                        raise TypeError("Comparison service result must be an object")
+                    self.comparison.observe(output, report)
+                elif call["name"] == "readToolOutput":
+                    self.comparison.observe_page(args, context.tools.last_result)
             additions.append(ToolMessage(content=output, tool_call_id=call["id"]))
             display = output if context.tools.last_output is None else context.tools.last_output
             await context.emit("step", f"{call['name']}: {display}", state["step"] + 1)
@@ -148,11 +162,17 @@ class SQLNodes:
             )))
         return {"messages": [*state["messages"], *additions], "step": state["step"] + 1,
                 "finished": (context.tools.terminated or context.tools.loop_stop_reason is not None or
-                             (intent == "workflow" and self.workflow.failure is not None))}
+                             (intent == "workflow" and self.workflow.failure is not None) or
+                             (intent == "db_compare" and self.comparison.must_stop))}
 
     async def summarize(self, state: RunState) -> dict[str, object]:
         context = self.context
         check_cancelled(context.cancel_event)
+        if state["intent"] == "db_compare":
+            safe = self.comparison.safe_report(context.locale)
+            if safe is not None:
+                await context.emit("summary", safe, state["step"])
+                return {"answer": safe, "finished": True}
         workflow_status = self.workflow.status() if state["intent"] == "workflow" else None
         if state["intent"] == "sql_query" and context.tools.statements_executed == 0:
             content = ("No database statement was successfully executed. "
@@ -167,6 +187,10 @@ class SQLNodes:
             from app.core.config import get_settings
 
             limit = get_settings().workflow_agent_max_steps
+        elif state["intent"] == "db_compare":
+            from app.core.config import get_settings
+
+            limit = get_settings().compare_agent_max_steps
         if unfinished is None and not context.tools.terminated and state["step"] >= limit:
             unfinished = "Step limit reached"
         warning = (f"{workflow_status}; report only verified facts." if workflow_status else

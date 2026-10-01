@@ -1,0 +1,22 @@
+Main independent S11 gate
+Accepted base: ecb011f1ba8bf7b6cae38dd4f8b5f288064e3777
+Frozen manifest: 22/22
+Frozen 9703123 preserved guards: 441/441
+Current HEAD differs only in two receipt documents
+
+$ python -m ruff check app tests
+All checks passed!
+
+exit_code=0
+
+$ python -m mypy app
+Success: no issues found in 79 source files
+
+exit_code=0
+
+$ python -m pytest -q -rs --tb=short tests/test_compare_api.py tests/test_compare_evidence.py tests/test_compare_graph.py tests/test_compare_locale.py tests/test_compare_reads.py tests/test_compare_safety_integration.py tests/test_schema_diff.py tests/test_schema_diff_integration.py tests/test_sql_repair.py tests/test_sql_error_boundary.py tests/test_sql_termination.py tests/test_workflow_sql_repair.py tests/test_workflow_evidence.py tests/test_workflow_identifiers.py tests/test_chat_abort.py tests/test_chat_abort_api.py tests/test_chat_abort_real_api.py tests/test_context_cancel.py
+........................................................................ [ 53%]
+..............................................................           [100%]
+134 passed in 272.72s (0:04:32)
+
+exit_code=0
