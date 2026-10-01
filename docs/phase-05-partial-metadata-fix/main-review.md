@@ -1,6 +1,6 @@
 # 部分元数据修复主代理验收
 
-状态：独立 fix 验收通过；提交号由后续实施状态补录。
+状态：独立 fix 已验收并提交 bdc0cc8。
 
 从已接受 a8e6a3a 导出独立副本，仅叠加子代理冻结的5个变更文件；freeze.json SHA256 9cbd035e5f82a86a9cdc9c889d877ee3deeeebfe4ca3f3ca34189e069e6c0fdc，5个变更与18个保留文件均逐项核对原始SHA，保留文件另与旧accepted基线规范换行后比对。共享业务草稿未覆盖。业务 diff 仅worker不再拒绝partial，以及手动生成先连接测试后保留partial；渲染、归属、版本条件更新和加密未改。
 

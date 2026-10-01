@@ -1,6 +1,6 @@
 # 模型参数修复主代理验收
 
-状态：独立修复验收通过，待本地 fix 提交；最终同模型效果仍待 S15 集成镜像。
+状态：独立修复已验收并提交 a8e6a3a；最终同模型效果仍待 S15 集成镜像。
 
 业务基线为 S10 13d4595。源副本 model-parameters-integration-3fcb807d9d2e44cd817a0ddd6eb12c69 清单 SHA256 307aa831ee779e8d375001b6350d347e9358ba9879328db6d9e8544ee1d778a3；9 个文件逐项匹配。主代理从新已验收 index 导出 main-parameters-71b98da9b3c0420295123dc3ed4251b1，仅复制该集合；已有业务 diff 只含 streaming、graph 分类 flag、context_compress 手动摘要调用。原提示词、底层传输、relay、S10导入/存储和SQL repair没有变化。
 
