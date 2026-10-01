@@ -78,7 +78,7 @@ def build_graph(context: RunContext):
         response = await context.model_stream.call(
             [SystemMessage(content=classification_prompt(context.request, context.locale)),
              *context.history, HumanMessage(content=context.request.message)],
-            event=None, json_mode=True,
+            event=None, classification=True,
         )
         check_cancelled(context.cancel_event)
         if not isinstance(response.content, str):

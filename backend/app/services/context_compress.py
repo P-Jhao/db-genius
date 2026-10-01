@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.agent.cancellation import RunAborted
 from app.agent.model import CompatibleChatModel
 from app.agent.prompts import language, load_prompt_template, render_prompt_template, split_prompt_sections
-from app.agent.streaming import ModelStream
+from app.agent.streaming import DEFAULT_TEMPERATURE, ModelStream
 from app.core.config import get_settings
 from app.core.localization import SUPPORTED_LOCALES, select_locale
 from app.models import Message
@@ -69,7 +69,7 @@ async def _summarize(model: CompatibleChatModel, rows: list[Message],
         summary = answer.content.strip()
     else:
         content: list[str] = []
-        async for chunk in model.astream(messages):
+        async for chunk in model.astream(messages, temperature=DEFAULT_TEMPERATURE):
             if not isinstance(chunk.content, str) or chunk.tool_call_chunks:
                 raise ValueError("Compression model must return text without tools")
             content.append(chunk.content)

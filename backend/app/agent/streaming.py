@@ -14,6 +14,8 @@ from langchain_core.utils.function_calling import convert_to_openai_tool
 from app.agent.cancellation import check_cancelled
 from app.agent.types import EventSink, Usage
 
+DEFAULT_TEMPERATURE = 0.7
+
 
 class ModelStream:
     def __init__(self, model: BaseChatModel, emit: EventSink, usage: Usage,
@@ -31,17 +33,18 @@ class ModelStream:
         step: int = 0,
         event: str | None = "content",
         tools: list[BaseTool] | None = None,
-        json_mode: bool = False,
+        classification: bool = False,
     ) -> AIMessage:
         self.partial = ""
         self.reasoning = ""
         aggregate: AIMessageChunk | None = None
         latest_usage: dict[str, int] | None = None
-        options: dict[str, object] = {}
+        options: dict[str, object] = (
+            {"thinking": {"type": "disabled"}} if classification
+            else {"temperature": DEFAULT_TEMPERATURE}
+        )
         if tools:
             options["tools"] = [convert_to_openai_tool(tool) for tool in tools]
-        if json_mode:
-            options["response_format"] = {"type": "json_object"}
         check_cancelled(self.cancel_event)
         iterator = self.model.astream(messages, **options).__aiter__()  # type: ignore[arg-type]
 
