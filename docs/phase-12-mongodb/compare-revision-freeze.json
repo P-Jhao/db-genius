@@ -1,0 +1,813 @@
+{
+  "kind": "Mongo production compare new-test-only revision freeze",
+  "acceptedBusinessBase": "5c9c2cdb22c920f595dd5c8485a013c650a4fff1",
+  "sourceSnapshot": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\main-mongo-1790852339433",
+  "files": [
+    {
+      "path": "backend/tests/test_compare_mongodb_integration.py",
+      "bytes": 9660,
+      "sha256": "07ea9e44a371e64d7d5c047dfe17d76daa3a852b10ad264e28986d2c4cfad981"
+    },
+    {
+      "path": "docs/phase-12-mongodb/compare-revision-README.md",
+      "bytes": 2083,
+      "sha256": "382a91f4e59eda3f47ecf2d98706d8ed5f9b3f186ba736df58559ac21c4ef418"
+    },
+    {
+      "path": "docs/phase-12-mongodb/real-compare-mongo.json",
+      "bytes": 1468,
+      "sha256": "3a37e4c8e35d23543d76afa291561b5c1a1f0c0af1e72156401bab40004f66a0"
+    },
+    {
+      "path": "docs/phase-12-mongodb/verify_compare_mongo.py",
+      "bytes": 4559,
+      "sha256": "dbf896a7ce108487efa375e3acbda64a94f2b48a839977c7a760e733e560814d"
+    }
+  ],
+  "preservedBackendGuards": [
+    {
+      "path": "backend/app/__init__.py",
+      "bytes": 31,
+      "sha256": "d9d6e46bc8e7139c66575f64eafa2611446b20b82ee9dcdd57d74d996e0b9afb",
+      "acceptedSha256": "d9d6e46bc8e7139c66575f64eafa2611446b20b82ee9dcdd57d74d996e0b9afb",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/adapters/__init__.py",
+      "bytes": 309,
+      "sha256": "5a3df7a7885a9a51cc9525854b2f2dfd3e1a8ca7c80b89377c2dcd16f632503a",
+      "acceptedSha256": "5a3df7a7885a9a51cc9525854b2f2dfd3e1a8ca7c80b89377c2dcd16f632503a",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/adapters/cancellation.py",
+      "bytes": 3808,
+      "sha256": "8a61e446412335abc09a3d1402c9e91a2d89e8764138c77506ac07d3c2a76459",
+      "acceptedSha256": "8a61e446412335abc09a3d1402c9e91a2d89e8764138c77506ac07d3c2a76459",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/adapters/diagnostics.py",
+      "bytes": 849,
+      "sha256": "f63553b974c350f00c9e0bd9828526a2abce77f5ed6854756f7cefc1b83befac",
+      "acceptedSha256": "8fdd20a98bcd657db4e2e8bcfeb365c5fb3d406b8acfbb72428dcbd819498f0d",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/adapters/document.py",
+      "bytes": 2598,
+      "sha256": "6272f6c0d83f4c9d471fe5f101efec414d2152f9103062de9e41e42a6753764a",
+      "acceptedSha256": "14b3472e756fde8cc03e3eef97a3235eec0721e6c05bb38d783b2fcc3cd843c4",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/adapters/mongodb.py",
+      "bytes": 11162,
+      "sha256": "6b054ce976793c5748e244faa42fa5870446c73b5992cc52a5666336620a21f6",
+      "acceptedSha256": "8c5b873071a08b09df57c34ecf878b57f032d7d231abe8095377463560d47ea5",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/adapters/mongodb_command.py",
+      "bytes": 4719,
+      "sha256": "429a201a3443768f15bd2f94945aaee5cf15c8c3ff137a8c8f8893700e9524ec",
+      "acceptedSha256": "e451aa68cea967f400766886c66f2b87d0e3bdf6c48efba0800799c5182b1677",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/adapters/mongodb_metadata.py",
+      "bytes": 3122,
+      "sha256": "252b9344b873dc7c33ff7efd312e6ca6484d3a7c38e82060120ea0481795278c",
+      "acceptedSha256": "c75e43b62e46e6ec17e11db0ad031a4c321005cc328c6f5f4bc585e69e747e93",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/adapters/mysql.py",
+      "bytes": 227,
+      "sha256": "83fda5400697f9d6839aa35bf8a7e82450e0d62e3aefe22fdf1a8666d6878f19",
+      "acceptedSha256": "83fda5400697f9d6839aa35bf8a7e82450e0d62e3aefe22fdf1a8666d6878f19",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/adapters/mysql_family.py",
+      "bytes": 2952,
+      "sha256": "00c1fb5098c1006130e41b4037db3f90bfbb8f9c0f25e0a47beededb500525a9",
+      "acceptedSha256": "00c1fb5098c1006130e41b4037db3f90bfbb8f9c0f25e0a47beededb500525a9",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/adapters/mysql_family_metadata.py",
+      "bytes": 4706,
+      "sha256": "f1e8c78c545b4d4525342418355fdbbf82ad67d843f182d84e06270f0084cfd8",
+      "acceptedSha256": "f1e8c78c545b4d4525342418355fdbbf82ad67d843f182d84e06270f0084cfd8",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/adapters/postgresql.py",
+      "bytes": 631,
+      "sha256": "a135e8599406d4b245413b08379664752a5279f4a8c7e22033daa5b4fa92fd5c",
+      "acceptedSha256": "a135e8599406d4b245413b08379664752a5279f4a8c7e22033daa5b4fa92fd5c",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/adapters/registry.py",
+      "bytes": 846,
+      "sha256": "c9023c363952a5e6bda79972f34f35415580b2f4e6d6e097ca246f560261f704",
+      "acceptedSha256": "fd54e69885521117ecd001f5230b623bec796aa80cd240cd297ecaa588d4df8c",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/adapters/relational.py",
+      "bytes": 16645,
+      "sha256": "2a314a0db476f5805bd9f547e609d9592e5a78e8f837fed6fe6d91a022e5019a",
+      "acceptedSha256": "2a314a0db476f5805bd9f547e609d9592e5a78e8f837fed6fe6d91a022e5019a",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/adapters/safety.py",
+      "bytes": 3141,
+      "sha256": "a54c3e2f2743a31aa2ac27ee0d2416d2f9c98c49ed7af9748618848ab8975fe2",
+      "acceptedSha256": "a54c3e2f2743a31aa2ac27ee0d2416d2f9c98c49ed7af9748618848ab8975fe2",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/adapters/types.py",
+      "bytes": 1912,
+      "sha256": "b75cd0a061080038851b8191940c096dd578254819cf0e341366b2053b04cf8a",
+      "acceptedSha256": "11c72e7cb1eacf2d497d40daae34007e2ae0268fa07daba4235be6ccbf455ecf",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/agent/cancellation.py",
+      "bytes": 414,
+      "sha256": "dae07269efd86886a2b71c905ad44aa50c3346e6a2fb8fb59a12b8c88a1333e0",
+      "acceptedSha256": "dae07269efd86886a2b71c905ad44aa50c3346e6a2fb8fb59a12b8c88a1333e0",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/compare.py",
+      "bytes": 7161,
+      "sha256": "4dce5d0dc2efc3cef4a9699e87eb467954a28653fcdcc6f0293019f01d2f3e9d",
+      "acceptedSha256": "4dce5d0dc2efc3cef4a9699e87eb467954a28653fcdcc6f0293019f01d2f3e9d",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/compare_locale.py",
+      "bytes": 9455,
+      "sha256": "4fa26a4f3387741064b01cc5aaa7492df7558221d2242b8a12bc9b0686582120",
+      "acceptedSha256": "4fa26a4f3387741064b01cc5aaa7492df7558221d2242b8a12bc9b0686582120",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/context_runtime.py",
+      "bytes": 8715,
+      "sha256": "4d8828c4b3a319f886c7904fd0ce7d1278635a2e1c7dab4a308a01100694d065",
+      "acceptedSha256": "4d8828c4b3a319f886c7904fd0ce7d1278635a2e1c7dab4a308a01100694d065",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/graph.py",
+      "bytes": 7829,
+      "sha256": "b3eaf7bb239782b7943b6013f7c64231b39df3afa53936d6cdf09e7512e49d74",
+      "acceptedSha256": "b3eaf7bb239782b7943b6013f7c64231b39df3afa53936d6cdf09e7512e49d74",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/graph_sql.py",
+      "bytes": 12042,
+      "sha256": "40168bfcf209e724b75a8d8a710b556b768f39c79c8dd4e99222abe3ebb9339e",
+      "acceptedSha256": "40168bfcf209e724b75a8d8a710b556b768f39c79c8dd4e99222abe3ebb9339e",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/model.py",
+      "bytes": 8875,
+      "sha256": "f9b38580e1a40feb7f6b4928043119fc4912384a08af2290889344780ea3aafa",
+      "acceptedSha256": "f9b38580e1a40feb7f6b4928043119fc4912384a08af2290889344780ea3aafa",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/output_guard.py",
+      "bytes": 6683,
+      "sha256": "bb9bfe8ed7e979a4da1f3c91226d334a56d9e61f97ac8c9d9023f69a9f0050e7",
+      "acceptedSha256": "bb9bfe8ed7e979a4da1f3c91226d334a56d9e61f97ac8c9d9023f69a9f0050e7",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/prompts.py",
+      "bytes": 6623,
+      "sha256": "297a84989ef7e8b12838667ad8da5c052157cf4cd2d6f3d0ca644ffe4c31e756",
+      "acceptedSha256": "297a84989ef7e8b12838667ad8da5c052157cf4cd2d6f3d0ca644ffe4c31e756",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/sql_errors.py",
+      "bytes": 1733,
+      "sha256": "df1f62c65f658a74c39a7f54dc51674c41ff0165e1ab2fd488261dc1acd3989d",
+      "acceptedSha256": "df1f62c65f658a74c39a7f54dc51674c41ff0165e1ab2fd488261dc1acd3989d",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/streaming.py",
+      "bytes": 5561,
+      "sha256": "000b7b16762570ca2350d1f8fd6e67cf4e2fc7c9194c8151c50a47c75bdadfef",
+      "acceptedSha256": "000b7b16762570ca2350d1f8fd6e67cf4e2fc7c9194c8151c50a47c75bdadfef",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/tools.py",
+      "bytes": 10031,
+      "sha256": "3f6524977a2488111a95baac13b2c8590fc86af186ed2c10ecf404346999aea1",
+      "acceptedSha256": "3f6524977a2488111a95baac13b2c8590fc86af186ed2c10ecf404346999aea1",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/types.py",
+      "bytes": 2155,
+      "sha256": "ca3d9e29853d6830ad5aa09b4effb09bc9cdbe99922b77c60ee8e5671136c691",
+      "acceptedSha256": "ca3d9e29853d6830ad5aa09b4effb09bc9cdbe99922b77c60ee8e5671136c691",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/agent/workflow.py",
+      "bytes": 11222,
+      "sha256": "34d52abea253bd8581654fdb278b6ac3069593e1b2a33c40795d0e3543e4e8b9",
+      "acceptedSha256": "a99735161dcce07542cbf131b139f2e5c627c96e8d5fd416cf156dd9bd7fead8",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/agent/workflow_mongodb.py",
+      "bytes": 4152,
+      "sha256": "db421f96da4a7dad7e7baea710cd239d0fe63d0834d3fa2e4ae603041cb828fe",
+      "acceptedSha256": "6b6cd953a641ab7c39fc468e16c618e2d38c0beb3422e570ef53c71f95346a9a",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/agent/workflow_rows.py",
+      "bytes": 7416,
+      "sha256": "5862ec5e3b8e5eb39d1a12f621ef5bb9471607e36639af6876cbe4c31d224e51",
+      "acceptedSha256": "c0fc1323660359c43d4e5c1dd48e972e305a03e0781764b1126231b9f4fa4215",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/agent/workflow_schema.py",
+      "bytes": 4545,
+      "sha256": "53641dd40a91c3d17cf7dac0129fb5235caaa7aa4a6705f79e8532626574b21a",
+      "acceptedSha256": "87c1fa697e02253ef4aa605f42a7af51337bf933a49cbd61223882e3a06cf8d6",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/agent/workflow_values.py",
+      "bytes": 2420,
+      "sha256": "658641a777ea1571dafad8bea1da62f93da569822414cfa56c473b2031cdc92b",
+      "acceptedSha256": "658641a777ea1571dafad8bea1da62f93da569822414cfa56c473b2031cdc92b",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/api/__init__.py",
+      "bytes": 67,
+      "sha256": "497f9375fef554be09b3a1ec33aa99b78d90f22c884272a19fd6fe694179331e",
+      "acceptedSha256": "497f9375fef554be09b3a1ec33aa99b78d90f22c884272a19fd6fe694179331e",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/api/auth.py",
+      "bytes": 1391,
+      "sha256": "cad290457044d6d3277d9118d2715966c4c10a575ba6ec74104534f10f410457",
+      "acceptedSha256": "cad290457044d6d3277d9118d2715966c4c10a575ba6ec74104534f10f410457",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/api/chat.py",
+      "bytes": 12406,
+      "sha256": "9f943654adc77dac2ec83307b2c05560046dc42ec58b5264aa47b279ea8c778d",
+      "acceptedSha256": "9f943654adc77dac2ec83307b2c05560046dc42ec58b5264aa47b279ea8c778d",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/api/db_config.py",
+      "bytes": 2242,
+      "sha256": "0c6f6c967c980652deb38a8a0b829055c65bbb4c03650bfc15bc45017acf14b2",
+      "acceptedSha256": "0c6f6c967c980652deb38a8a0b829055c65bbb4c03650bfc15bc45017acf14b2",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/api/file.py",
+      "bytes": 610,
+      "sha256": "9b25476c4b2d19f69d911ae52aae40f06337d339b2871ef3592ca0355c8cfea7",
+      "acceptedSha256": "9b25476c4b2d19f69d911ae52aae40f06337d339b2871ef3592ca0355c8cfea7",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/api/model_config.py",
+      "bytes": 2613,
+      "sha256": "e61931303a787e9ca6366b0d3f69ae94da1e37d77ce6604de8ca020f07320059",
+      "acceptedSha256": "e61931303a787e9ca6366b0d3f69ae94da1e37d77ce6604de8ca020f07320059",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/api/system.py",
+      "bytes": 278,
+      "sha256": "f49db231db8d189785f9edb4a2d9a54e588cee98da9db54c567300b845d57c66",
+      "acceptedSha256": "f49db231db8d189785f9edb4a2d9a54e588cee98da9db54c567300b845d57c66",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/core/auth.py",
+      "bytes": 1901,
+      "sha256": "1818e12ecbbcd12b5bb745c09a6ce0bcc2deb4be3cf8d67a598be4ef2d1bab57",
+      "acceptedSha256": "1818e12ecbbcd12b5bb745c09a6ce0bcc2deb4be3cf8d67a598be4ef2d1bab57",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/core/config.py",
+      "bytes": 4726,
+      "sha256": "5d9431f0a8db2204e1a4bd7d3432ac1bd1a1582ee0d024bbe9afded826e19844",
+      "acceptedSha256": "5d9431f0a8db2204e1a4bd7d3432ac1bd1a1582ee0d024bbe9afded826e19844",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/core/database.py",
+      "bytes": 765,
+      "sha256": "1f46d7d5daef01c6d4f45b2f02629bbc61ccd80c39fafe6dbc453032c5c961a8",
+      "acceptedSha256": "1f46d7d5daef01c6d4f45b2f02629bbc61ccd80c39fafe6dbc453032c5c961a8",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/core/errors.py",
+      "bytes": 768,
+      "sha256": "d5bafccc975555a05f5cfd41256d0a33651d37e5984a6f776870653b14385dfa",
+      "acceptedSha256": "d5bafccc975555a05f5cfd41256d0a33651d37e5984a6f776870653b14385dfa",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/core/localization.py",
+      "bytes": 1914,
+      "sha256": "da91f3b5aebd05cf804d7525c0a6bc4fd3f4311247ea50b033cbd0ed11194897",
+      "acceptedSha256": "da91f3b5aebd05cf804d7525c0a6bc4fd3f4311247ea50b033cbd0ed11194897",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/core/ownership.py",
+      "bytes": 530,
+      "sha256": "b852a8a0316b08cc8639a3a37c6a518e02f9f1967dabee39abee29130b1c0a4b",
+      "acceptedSha256": "b852a8a0316b08cc8639a3a37c6a518e02f9f1967dabee39abee29130b1c0a4b",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/core/security.py",
+      "bytes": 1195,
+      "sha256": "82f6f659d078af30fc558f5cea61bcc199c21a3728051efffdbb5312d7fed95d",
+      "acceptedSha256": "82f6f659d078af30fc558f5cea61bcc199c21a3728051efffdbb5312d7fed95d",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/main.py",
+      "bytes": 2437,
+      "sha256": "074c73bd8e4a349aed439b31d32cac2c6b14e63a2575c46e0b5d5f581188ef32",
+      "acceptedSha256": "074c73bd8e4a349aed439b31d32cac2c6b14e63a2575c46e0b5d5f581188ef32",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/models/__init__.py",
+      "bytes": 304,
+      "sha256": "bd3f62bd07bbd0db82b1b7520fdd4387049c92fcaec6230257908cc563ce5c09",
+      "acceptedSha256": "bd3f62bd07bbd0db82b1b7520fdd4387049c92fcaec6230257908cc563ce5c09",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/models/entities.py",
+      "bytes": 6628,
+      "sha256": "6bf8dafc1c0025d7e80f5fdd3dacda73d512ff0bc7be57b6a8ed5b32cf207d46",
+      "acceptedSha256": "6bf8dafc1c0025d7e80f5fdd3dacda73d512ff0bc7be57b6a8ed5b32cf207d46",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/i18n/messages.properties",
+      "bytes": 4406,
+      "sha256": "6a27d24d1cd89644798c8a5c2521a8eb509d536a39322ce7be298b4a4a1680fb",
+      "acceptedSha256": "6a27d24d1cd89644798c8a5c2521a8eb509d536a39322ce7be298b4a4a1680fb",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/i18n/messages_es.properties",
+      "bytes": 4992,
+      "sha256": "f8a7762d05afe482fe13a2f5edaa41e34476bbc06c36f5e6e0f5d5f8be7ffde9",
+      "acceptedSha256": "f8a7762d05afe482fe13a2f5edaa41e34476bbc06c36f5e6e0f5d5f8be7ffde9",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/i18n/messages_fr.properties",
+      "bytes": 5276,
+      "sha256": "8727200039388ca784fa10f80e5aa7d40d4d912046cfd92cf71da450ba7e807b",
+      "acceptedSha256": "8727200039388ca784fa10f80e5aa7d40d4d912046cfd92cf71da450ba7e807b",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/i18n/messages_ja.properties",
+      "bytes": 5724,
+      "sha256": "fcaab9e91c385c1237a45627b2fbb3d9f7be0fe11a4262191ebdb43fd22b9113",
+      "acceptedSha256": "fcaab9e91c385c1237a45627b2fbb3d9f7be0fe11a4262191ebdb43fd22b9113",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/i18n/messages_ms.properties",
+      "bytes": 4637,
+      "sha256": "1a96dfd905d9c614a02d8247db5c7bfabef0969411bfd424188fd7f64a17c098",
+      "acceptedSha256": "1a96dfd905d9c614a02d8247db5c7bfabef0969411bfd424188fd7f64a17c098",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/i18n/messages_zh_CN.properties",
+      "bytes": 3857,
+      "sha256": "897f95bb1755da83f953fa4eb811c140b8033f7bf1277edd6f404aea9c620651",
+      "acceptedSha256": "897f95bb1755da83f953fa4eb811c140b8033f7bf1277edd6f404aea9c620651",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/i18n/messages_zh_TW.properties",
+      "bytes": 3884,
+      "sha256": "158e948074d7370b059aadccf04d600627d77bd316fb968930180987a9fc9673",
+      "acceptedSha256": "158e948074d7370b059aadccf04d600627d77bd316fb968930180987a9fc9673",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/_context-policy_en.md",
+      "bytes": 1172,
+      "sha256": "47d3b4e912ea846aad69921f8ae13b74cb8fc741fcff192aceaf3aa4f16753db",
+      "acceptedSha256": "47d3b4e912ea846aad69921f8ae13b74cb8fc741fcff192aceaf3aa4f16753db",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/_context-policy_zh_CN.md",
+      "bytes": 1080,
+      "sha256": "2b4ee90d6e763ab2b5659de119ec3acb3151f0d14b85ba09bfc5fd1e1d7d4ecb",
+      "acceptedSha256": "2b4ee90d6e763ab2b5659de119ec3acb3151f0d14b85ba09bfc5fd1e1d7d4ecb",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/db-compare-agent-system_en.md",
+      "bytes": 3363,
+      "sha256": "49f0f5efeea720acf9c8e0f28c7c294e95a0df4d3050aa77b0bf3e4bd5d4724f",
+      "acceptedSha256": "49f0f5efeea720acf9c8e0f28c7c294e95a0df4d3050aa77b0bf3e4bd5d4724f",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/db-compare-agent-system_zh_CN.md",
+      "bytes": 2945,
+      "sha256": "c106b8f592bfd66010e0dbfd11b0fc4575105bb9166b7ba3d8bf2248586f7ca3",
+      "acceptedSha256": "c106b8f592bfd66010e0dbfd11b0fc4575105bb9166b7ba3d8bf2248586f7ca3",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/db-sql-agent-system_en.md",
+      "bytes": 1714,
+      "sha256": "9dbcd9582bc019bb78abed56b7c0bafc868321cbe359bb24dbd6fe5c86d90e46",
+      "acceptedSha256": "9dbcd9582bc019bb78abed56b7c0bafc868321cbe359bb24dbd6fe5c86d90e46",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/db-sql-agent-system_zh_CN.md",
+      "bytes": 1567,
+      "sha256": "3c9e1132dd3266fbade0418586c4cb364027122e7e0c6b1769d1a68f9ebd434c",
+      "acceptedSha256": "3c9e1132dd3266fbade0418586c4cb364027122e7e0c6b1769d1a68f9ebd434c",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/db-workflow-agent-files_en.md",
+      "bytes": 757,
+      "sha256": "e600ef46d77942a13f4cc5a63006a233d79be14b248dac8e772bf053dab34aa6",
+      "acceptedSha256": "e600ef46d77942a13f4cc5a63006a233d79be14b248dac8e772bf053dab34aa6",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/db-workflow-agent-files_zh_CN.md",
+      "bytes": 703,
+      "sha256": "8e94a7ca47d9fc6d07fadef967ea43ed517ac0ade8292ca6a1eb28ab687571c0",
+      "acceptedSha256": "8e94a7ca47d9fc6d07fadef967ea43ed517ac0ade8292ca6a1eb28ab687571c0",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/db-workflow-agent-system_en.md",
+      "bytes": 1700,
+      "sha256": "c98cce74669b8ffb3d0c504a9da5ab837b152624857b097b88a15b16ea35ada8",
+      "acceptedSha256": "c98cce74669b8ffb3d0c504a9da5ab837b152624857b097b88a15b16ea35ada8",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/db-workflow-agent-system_zh_CN.md",
+      "bytes": 1560,
+      "sha256": "4a7d5dd7c05591a1772690a7d268b72cb30649ada55c80bb23a30412712ab367",
+      "acceptedSha256": "4a7d5dd7c05591a1772690a7d268b72cb30649ada55c80bb23a30412712ab367",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/intent-classifier_en.md",
+      "bytes": 2697,
+      "sha256": "b557d0fc19aee19a1624bd24e871c2c8005c745e544f9ae7229d8caab910be8e",
+      "acceptedSha256": "b557d0fc19aee19a1624bd24e871c2c8005c745e544f9ae7229d8caab910be8e",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/intent-classifier_zh_CN.md",
+      "bytes": 2287,
+      "sha256": "7ee47d189ae283dafb2cb04afa3726e0bf093212f7622572967ae011ca949b22",
+      "acceptedSha256": "7ee47d189ae283dafb2cb04afa3726e0bf093212f7622572967ae011ca949b22",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/simple-chat-agent-system_en.md",
+      "bytes": 575,
+      "sha256": "e9eabdb1183c1a5916c1500853421e994c9a7b6dc205ab5923b1ad24687b525f",
+      "acceptedSha256": "e9eabdb1183c1a5916c1500853421e994c9a7b6dc205ab5923b1ad24687b525f",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/simple-chat-agent-system_zh_CN.md",
+      "bytes": 517,
+      "sha256": "ade189621e001d18fbce579ebabc09ad661137b0acfa2b2b96c8c932ec22abd6",
+      "acceptedSha256": "ade189621e001d18fbce579ebabc09ad661137b0acfa2b2b96c8c932ec22abd6",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/step-condenser_en.md",
+      "bytes": 1000,
+      "sha256": "b1a8f5598ae114089fc190eb9c0852eaeaab4bb470cc95c61ac842a0a3673390",
+      "acceptedSha256": "b1a8f5598ae114089fc190eb9c0852eaeaab4bb470cc95c61ac842a0a3673390",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/step-condenser_zh_CN.md",
+      "bytes": 887,
+      "sha256": "bc7a9a9ce34f69bd59fe41775bc25c5ea2167e3e6a1111f617854aa5e20ce8d2",
+      "acceptedSha256": "bc7a9a9ce34f69bd59fe41775bc25c5ea2167e3e6a1111f617854aa5e20ce8d2",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/summary-compressor_en.md",
+      "bytes": 1388,
+      "sha256": "2c8aca8370ee3a675cf3588e248c4ff336cc7b54be4853b88c59fcbb669ffe16",
+      "acceptedSha256": "2c8aca8370ee3a675cf3588e248c4ff336cc7b54be4853b88c59fcbb669ffe16",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/summary-compressor_zh_CN.md",
+      "bytes": 1141,
+      "sha256": "89eabdc125d264c85ba708ad8d914d10698c53bfd0b304c86ad37ae3c8b7fce3",
+      "acceptedSha256": "89eabdc125d264c85ba708ad8d914d10698c53bfd0b304c86ad37ae3c8b7fce3",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/tool-call-summary_en.md",
+      "bytes": 1177,
+      "sha256": "068da577549590f5a26355e43a731d093aaac22f37ac4078a0acb5617f987c43",
+      "acceptedSha256": "068da577549590f5a26355e43a731d093aaac22f37ac4078a0acb5617f987c43",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/resources/prompts/tool-call-summary_zh_CN.md",
+      "bytes": 1138,
+      "sha256": "48fb8a8cb3edc2d28fb1c25b4ebcdd2289cee0abafbb8a79cb7c69604a8cb74b",
+      "acceptedSha256": "48fb8a8cb3edc2d28fb1c25b4ebcdd2289cee0abafbb8a79cb7c69604a8cb74b",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/schemas/__init__.py",
+      "bytes": 46,
+      "sha256": "aeefbc2d8dae9aaeea1de04fa12cdb51d3210f6c96a31e9735f0697b902b7caa",
+      "acceptedSha256": "aeefbc2d8dae9aaeea1de04fa12cdb51d3210f6c96a31e9735f0697b902b7caa",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/schemas/auth.py",
+      "bytes": 405,
+      "sha256": "f98969ec76f487a1bba589a8ccc6b8c4e208aa8240ca02c96d5e870d845b4c5c",
+      "acceptedSha256": "f98969ec76f487a1bba589a8ccc6b8c4e208aa8240ca02c96d5e870d845b4c5c",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/schemas/base.py",
+      "bytes": 538,
+      "sha256": "4e14819c1dddb7b252c0f2ab0ab6bc602f5b603b3cfb94d338963f74e3b67376",
+      "acceptedSha256": "4e14819c1dddb7b252c0f2ab0ab6bc602f5b603b3cfb94d338963f74e3b67376",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/schemas/context_compress.py",
+      "bytes": 443,
+      "sha256": "be1e897271ce83f2fcc9736166ee2785970765258f4fb5ce8fd3c6a0e85c746d",
+      "acceptedSha256": "be1e897271ce83f2fcc9736166ee2785970765258f4fb5ce8fd3c6a0e85c746d",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/schemas/db_config.py",
+      "bytes": 701,
+      "sha256": "676164a7e4af2a64b6f93620f3c3c578fad54b9748981186de4ed7aa6b9973be",
+      "acceptedSha256": "676164a7e4af2a64b6f93620f3c3c578fad54b9748981186de4ed7aa6b9973be",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/schemas/model_config.py",
+      "bytes": 2255,
+      "sha256": "7f3b229605cd02d67e6f8355d5c59cbea332ba9aa06de786bf274fc947599c1f",
+      "acceptedSha256": "7f3b229605cd02d67e6f8355d5c59cbea332ba9aa06de786bf274fc947599c1f",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/schemas/uploaded_file.py",
+      "bytes": 394,
+      "sha256": "eeb1815e18b6df7890f994eb88bf506bb2d9eff0f7657ad9a5c87b3d5f2c6276",
+      "acceptedSha256": "eeb1815e18b6df7890f994eb88bf506bb2d9eff0f7657ad9a5c87b3d5f2c6276",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/auth.py",
+      "bytes": 2351,
+      "sha256": "43df0d72eb92043f17f09647a3543ffab6fc8177146916734bb29ce008b54443",
+      "acceptedSha256": "43df0d72eb92043f17f09647a3543ffab6fc8177146916734bb29ce008b54443",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/bootstrap.py",
+      "bytes": 998,
+      "sha256": "2e709d497ab249529af8b4a266f58b023aff02f9b682649b71e8749f3a529976",
+      "acceptedSha256": "2e709d497ab249529af8b4a266f58b023aff02f9b682649b71e8749f3a529976",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/chat_store.py",
+      "bytes": 10541,
+      "sha256": "1c14963336566a8d8a4aba3b29d76518c3451f0234d1a2ef38606376d229dec8",
+      "acceptedSha256": "1c14963336566a8d8a4aba3b29d76518c3451f0234d1a2ef38606376d229dec8",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/context_compress.py",
+      "bytes": 6577,
+      "sha256": "02af24ca443b739f1e9fc7e3a525beb6aaeb422abf19686eba817d5a2db3c64b",
+      "acceptedSha256": "02af24ca443b739f1e9fc7e3a525beb6aaeb422abf19686eba817d5a2db3c64b",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/database_tools.py",
+      "bytes": 2908,
+      "sha256": "06e8d7fc98fa4d0681f3a29e806789d37644beb05e151863a4bf2c0a3c94e040",
+      "acceptedSha256": "06e8d7fc98fa4d0681f3a29e806789d37644beb05e151863a4bf2c0a3c94e040",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/db_config.py",
+      "bytes": 8373,
+      "sha256": "ca1a31bbb46bd907dc9d5b64089ddca583984ff483346143f3257473abae3280",
+      "acceptedSha256": "6c61db1e53144e921fc883963553924ba69c56e95e29f3b41c12d362f2d70c85",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/services/db_config_common.py",
+      "bytes": 3422,
+      "sha256": "b7a9cde9ce9b9cedb6604478d040155a542b18388c520c848179b16899b40a9f",
+      "acceptedSha256": "1e2e7e4d34906d3695ecfa12131a670748de3d215104999a87a6c2f2c519ed33",
+      "bytesEqualToAccepted": false
+    },
+    {
+      "path": "backend/app/services/db_config_init.py",
+      "bytes": 1487,
+      "sha256": "9ccd9802ff95e8aa68fa9346970f66d2ef27d9a5b25f401bdeb8ea9d1ebcf0f2",
+      "acceptedSha256": "9ccd9802ff95e8aa68fa9346970f66d2ef27d9a5b25f401bdeb8ea9d1ebcf0f2",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/db_config_worker.py",
+      "bytes": 1863,
+      "sha256": "fbd20b4ae9dd874a9da689d045e5fab5018d327d29a851b41f0e68af24b0ed5b",
+      "acceptedSha256": "fbd20b4ae9dd874a9da689d045e5fab5018d327d29a851b41f0e68af24b0ed5b",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/file_tools.py",
+      "bytes": 2201,
+      "sha256": "79a736f0c4fe3e6ff29d447740b672cbf9e16a535ba2fc7f49ac31b64c60caa7",
+      "acceptedSha256": "79a736f0c4fe3e6ff29d447740b672cbf9e16a535ba2fc7f49ac31b64c60caa7",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/file_upload.py",
+      "bytes": 6322,
+      "sha256": "cc060f3cbaa56472f38e9842a6ac7ab5a9a1fb4999a0d881e8f7e07c5cdfa8ce",
+      "acceptedSha256": "cc060f3cbaa56472f38e9842a6ac7ab5a9a1fb4999a0d881e8f7e07c5cdfa8ce",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/model_config.py",
+      "bytes": 9642,
+      "sha256": "dd70275129773371a308574c6786603c78185aab0715906190f36766c353991f",
+      "acceptedSha256": "dd70275129773371a308574c6786603c78185aab0715906190f36766c353991f",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/model_config_info.py",
+      "bytes": 2640,
+      "sha256": "31e3181e37671b0bce122dd6559c409b164e3a05982722add340f8cef54d77b4",
+      "acceptedSha256": "31e3181e37671b0bce122dd6559c409b164e3a05982722add340f8cef54d77b4",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/services/schema_diff.py",
+      "bytes": 6510,
+      "sha256": "0c7f951aa9a9fb7e121f0fcf6011a3382af39b619d393e6a7c30612eb6dd4a0e",
+      "acceptedSha256": "0c7f951aa9a9fb7e121f0fcf6011a3382af39b619d393e6a7c30612eb6dd4a0e",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/storage/backend.py",
+      "bytes": 909,
+      "sha256": "a337e11123023b8b528f1184b9dbf2b95fc1ba4659f28c49daefe28f317b89db",
+      "acceptedSha256": "a337e11123023b8b528f1184b9dbf2b95fc1ba4659f28c49daefe28f317b89db",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/storage/local.py",
+      "bytes": 1738,
+      "sha256": "79fb1a35714ebf90ad02f788c0525494545c0bc53f4ff1e46c98c8eaa66c7b4d",
+      "acceptedSha256": "79fb1a35714ebf90ad02f788c0525494545c0bc53f4ff1e46c98c8eaa66c7b4d",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/storage/ocr.py",
+      "bytes": 3064,
+      "sha256": "0f392f596def9b2fa2dbbbfd459ac58c75bb1c58a67ad84ca26530cf655dbe5f",
+      "acceptedSha256": "0f392f596def9b2fa2dbbbfd459ac58c75bb1c58a67ad84ca26530cf655dbe5f",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/storage/oss.py",
+      "bytes": 1243,
+      "sha256": "4f6801c1c4c152613ba5723694c030b6c2bad25faafd717cc593c963020e93e0",
+      "acceptedSha256": "4f6801c1c4c152613ba5723694c030b6c2bad25faafd717cc593c963020e93e0",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/storage/parsers/__init__.py",
+      "bytes": 379,
+      "sha256": "4eb144c60af046ea2259aa0b0795e7fdad7a2d7f52a1c0cf48787485a89fb71b",
+      "acceptedSha256": "4eb144c60af046ea2259aa0b0795e7fdad7a2d7f52a1c0cf48787485a89fb71b",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/storage/parsers/documents.py",
+      "bytes": 1984,
+      "sha256": "e7d6d4d80537a44fa2cd9070069fd82e94228c8ce9618b63ff7ae3fa5b8d40a6",
+      "acceptedSha256": "e7d6d4d80537a44fa2cd9070069fd82e94228c8ce9618b63ff7ae3fa5b8d40a6",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/storage/parsers/tabular.py",
+      "bytes": 3914,
+      "sha256": "64ea0b104e8fd740c5d6235101e30bbade6e3ab5c9e348be824211f763d7fb04",
+      "acceptedSha256": "64ea0b104e8fd740c5d6235101e30bbade6e3ab5c9e348be824211f763d7fb04",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/storage/parsers/zip_guard.py",
+      "bytes": 918,
+      "sha256": "3e21e9a83b6fb1d916ecf1345ca6a261a995212bd3e3af10444f14c029f78e09",
+      "acceptedSha256": "3e21e9a83b6fb1d916ecf1345ca6a261a995212bd3e3af10444f14c029f78e09",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/storage/validation.py",
+      "bytes": 2289,
+      "sha256": "eb7848b5b577e96013041f79dd6d4929c2b4d3720699ca609aabbe9e678c297d",
+      "acceptedSha256": "eb7848b5b577e96013041f79dd6d4929c2b4d3720699ca609aabbe9e678c297d",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/tasks/__init__.py",
+      "bytes": 61,
+      "sha256": "94499d2c4b930bb4bb5c98712489f59510d2c62abfabf9b3e7c98b9a87a56606",
+      "acceptedSha256": "94499d2c4b930bb4bb5c98712489f59510d2c62abfabf9b3e7c98b9a87a56606",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/tasks/celery_app.py",
+      "bytes": 539,
+      "sha256": "77c4ef31e7c95be9769a7d2870b6430ba0cc15a12b40a0d159d9f5027a37939e",
+      "acceptedSha256": "77c4ef31e7c95be9769a7d2870b6430ba0cc15a12b40a0d159d9f5027a37939e",
+      "bytesEqualToAccepted": true
+    },
+    {
+      "path": "backend/app/tasks/db_config.py",
+      "bytes": 282,
+      "sha256": "1f4636f7d54985b3a978a49201f9732d754395f420678af2672f3c1287c74b82",
+      "acceptedSha256": "1f4636f7d54985b3a978a49201f9732d754395f420678af2672f3c1287c74b82",
+      "bytesEqualToAccepted": true
+    }
+  ],
+  "businessFilesChanged": false,
+  "actualMongoPassed": 4,
+  "model": "controlled HTTP simulation, no actual provider effects",
+  "oldMongo38Unchanged": true,
+  "C09Included": false,
+  "noSharedWrite": true,
+  "noGitMutation": true
+}
