@@ -1,0 +1,40 @@
+{
+  "mode": "api-fixture-calibration",
+  "status": "passed",
+  "modelCallCount": 0,
+  "sameSnapshots": true,
+  "rows": [
+    {
+      "database": "postgresql",
+      "variant": "java",
+      "status": "passed",
+      "role": "user",
+      "workerConnected": true,
+      "metadataGenerated": true
+    },
+    {
+      "database": "postgresql",
+      "variant": "python",
+      "status": "passed",
+      "role": "user",
+      "workerConnected": true,
+      "metadataGenerated": true
+    },
+    {
+      "database": "mysql",
+      "variant": "java",
+      "status": "passed",
+      "role": "user",
+      "workerConnected": true,
+      "metadataGenerated": true
+    },
+    {
+      "database": "mysql",
+      "variant": "python",
+      "status": "passed",
+      "role": "user",
+      "workerConnected": true,
+      "metadataGenerated": true
+    }
+  ]
+}
