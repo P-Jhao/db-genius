@@ -8,6 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.adapters.diagnostics import sanitize_diagnostic
 from app.adapters.types import (
     ColumnMetadata,
     DbConnectionConfig,
@@ -98,7 +99,7 @@ def extract_olap_metadata(
             tables = list(connection.execute(_TABLES, {"database": config.db_name}))
         except SQLAlchemyError as exc:
             metadata["incomplete"] = True
-            metadata["errorMessage"] = f"table listing: {exc}"
+            metadata["errorMessage"] = sanitize_diagnostic(f"table listing: {exc}", config)
             connection.rollback()
             return metadata
         for row in tables:
@@ -114,5 +115,5 @@ def extract_olap_metadata(
         connection.rollback()
     if errors:
         metadata["incomplete"] = True
-        metadata["errorMessage"] = "; ".join(errors)
+        metadata["errorMessage"] = sanitize_diagnostic("; ".join(errors), config)
     return metadata

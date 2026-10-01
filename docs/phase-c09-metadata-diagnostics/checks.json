@@ -1,0 +1,19 @@
+{
+  "kind": "C09 final accepted Mongo/S11 baseline integration",
+  "baseCommit": "a56734b90871fc64f8d36821ff0b12bb6e5fa7db",
+  "acceptedMongoCommit": "5c9c2cdb22c920f595dd5c8485a013c650a4fff1",
+  "command": "python -m pytest tests/test_metadata_diagnostics.py tests/test_db_config_partial.py tests/test_mysql_family.py tests/test_mysql_family_metadata_errors.py tests/test_mysql_family_outcomes.py tests/test_mysql_family_workflow.py tests/test_adapters_safety.py tests/test_adapters_contract.py tests/test_adapters_cancellation.py tests/test_schema_diff.py tests/test_compare_evidence.py tests/test_compare_reads.py tests/test_compare_graph.py -q",
+  "passed": 246,
+  "skipped": 0,
+  "elapsedSeconds": 51.9,
+  "staticChecks": {
+    "ruff": "all app/tests and operation runner passed",
+    "strictMypyOwnedAndRunnerFiles": 4,
+    "mypyAppFiles": 84
+  },
+  "actualTargetEvidence": "real-metadata.json:3 passed,0 skipped,9.30s pytest,no PG app/container lifecycle changes",
+  "realModel": false,
+  "diagnosticDependencyUnchangedSha256": "8fdd20a98bcd657db4e2e8bcfeb365c5fb3d406b8acfbb72428dcbd819498f0d",
+  "frozenDependencySha256": "f63553b974c350f00c9e0bd9828526a2abce77f5ed6854756f7cefc1b83befac",
+  "acceptedVsFrozenHelperNormalizedSourceEqual": true
+}

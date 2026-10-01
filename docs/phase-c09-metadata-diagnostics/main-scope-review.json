@@ -1,0 +1,45 @@
+{
+  "base": "615ff1f70632a51c61da30359a79d6688f86b49d",
+  "exactScope": [
+    {
+      "path": "backend/app/adapters/relational.py",
+      "exactReplacementOnly": true,
+      "changedMethods": [
+        "extract_metadata"
+      ],
+      "preservedMethods": [
+        "_json_value",
+        "validate_config",
+        "_engine",
+        "_connection",
+        "test_connection",
+        "is_read_only",
+        "_set_timeout",
+        "_cancel_running_statement",
+        "_server_confirmed_interrupt",
+        "_driver_timeout",
+        "_stream_results",
+        "execute",
+        "_qualified_name",
+        "generate_document",
+        "_read_table"
+      ]
+    },
+    {
+      "path": "backend/app/adapters/mysql_family_metadata.py",
+      "exactReplacementOnly": true,
+      "changedMethods": [
+        "extract_olap_metadata"
+      ],
+      "preservedMethods": [
+        "_read_table"
+      ]
+    }
+  ],
+  "preservedAppFiles": 109,
+  "archiveEolOnlyDifferenceCount": 109,
+  "comparison": "normalized CRLF/LF source equality; not byte equality",
+  "repr615Preserved": true,
+  "newTestLines": 217,
+  "helperArchiveSha256": "8fdd20a98bcd657db4e2e8bcfeb365c5fb3d406b8acfbb72428dcbd819498f0d"
+}

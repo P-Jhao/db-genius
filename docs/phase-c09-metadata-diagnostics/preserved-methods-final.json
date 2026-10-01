@@ -1,0 +1,37 @@
+{
+  "baseCommit": "a56734b90871fc64f8d36821ff0b12bb6e5fa7db",
+  "proof": [
+    {
+      "path": "backend/app/adapters/relational.py",
+      "changedMethods": [
+        "extract_metadata"
+      ],
+      "preservedMethods": [
+        "_json_value",
+        "validate_config",
+        "_engine",
+        "_connection",
+        "test_connection",
+        "is_read_only",
+        "_set_timeout",
+        "_cancel_running_statement",
+        "_server_confirmed_interrupt",
+        "_driver_timeout",
+        "_stream_results",
+        "execute",
+        "_qualified_name",
+        "generate_document",
+        "_read_table"
+      ]
+    },
+    {
+      "path": "backend/app/adapters/mysql_family_metadata.py",
+      "changedMethods": [
+        "extract_olap_metadata"
+      ],
+      "preservedMethods": [
+        "_read_table"
+      ]
+    }
+  ]
+}

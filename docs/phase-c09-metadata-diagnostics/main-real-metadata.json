@@ -1,0 +1,19 @@
+{
+  "baseCommit": "615ff1f70632a51c61da30359a79d6688f86b49d",
+  "kind": "real PG/MySQL metadata and existing read/write/cancel guard regression",
+  "command": "python -m pytest tests/test_adapters_integration.py -k 'test_real_read_write_metadata_limits_and_special_password or test_postgresql_failed_count_does_not_poison_other_tables' -q",
+  "passed": 3,
+  "skipped": 0,
+  "exitCode": 0,
+  "elapsedSeconds": 11.594,
+  "postgresAppSchemaUsed": false,
+  "containerLifecycleChanged": false,
+  "actualModelTested": false,
+  "syntheticFixturesOnly": true,
+  "codeSha256": {
+    "backend/app/adapters/relational.py": "717abbe563bb2bc59b2f5c42c6380a510073e7996a42f88d9debc3e4e0e71798",
+    "backend/app/adapters/mysql_family_metadata.py": "44a981aac62f83e22a9492b6cb8b78abf35b0906afa02e1381fa735fbef52860",
+    "backend/app/adapters/diagnostics.py": "8fdd20a98bcd657db4e2e8bcfeb365c5fb3d406b8acfbb72428dcbd819498f0d",
+    "backend/tests/test_metadata_diagnostics.py": "a7cfbbbe99865eed641e6d181903fe5a8111b9d1bdb72961ff93b7f76b3a8c35"
+  }
+}

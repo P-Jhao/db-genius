@@ -26,6 +26,7 @@ from app.adapters.cancellation import (
     cancel_postgresql_statement,
     server_confirmed_interrupt,
 )
+from app.adapters.diagnostics import sanitize_diagnostic
 from app.adapters.document import render_document
 from app.adapters.safety import check_statement
 from app.adapters.types import (
@@ -276,7 +277,7 @@ class RelationalAdapter:
             connection.rollback()
         if errors:
             metadata["incomplete"] = True
-            metadata["errorMessage"] = "; ".join(errors)
+            metadata["errorMessage"] = sanitize_diagnostic("; ".join(errors), config)
         return metadata
 
     def generate_document(self, config: DbConnectionConfig, *, timeout_seconds: int = 30) -> str:

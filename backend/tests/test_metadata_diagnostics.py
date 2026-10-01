@@ -1,0 +1,217 @@
+"""Partial SQL metadata diagnostics cannot publish connection credentials."""
+
+from contextlib import nullcontext
+from types import SimpleNamespace
+from unittest.mock import MagicMock, Mock
+from urllib.parse import quote, quote_plus
+
+import pytest
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, sessionmaker
+from test_db_config_partial import store as store_fixture
+
+from app.adapters.document import render_document
+from app.adapters.mysql import MySqlAdapter
+from app.adapters.mysql_family import DorisAdapter
+from app.adapters.postgresql import PostgreSqlAdapter
+from app.adapters.relational import RelationalAdapter
+from app.adapters.types import DbConnectionConfig, SchemaMetadata
+from app.core.errors import BusinessError
+from app.core.security import encrypt
+from app.models import DbConfig
+from app.services import database_tools, db_config, db_config_worker
+
+store = store_fixture
+PASSWORD = "synthetic p@:/+?#word"
+
+
+def message(encoding: str, uri: bool, scheme: str) -> tuple[str, str]:
+    secret = {"raw": PASSWORD, "quote": quote(PASSWORD, safe=""), "plus": quote_plus(PASSWORD)}[encoding]
+    detail = f"{scheme}://different-user:{secret}@localhost/sample" if uri else secret
+    return f"synthetic unavailable {detail}", secret
+
+
+def relational(monkeypatch: pytest.MonkeyPatch, db_type: str, component: str,
+               diagnostic: str) -> tuple[RelationalAdapter, DbConnectionConfig, MagicMock, MagicMock]:
+    adapter: RelationalAdapter = PostgreSqlAdapter() if db_type == "postgresql" else MySqlAdapter()
+    config = DbConnectionConfig(db_type, "localhost", 15432 if db_type == "postgresql" else 13306,
+                                "synthetic", "configured-user", PASSWORD)
+    connection, inspector = MagicMock(), MagicMock()
+    connection.dialect.identifier_preparer.quote_identifier.side_effect = lambda name: '"' + name + '"'
+    inspector.get_table_names.return_value = ["good", "bad"]
+
+    def columns(name: str, **_options: object) -> list[dict[str, object]]:
+        if name == "bad" and component == "table":
+            raise SQLAlchemyError(diagnostic)
+        return [{"name": "id", "type": "INT", "nullable": False, "comment": "business field"}]
+
+    inspector.get_columns.side_effect = columns
+    inspector.get_pk_constraint.return_value = {"constrained_columns": ["id"], "name": "PRIMARY"}
+    inspector.get_indexes.return_value = []
+    inspector.get_table_comment.return_value = {"text": "business table"}
+
+    def count(statement: str) -> MagicMock:
+        if '"bad"' in statement and component == "count":
+            raise SQLAlchemyError(diagnostic)
+        return MagicMock(scalar_one=Mock(return_value=7))
+
+    connection.exec_driver_sql.side_effect = count
+    monkeypatch.setattr(adapter, "_connection", Mock(return_value=nullcontext(connection)))
+    monkeypatch.setattr(adapter, "_set_timeout", Mock())
+    monkeypatch.setattr("app.adapters.relational.inspect", Mock(return_value=inspector))
+    return adapter, config, connection, inspector
+
+
+def olap(monkeypatch: pytest.MonkeyPatch, component: str,
+         diagnostic: str) -> tuple[DorisAdapter, DbConnectionConfig, MagicMock]:
+    adapter = DorisAdapter()
+    config = DbConnectionConfig("doris", "localhost", 9030, "synthetic", "configured-user", PASSWORD)
+    connection = MagicMock()
+    connection.dialect.identifier_preparer.quote_identifier.side_effect = lambda name: '"' + name + '"'
+
+    def execute(query: object, parameters: dict[str, str]) -> list[SimpleNamespace]:
+        sql = str(query)
+        if "information_schema.TABLES" in sql:
+            if component == "listing":
+                raise SQLAlchemyError(diagnostic)
+            return [SimpleNamespace(TABLE_NAME=name, TABLE_COMMENT="business table") for name in ("good", "bad")]
+        name = parameters["table"]
+        if "information_schema.COLUMNS" in sql:
+            if name == "bad" and component == "table":
+                raise SQLAlchemyError(diagnostic)
+            return [SimpleNamespace(COLUMN_NAME="id", COLUMN_TYPE="INT", IS_NULLABLE="NO",
+                                    COLUMN_KEY="PRI", COLUMN_COMMENT="business field")]
+        assert "information_schema.STATISTICS" in sql
+        if name == "bad" and component == "indexes":
+            raise SQLAlchemyError(diagnostic)
+        return [SimpleNamespace(INDEX_NAME="PRIMARY", COLUMN_NAME="id", SEQ_IN_INDEX=1)]
+
+    def count(statement: str) -> MagicMock:
+        if '"bad"' in statement and component == "count":
+            raise SQLAlchemyError(diagnostic)
+        return MagicMock(scalar_one=Mock(return_value=7))
+
+    connection.execute.side_effect = execute
+    connection.exec_driver_sql.side_effect = count
+    monkeypatch.setattr(adapter, "_connection", Mock(return_value=nullcontext(connection)))
+    monkeypatch.setattr(adapter, "_set_timeout", Mock())
+    return adapter, config, connection
+
+
+def safe(metadata: SchemaMetadata, secret: str, uri: bool) -> None:
+    assert metadata["incomplete"] is True and isinstance(metadata["errorMessage"], str)
+    for text in (metadata["errorMessage"], render_document(metadata)):
+        assert PASSWORD not in text and secret not in text
+        assert "synthetic unavailable" in text and "[REDACTED]" in text
+        if uri:
+            assert "different-user" not in text
+    if metadata["tables"]:
+        good = metadata["tables"][0]
+        assert good["name"] == "good" and good["rowCount"] == 7
+        assert good["comment"] == "business table" and good["columns"][0]["comment"] == "business field"
+        assert good["indexes"] == [{"name": "PRIMARY", "columns": ["id"]}]
+
+
+@pytest.mark.parametrize("encoding", ("raw", "quote", "plus"))
+@pytest.mark.parametrize("uri", (False, True))
+@pytest.mark.parametrize("db_type", ("mysql", "postgresql"))
+@pytest.mark.parametrize("component", ("table", "count"))
+def test_relational_partial_error_redacts_without_retry_or_losing_observed_facts(
+    monkeypatch: pytest.MonkeyPatch, encoding: str, uri: bool, db_type: str, component: str,
+) -> None:
+    detail, secret = message(encoding, uri, "postgresql+psycopg" if db_type == "postgresql" else "mysql+pymysql")
+    adapter, config, connection, inspector = relational(monkeypatch, db_type, component, detail)
+    metadata = adapter.extract_metadata(config)
+    safe(metadata, secret, uri)
+    assert "bad:" in str(metadata["errorMessage"])
+    assert len(metadata["tables"]) == (1 if component == "table" else 2)
+    if component == "count":
+        bad = metadata["tables"][1]
+        assert bad["rowCount"] is None and bad["columns"] and bad["indexes"]
+    inspector.get_table_names.assert_called_once()
+    assert inspector.get_columns.call_count == 2
+    assert connection.exec_driver_sql.call_count == (1 if component == "table" else 2)
+    connection.rollback.assert_called_once()
+
+
+@pytest.mark.parametrize("encoding", ("raw", "quote", "plus"))
+@pytest.mark.parametrize("uri", (False, True))
+@pytest.mark.parametrize("component", ("listing", "table", "indexes", "count"))
+def test_olap_top_table_index_count_errors_remain_partial_and_safe(
+    monkeypatch: pytest.MonkeyPatch, encoding: str, uri: bool, component: str,
+) -> None:
+    detail, secret = message(encoding, uri, "mysql+pymysql")
+    adapter, config, connection = olap(monkeypatch, component, detail)
+    metadata = adapter.extract_metadata(config)
+    safe(metadata, secret, uri)
+    assert len(metadata["tables"]) == (0 if component == "listing" else 1 if component == "table" else 2)
+    if component in {"count", "indexes"}:
+        bad = metadata["tables"][1]
+        assert bad["rowCount"] == (None if component == "count" else 7) and bad["columns"]
+        assert bool(bad["indexes"]) is (component != "indexes")
+    assert connection.execute.call_count == (1 if component == "listing" else 4 if component == "table" else 5)
+    assert connection.exec_driver_sql.call_count == (0 if component == "listing" else 1 if component == "table" else 2)
+    connection.rollback.assert_called_once()
+
+
+@pytest.mark.parametrize("family", (False, True))
+def test_non_sensitive_diagnostic_and_business_fields_are_preserved(
+    monkeypatch: pytest.MonkeyPatch, family: bool,
+) -> None:
+    adapter: RelationalAdapter
+    if family:
+        adapter, config, _connection = olap(monkeypatch, "count", "synthetic unavailable")
+    else:
+        adapter, config, _connection, inspector = relational(monkeypatch, "mysql", "count", "synthetic unavailable")
+        inspector.get_table_comment.return_value = {"text": PASSWORD}
+    metadata = adapter.extract_metadata(config)
+    assert metadata["incomplete"] is True and "synthetic unavailable" in str(metadata["errorMessage"])
+    assert "[REDACTED]" not in str(metadata["errorMessage"])
+    if not family:
+        assert metadata["tables"][0]["comment"] == PASSWORD  # Business content is not a diagnostic field.
+
+
+@pytest.mark.parametrize("flow", ("worker", "manual"))
+@pytest.mark.parametrize("family", (False, True))
+def test_persisted_partial_document_and_authorized_tool_schema_do_not_leak_password(
+    store: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch, flow: str, family: bool,
+) -> None:
+    adapter: RelationalAdapter
+    detail, secret = message("plus", True, "mysql+pymysql")
+    if family:
+        adapter, config, connection = olap(monkeypatch, "count", detail)
+    else:
+        adapter, config, connection, _inspector = relational(monkeypatch, "mysql", "count", detail)
+    monkeypatch.setattr(adapter, "test_connection", Mock(return_value=True))
+    for module in (db_config_worker, database_tools, db_config):
+        monkeypatch.setattr(module, "get_adapter", lambda _kind: adapter)
+    with store() as session:
+        row = session.get(DbConfig, 12)
+        assert row is not None
+        row.db_type, row.username, row.password_encrypted = config.db_type, config.username, encrypt(PASSWORD)
+        session.commit()
+    if flow == "worker":
+        db_config_worker.verify_and_generate(12, 1)
+    else:
+        with store() as session:
+            db_config.generate_doc(session, 1, 12)
+    with store() as session:
+        row = session.get(DbConfig, 12)
+        assert row is not None and row.status == 1 and row.verification_error is None
+        assert row.doc_content is not None and "Error reading metadata" in row.doc_content
+        assert PASSWORD not in row.doc_content and secret not in row.doc_content and "different-user" not in row.doc_content
+    metadata = database_tools.get_schema(1, 12)
+    safe(metadata, secret, True)
+    calls = connection.exec_driver_sql.call_count
+    with pytest.raises(BusinessError) as denied:
+        database_tools.get_schema(2, 12)
+    assert denied.value.code == 404 and connection.exec_driver_sql.call_count == calls
+
+
+def test_relational_top_level_exception_keeps_existing_failure_semantics(monkeypatch: pytest.MonkeyPatch) -> None:
+    adapter, config, _connection, inspector = relational(monkeypatch, "postgresql", "table", "unused")
+    failure = SQLAlchemyError("synthetic listing failure")
+    inspector.get_table_names.side_effect = failure
+    with pytest.raises(SQLAlchemyError) as raised:
+        adapter.extract_metadata(config)
+    assert raised.value is failure
