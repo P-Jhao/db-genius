@@ -15,3 +15,5 @@ files.tsv 与 preserved.tsv 保留原冻结字节证据；主代理提交副本�
 - docs/phase-05-pg-read-cursors/run-checks.ps1
 
 AGENTS.md 已检查，工程功能边界与核心目录未改变，保持 accepted 版本不变。未修改原 Java 源码、共享业务草稿或任何凭据；本次仅主代理恢复四个既有专用测试数据库，没有新建/删除数据卷或容器。
+
+本阶段已接受提交：9703123（fix: 修复 PostgreSQL 只读命令游标与查询流式执行）。提交号在后续文档回执补录，未改写功能提交历史。
