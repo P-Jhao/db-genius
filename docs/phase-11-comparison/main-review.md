@@ -23,3 +23,5 @@ files.tsv、revision files/guard 保留原冻结字节证据；主代理提交�
 - docs/phase-11-comparison/pytest.txt
 - docs/phase-11-comparison/ruff.txt
 - docs/phase-11-comparison/run-checks.ps1
+
+本地功能提交收据：ba579b416b24a02ea32f4c1616839d3b6e5a4401 feat: 实现数据库结构对比与受控迁移报告。本段为后续文档补录，不改变原测试快照。
