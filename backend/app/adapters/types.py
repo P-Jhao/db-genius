@@ -45,6 +45,9 @@ class SchemaMetadata(TypedDict):
 
 class QueryResult(TypedDict, total=False):
     success: bool
+    error: str
+    sqlState: str
+    errorCode: int
     rowCount: int
     data: list[dict[str, object]]
     truncated: bool

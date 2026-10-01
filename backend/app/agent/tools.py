@@ -9,10 +9,12 @@ from uuid import uuid4
 
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import DBAPIError
 
 from app.adapters.cancellation import DatabaseExecutionInterrupted, DatabaseWriteOutcomeUnknown
 from app.agent.cancellation import RunAborted, check_cancelled
 from app.agent.output_guard import OutputArtifacts, bound_json
+from app.agent.sql_errors import failure, repairable
 from app.agent.types import ChatRequest, Intent
 from app.core.errors import BusinessError
 
@@ -120,6 +122,11 @@ class RunTools:
             if self.cancel_event is not None:
                 self.cancel_event.set()
             raise RunAborted("write_outcome_unknown") from error
+        except DBAPIError as error:
+            check_cancelled(self.cancel_event)
+            if not repairable(error, statement):
+                raise
+            result = failure(error)
         if result.get("success") is True:
             self.statements_executed += 1
         elif result.get("success") is False:
