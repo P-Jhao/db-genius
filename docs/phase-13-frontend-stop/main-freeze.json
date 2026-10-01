@@ -1,0 +1,46 @@
+{
+  "base": "a56734b90871fc64f8d36821ff0b12bb6e5fa7db",
+  "childFrontendBase": "5b9c543757cb4e83031226762131f36b6fa6907b",
+  "frontendGitEqual": true,
+  "files": [
+    {
+      "path": "frontend/src/composables/useSse.ts",
+      "sha256": "510beb750c8c4d9fac07cd7ccc9945864bb37d56430a0b19fd6817bc7bedef7f",
+      "source": "owned shared freeze"
+    },
+    {
+      "path": "frontend/tests/sse-stop.test.mjs",
+      "sha256": "16c4f3be65a4074ce47add9902659f32ae51eb1519194060dca46da3fc41ee83",
+      "source": "owned shared freeze"
+    },
+    {
+      "path": "frontend/tests/fixtures/sse-stop-test-helper.mjs",
+      "sha256": "20bc66296fb9c41e4c0b14d37037580e7989c32092d1f661086116ca42fa329c",
+      "source": "owned shared freeze"
+    },
+    {
+      "path": "frontend/tests/sse-eof.test.mjs",
+      "sha256": "f239217a70e09733b77fe5b2201e89b7874901641fac6a2fe7f0b8ac0634f9c7",
+      "source": "owned shared freeze"
+    },
+    {
+      "path": "frontend/tests/fixtures/sse-test-vite.config.mjs",
+      "sha256": "018dbd67ac27db692b680204854e0f079cec9df9c0b6ca84c5a79bf74da3a936",
+      "source": "owned shared freeze"
+    },
+    {
+      "path": "docs/phase-13-frontend-stop/README.md",
+      "sha256": "44d8f40c82f4a8bdff7acb8ba78e36dffe5fb8d0b351f4eeca03252e9b270697",
+      "source": "owned shared freeze"
+    },
+    {
+      "path": "frontend/tests/chat-contract.test.mjs",
+      "sha256": "6b2c5c8ba4dc66a2a63dcb679cb72c963ccc92de683b2a8f5e2a1eae3d619e14",
+      "source": "child clean minimal startup harness; not whole shared draft"
+    }
+  ],
+  "businessFiles": [
+    "frontend/src/composables/useSse.ts"
+  ],
+  "uiMockOnly": true
+}

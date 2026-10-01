@@ -1,14 +1,18 @@
 import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { once } from 'node:events'
 import { existsSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
 const frontendDir = fileURLToPath(new URL('..', import.meta.url))
 const viteBin = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
+const viteConfig = fileURLToPath(new URL('./fixtures/sse-test-vite.config.mjs', import.meta.url))
 const fixtures = JSON.parse(readFileSync(new URL('./fixtures/chat-contract.json', import.meta.url), 'utf8'))
 
 async function freePort() {
@@ -39,8 +43,13 @@ async function waitForVite(url, process) {
 test('Java chat branches are consumed over mocked browser SSE without replay', async () => {
   const port = await freePort()
   const url = `http://127.0.0.1:${port}`
-  const vite = spawn(process.execPath, [viteBin, '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
+  const vite = spawn(process.execPath, [viteBin, '--config', viteConfig, '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
     cwd: frontendDir,
+    env: {
+      ...process.env,
+      SQLCHAT_TEST_VITE_CACHE_DIR: join(tmpdir(), 'sqlchat-chat-contract-vite-cache', randomUUID()),
+      VITE_API_BASE_URL: `${url}/api`,
+    },
     stdio: 'ignore',
   })
   let browser
@@ -51,6 +60,8 @@ test('Java chat branches are consumed over mocked browser SSE without replay', a
       : { channel: 'chrome', headless: true })
     const page = await browser.newPage()
     const posts = []
+    const observedRequests = []
+    page.on('request', (request) => observedRequests.push({ method: request.method(), url: request.url() }))
     await page.route('**/api/chat', async (route) => {
       const request = route.request()
       assert.equal(request.method(), 'POST')
@@ -111,7 +122,16 @@ test('Java chat branches are consumed over mocked browser SSE without replay', a
       }))
     })
 
-    await page.goto(url)
+    await page.goto(`${url}/admin/chat`)
+    await page.locator('.chat-page').waitFor({ timeout: 15000 })
+    await page.goto(`${url}/admin/conversations`)
+    await page.locator('tr').filter({ hasText: 'Show orders' }).waitFor({ timeout: 15000 })
+    await page.evaluate(async () => {
+      await Promise.all([
+        import('/src/composables/useSse.ts'),
+        import('/src/views/admin/ConversationsPage.vue'),
+      ])
+    })
     await page.evaluate(async () => {
       const { useSse } = await import('/src/composables/useSse.ts')
       const { useChatStore } = await import('/src/stores/chat.ts')
@@ -200,7 +220,16 @@ test('Java chat branches are consumed over mocked browser SSE without replay', a
     await page.goto(`${url}/admin/conversations`)
     const row = page.locator('tr').filter({ hasText: 'Show orders' })
     await row.locator('button:has(.arco-icon-message)').click()
-    await page.waitForURL('**/admin/chat')
+    try {
+      await page.waitForURL('**/admin/chat')
+    } catch (error) {
+      const pageState = await page.evaluate(() => ({
+        url: window.location.href,
+        body: document.body.innerText.slice(0, 1200),
+        drawer: document.querySelector('.arco-drawer')?.textContent?.slice(0, 400) ?? null,
+      }))
+      throw new Error(`History continue did not navigate. state=${JSON.stringify(pageState)} requests=${JSON.stringify(observedRequests)} posts=${JSON.stringify(posts)} ${String(error)}`)
+    }
     const card = page.locator('.clarify-card')
     await card.waitFor()
     assert.equal(await card.locator('.clarify-question').textContent(), 'Choose an intent')

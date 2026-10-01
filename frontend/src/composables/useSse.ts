@@ -13,8 +13,10 @@ export function useSse() {
   function send(body: UnifiedChatRequest) {
     if (abortController.value) abort()
     error.value = null
+    const addedMessage = chatStore.addAssistantMessage()
+    const assistantMsg = chatStore.messages.find((message) => message.id === addedMessage.id)
+    if (!assistantMsg) throw new Error(`Assistant message ${addedMessage.id} was not added to the chat store`)
     chatStore.isStreaming = true
-    const assistantMsg = chatStore.addAssistantMessage()
     activeMessage = assistantMsg
 
     const controller = streamChat(

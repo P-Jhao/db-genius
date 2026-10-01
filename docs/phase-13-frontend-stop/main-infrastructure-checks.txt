@@ -1,0 +1,38 @@
+主代理隔离快照验证；pnpm per-command verify-deps-before-run=false，不修改依赖。
+✖ Java chat branches are consumed over mocked browser SSE without replay (11811.7705ms)
+✖ normal SSE EOF ends streaming and does not retry the chat POST (11045.4156ms)
+✖ Stop clears reactive streaming state immediately and retains the partial answer (11079.5519ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 43313.8776
+
+✖ failing tests:
+
+test at tests\chat-contract.test.mjs:43:1
+✖ Java chat branches are consumed over mocked browser SSE without replay (11811.7705ms)
+  Error: Vite did not start within 10 seconds
+      at waitForVite (file:///C:/Users/22126/Desktop/web/text2sql/sqlchat/.git/acceptance/main-stop-1790870980775/frontend/tests/chat-contract.test.mjs:40:9)
+      at async TestContext.<anonymous> (file:///C:/Users/22126/Desktop/web/text2sql/sqlchat/.git/acceptance/main-stop-1790870980775/frontend/tests/chat-contract.test.mjs:57:5)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+
+test at tests\sse-eof.test.mjs:76:1
+✖ normal SSE EOF ends streaming and does not retry the chat POST (11045.4156ms)
+  Error: Vite did not start within 10 seconds
+      at waitForVite (file:///C:/Users/22126/Desktop/web/text2sql/sqlchat/.git/acceptance/main-stop-1790870980775/frontend/tests/sse-eof.test.mjs:39:9)
+      at async TestContext.<anonymous> (file:///C:/Users/22126/Desktop/web/text2sql/sqlchat/.git/acceptance/main-stop-1790870980775/frontend/tests/sse-eof.test.mjs:96:5)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+
+test at tests\sse-stop.test.mjs:59:1
+✖ Stop clears reactive streaming state immediately and retains the partial answer (11079.5519ms)
+  Error: Vite did not start within 10 seconds
+      at waitForVite (file:///C:/Users/22126/Desktop/web/text2sql/sqlchat/.git/acceptance/main-stop-1790870980775/frontend/tests/sse-stop.test.mjs:38:9)
+      at async TestContext.<anonymous> (file:///C:/Users/22126/Desktop/web/text2sql/sqlchat/.git/acceptance/main-stop-1790870980775/frontend/tests/sse-stop.test.mjs:81:5)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
