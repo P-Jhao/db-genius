@@ -6,7 +6,9 @@ from sqlglot import exp
 
 from app.agent.workflow_values import ColumnTypes
 
-_DIALECTS = {"mysql": "mysql", "postgresql": "postgres", "sqlite": "sqlite"}
+_DIALECTS = {"mysql": "mysql", "postgresql": "postgres", "sqlite": "sqlite",
+             "mariadb": "mysql", "tidb": "mysql", "doris": "mysql", "starrocks": "mysql",
+             "oceanbase": "mysql"}
 TableName = tuple[str, ...]
 Target = tuple[int, TableName]
 
@@ -55,7 +57,7 @@ class WorkflowSchema:
                 if (not isinstance(column, dict) or not isinstance(column.get("name"), str) or
                         not isinstance(column.get("type"), str)):
                     raise TypeError("Workflow schema column name and type are required")
-                name = column["name"].lower() if db_type in ("mysql", "sqlite") else column["name"]
+                name = column["name"].lower() if _DIALECTS[db_type] in ("mysql", "sqlite") else column["name"]
                 types[name] = column["type"]
             name = table["name"].lower() if db_type == "sqlite" else table["name"]
             self.column_types[(db_id, (name,))] = types

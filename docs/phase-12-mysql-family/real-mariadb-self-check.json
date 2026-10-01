@@ -1,0 +1,14 @@
+{
+  "baseCommit": "007a6ea91f9af342a498306fc376891812187fb8",
+  "kind": "subagent-real-engine-self-check",
+  "engine": "mariadb",
+  "serverVersion": "11.4.13-MariaDB-ubu2404",
+  "target": "dedicated loopback:13307",
+  "command": "python -m pytest tests/test_mariadb_integration.py -q",
+  "exitCode": 0,
+  "elapsedSeconds": 5.297,
+  "tableSetUnchanged": true,
+  "passed": 4,
+  "containerLifecycleChanged": false,
+  "mainAcceptance": "pending"
+}

@@ -1,0 +1,36 @@
+{
+  "baseCommit": "007a6ea91f9af342a498306fc376891812187fb8",
+  "kind": "subagent-isolated-self-check",
+  "mainAcceptance": "pending",
+  "checks": [
+    {
+      "check": "ruff",
+      "command": "python -m ruff check app/adapters/mysql_family.py app/adapters/mysql_family_metadata.py app/adapters/registry.py tests/test_mysql_family.py tests/test_mysql_family_outcomes.py tests/test_mysql_family_metadata_errors.py tests/test_mariadb_integration.py",
+      "exitCode": 0,
+      "elapsedSeconds": 0.141,
+      "result": "All checks passed!"
+    },
+    {
+      "check": "mypy",
+      "command": "python -m mypy app/adapters/mysql_family.py app/adapters/mysql_family_metadata.py app/adapters/registry.py tests/test_mysql_family.py tests/test_mysql_family_outcomes.py tests/test_mysql_family_metadata_errors.py tests/test_mariadb_integration.py",
+      "exitCode": 0,
+      "elapsedSeconds": 0.484,
+      "result": "Success: no issues found in 7 source files"
+    },
+    {
+      "check": "regression",
+      "command": "python -m pytest tests/test_adapters_safety.py tests/test_adapters_contract.py tests/test_adapters_cancellation.py tests/test_mysql_family.py tests/test_mysql_family_outcomes.py tests/test_mysql_family_metadata_errors.py tests/test_mariadb_integration.py tests/test_runtime_governance.py tests/test_sql_repair.py -q",
+      "exitCode": 0,
+      "elapsedSeconds": 14.141,
+      "result": "........................................................................ [ 57%]\n................................ssss.................                    [100%]\n121 passed, 4 skipped in 12.14s"
+    }
+  ],
+  "realEngines": {
+    "mariadb": "self-check 4 passed; main acceptance pending",
+    "tidb": "environment-blocked: no instance",
+    "doris": "environment-blocked: no instance",
+    "starrocks": "environment-blocked: no instance",
+    "oceanbase": "environment-blocked: no MySQL-mode tenant"
+  },
+  "workflowIntegration": "pending accepted S10 commit notification"
+}
