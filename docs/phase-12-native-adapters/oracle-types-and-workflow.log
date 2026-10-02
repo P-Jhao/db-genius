@@ -1,0 +1,181 @@
+.FFF............                                                         [100%]
+================================== FAILURES ===================================
+_______ test_actual_unicode_file_import_and_verification[oracle-upper] ________
+
+db_type = 'oracle', spelling = 'upper'
+request = <FixtureRequest for <Coroutine test_actual_unicode_file_import_and_verification[oracle-upper]>>
+provider = <test_model_protocol.Provider object at 0x000002088E1F00E0>
+upload_store = sessionmaker(class_='Session', bind=Engine(sqlite+pysqlite:///C%3A%5CUsers%5C22126%5CAppData%5CLocal%5CTemp%5Cpytest-of-22126%5Cpytest-600%5Ctest_actual_unicode_file_impor0%5Cmetadata.sqlite), autoflush=True, expire_on_commit=False)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002088DCC62A0>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type,spelling", [("oracle", "upper"), ("oracle", "lower"),
+                                                 ("oracle", "mixed"), ("sqlserver", "bracket")])
+    async def test_actual_unicode_file_import_and_verification(
+        db_type: str, spelling: str, request: pytest.FixtureRequest, provider: Provider,
+        upload_store: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        base = "native_file_" + uuid4().hex[:12]
+        if spelling == "upper":
+            table, columns, headers = base, ["id", "note", "amount"], ["id", "note", "amount"]
+        elif spelling == "lower":
+            table, columns, headers = f'"{base}"', ['"id"', '"note"', '"amount"'], ["id", "note", "amount"]
+        elif spelling == "mixed":
+            table, columns, headers = f'"Mixed_{base}"', ['"Id"', '"Note"', '"Amount"'], ["Id", "Note", "Amount"]
+        else:
+            table, columns, headers = f"[dbo].[{base}]", ["[id]", "[note]", "[amount]"], ["id", "note", "amount"]
+        text_type = "VARCHAR2(20)" if db_type == "oracle" else "VARCHAR(20)"
+        unicode_type = "NVARCHAR2(40)" if db_type == "oracle" else "NVARCHAR(40)"
+        decimal_type = "NUMBER(12,2)" if db_type == "oracle" else "DECIMAL(12,2)"
+        created = False
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} ({columns[0]} {text_type}, {columns[1]} {unicode_type}, {columns[2]} {decimal_type})")
+            created = True
+            content = (",".join(headers) + "\n001,中文,1.00\n002,验证,1.25\n").encode()
+            with upload_store() as session:
+                uploaded = file_upload.upload_file(session, USER_ID, UploadFile(filename="native.csv", file=BytesIO(content)))
+            install_target(monkeypatch, config)
+            write1 = f"INSERT INTO {table} ({','.join(columns)}) VALUES ('001',N'中文',1.00)"
+            write2 = f"INSERT INTO {table} ({','.join(columns)}) VALUES ('002',N'验证',1.25)"
+            select = f"SELECT {','.join(columns)} FROM {table} ORDER BY {columns[0]}"
+            provider.replies = [tool_reply("readFile", {"file_id": uploaded.id}, "source"),
+                tool_reply("executeSql", {"db_id": DB_ID, "statement": write1}, "write1"),
+                tool_reply("executeSql", {"db_id": DB_ID, "statement": write2}, "write2"),
+                tool_reply("executeSql", {"db_id": DB_ID, "statement": select}, "verify"),
+                tool_reply("doTerminate", {"reason": "verified"}, "done"),
+                answer_reply("Two Unicode rows were imported and verified.")]
+            result, _events = await run(provider, uploaded.id)
+            assert result == "Two Unicode rows were imported and verified."
+            with engine.connect() as connection:
+                actual = [tuple(row) for row in connection.exec_driver_sql(select)]
+>           assert [(row[0], row[1], str(row[2])) for row in actual] == [
+                ("001", "中文", "1.00"), ("002", "验证", "1.25")]
+E               AssertionError: assert [('001', '中文'...'验证', '1.25')] == [('001', '中文'...'验证', '1.25')]
+E                 
+E                 At index 0 diff: ('001', '中文', '1') != ('001', '中文', '1.00')
+E                 Use -v to get more diff
+
+tests\test_native_workflow_real.py:80: AssertionError
+_______ test_actual_unicode_file_import_and_verification[oracle-lower] ________
+
+db_type = 'oracle', spelling = 'lower'
+request = <FixtureRequest for <Coroutine test_actual_unicode_file_import_and_verification[oracle-lower]>>
+provider = <test_model_protocol.Provider object at 0x000002088E25F110>
+upload_store = sessionmaker(class_='Session', bind=Engine(sqlite+pysqlite:///C%3A%5CUsers%5C22126%5CAppData%5CLocal%5CTemp%5Cpytest-of-22126%5Cpytest-600%5Ctest_actual_unicode_file_impor1%5Cmetadata.sqlite), autoflush=True, expire_on_commit=False)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002088E25D850>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type,spelling", [("oracle", "upper"), ("oracle", "lower"),
+                                                 ("oracle", "mixed"), ("sqlserver", "bracket")])
+    async def test_actual_unicode_file_import_and_verification(
+        db_type: str, spelling: str, request: pytest.FixtureRequest, provider: Provider,
+        upload_store: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        base = "native_file_" + uuid4().hex[:12]
+        if spelling == "upper":
+            table, columns, headers = base, ["id", "note", "amount"], ["id", "note", "amount"]
+        elif spelling == "lower":
+            table, columns, headers = f'"{base}"', ['"id"', '"note"', '"amount"'], ["id", "note", "amount"]
+        elif spelling == "mixed":
+            table, columns, headers = f'"Mixed_{base}"', ['"Id"', '"Note"', '"Amount"'], ["Id", "Note", "Amount"]
+        else:
+            table, columns, headers = f"[dbo].[{base}]", ["[id]", "[note]", "[amount]"], ["id", "note", "amount"]
+        text_type = "VARCHAR2(20)" if db_type == "oracle" else "VARCHAR(20)"
+        unicode_type = "NVARCHAR2(40)" if db_type == "oracle" else "NVARCHAR(40)"
+        decimal_type = "NUMBER(12,2)" if db_type == "oracle" else "DECIMAL(12,2)"
+        created = False
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} ({columns[0]} {text_type}, {columns[1]} {unicode_type}, {columns[2]} {decimal_type})")
+            created = True
+            content = (",".join(headers) + "\n001,中文,1.00\n002,验证,1.25\n").encode()
+            with upload_store() as session:
+                uploaded = file_upload.upload_file(session, USER_ID, UploadFile(filename="native.csv", file=BytesIO(content)))
+            install_target(monkeypatch, config)
+            write1 = f"INSERT INTO {table} ({','.join(columns)}) VALUES ('001',N'中文',1.00)"
+            write2 = f"INSERT INTO {table} ({','.join(columns)}) VALUES ('002',N'验证',1.25)"
+            select = f"SELECT {','.join(columns)} FROM {table} ORDER BY {columns[0]}"
+            provider.replies = [tool_reply("readFile", {"file_id": uploaded.id}, "source"),
+                tool_reply("executeSql", {"db_id": DB_ID, "statement": write1}, "write1"),
+                tool_reply("executeSql", {"db_id": DB_ID, "statement": write2}, "write2"),
+                tool_reply("executeSql", {"db_id": DB_ID, "statement": select}, "verify"),
+                tool_reply("doTerminate", {"reason": "verified"}, "done"),
+                answer_reply("Two Unicode rows were imported and verified.")]
+            result, _events = await run(provider, uploaded.id)
+            assert result == "Two Unicode rows were imported and verified."
+            with engine.connect() as connection:
+                actual = [tuple(row) for row in connection.exec_driver_sql(select)]
+>           assert [(row[0], row[1], str(row[2])) for row in actual] == [
+                ("001", "中文", "1.00"), ("002", "验证", "1.25")]
+E               AssertionError: assert [('001', '中文'...'验证', '1.25')] == [('001', '中文'...'验证', '1.25')]
+E                 
+E                 At index 0 diff: ('001', '中文', '1') != ('001', '中文', '1.00')
+E                 Use -v to get more diff
+
+tests\test_native_workflow_real.py:80: AssertionError
+_______ test_actual_unicode_file_import_and_verification[oracle-mixed] ________
+
+db_type = 'oracle', spelling = 'mixed'
+request = <FixtureRequest for <Coroutine test_actual_unicode_file_import_and_verification[oracle-mixed]>>
+provider = <test_model_protocol.Provider object at 0x000002088E25E4B0>
+upload_store = sessionmaker(class_='Session', bind=Engine(sqlite+pysqlite:///C%3A%5CUsers%5C22126%5CAppData%5CLocal%5CTemp%5Cpytest-of-22126%5Cpytest-600%5Ctest_actual_unicode_file_impor2%5Cmetadata.sqlite), autoflush=True, expire_on_commit=False)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002088E2C22D0>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type,spelling", [("oracle", "upper"), ("oracle", "lower"),
+                                                 ("oracle", "mixed"), ("sqlserver", "bracket")])
+    async def test_actual_unicode_file_import_and_verification(
+        db_type: str, spelling: str, request: pytest.FixtureRequest, provider: Provider,
+        upload_store: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        base = "native_file_" + uuid4().hex[:12]
+        if spelling == "upper":
+            table, columns, headers = base, ["id", "note", "amount"], ["id", "note", "amount"]
+        elif spelling == "lower":
+            table, columns, headers = f'"{base}"', ['"id"', '"note"', '"amount"'], ["id", "note", "amount"]
+        elif spelling == "mixed":
+            table, columns, headers = f'"Mixed_{base}"', ['"Id"', '"Note"', '"Amount"'], ["Id", "Note", "Amount"]
+        else:
+            table, columns, headers = f"[dbo].[{base}]", ["[id]", "[note]", "[amount]"], ["id", "note", "amount"]
+        text_type = "VARCHAR2(20)" if db_type == "oracle" else "VARCHAR(20)"
+        unicode_type = "NVARCHAR2(40)" if db_type == "oracle" else "NVARCHAR(40)"
+        decimal_type = "NUMBER(12,2)" if db_type == "oracle" else "DECIMAL(12,2)"
+        created = False
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} ({columns[0]} {text_type}, {columns[1]} {unicode_type}, {columns[2]} {decimal_type})")
+            created = True
+            content = (",".join(headers) + "\n001,中文,1.00\n002,验证,1.25\n").encode()
+            with upload_store() as session:
+                uploaded = file_upload.upload_file(session, USER_ID, UploadFile(filename="native.csv", file=BytesIO(content)))
+            install_target(monkeypatch, config)
+            write1 = f"INSERT INTO {table} ({','.join(columns)}) VALUES ('001',N'中文',1.00)"
+            write2 = f"INSERT INTO {table} ({','.join(columns)}) VALUES ('002',N'验证',1.25)"
+            select = f"SELECT {','.join(columns)} FROM {table} ORDER BY {columns[0]}"
+            provider.replies = [tool_reply("readFile", {"file_id": uploaded.id}, "source"),
+                tool_reply("executeSql", {"db_id": DB_ID, "statement": write1}, "write1"),
+                tool_reply("executeSql", {"db_id": DB_ID, "statement": write2}, "write2"),
+                tool_reply("executeSql", {"db_id": DB_ID, "statement": select}, "verify"),
+                tool_reply("doTerminate", {"reason": "verified"}, "done"),
+                answer_reply("Two Unicode rows were imported and verified.")]
+            result, _events = await run(provider, uploaded.id)
+            assert result == "Two Unicode rows were imported and verified."
+            with engine.connect() as connection:
+                actual = [tuple(row) for row in connection.exec_driver_sql(select)]
+>           assert [(row[0], row[1], str(row[2])) for row in actual] == [
+                ("001", "中文", "1.00"), ("002", "验证", "1.25")]
+E               AssertionError: assert [('001', '中文'...'验证', '1.25')] == [('001', '中文'...'验证', '1.25')]
+E                 
+E                 At index 0 diff: ('001', '中文', '1') != ('001', '中文', '1.00')
+E                 Use -v to get more diff
+
+tests\test_native_workflow_real.py:80: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_native_workflow_real.py::test_actual_unicode_file_import_and_verification[oracle-upper]
+FAILED tests/test_native_workflow_real.py::test_actual_unicode_file_import_and_verification[oracle-lower]
+FAILED tests/test_native_workflow_real.py::test_actual_unicode_file_import_and_verification[oracle-mixed]
+3 failed, 13 passed, 11 deselected in 69.32s (0:01:09)

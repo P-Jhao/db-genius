@@ -5,18 +5,21 @@ from dataclasses import dataclass, field
 from sqlglot import exp
 
 from app.agent.workflow_mongodb import MONGODB_FORMAT, MongoWorkflowEvidence
-from app.agent.workflow_values import ColumnTypes
+from app.agent.workflow_values import ColumnTypes, Row
 
 _DIALECTS = {"mysql": "mysql", "postgresql": "postgres", "sqlite": "sqlite",
              "mariadb": "mysql", "tidb": "mysql", "doris": "mysql", "starrocks": "mysql",
-             "oceanbase": "mysql"}
+             "oceanbase": "mysql", "oracle": "oracle", "sqlserver": "tsql"}
 TableName = tuple[str, ...]
 Target = tuple[int, TableName]
 
 
 def identifier_name(value: exp.Expression, dialect: str | None) -> str:
-    if dialect == "postgres" and not value.args.get("quoted"):
-        return value.name.lower()
+    if not value.args.get("quoted"):
+        if dialect == "postgres":
+            return value.name.lower()
+        if dialect == "oracle":
+            return value.name.upper()
     if dialect == "sqlite":
         return value.name.lower()
     return value.name
@@ -43,7 +46,9 @@ class WorkflowSchema:
         if not isinstance(db_type, str) or db_type not in _DIALECTS:
             raise ValueError("Workflow schema has an unsupported database type")
         self.dialects[db_id] = _DIALECTS[db_type]
-        namespace = "public" if db_type == "postgresql" else result.get("databaseName", "")
+        namespace = {"postgresql": "public", "sqlserver": "dbo"}.get(db_type)
+        if namespace is None:
+            namespace = result.get("schemaName", "") if db_type == "oracle" else result.get("databaseName", "")
         if not isinstance(namespace, str):
             raise TypeError("Workflow database name must be text")
         self.default_namespaces[db_id] = namespace
@@ -74,6 +79,23 @@ class WorkflowSchema:
         if len(parts) == 2 and parts[0] == self.default_namespaces.get(db_id):
             return (parts[1],)
         return tuple(parts)
+
+    def source_row(self, db_id: int, row: Row, target_columns: set[str]) -> Row:
+        """Resolve file headers against actual inserted columns; result rows remain untouched."""
+        dialect = self.dialects.get(db_id)
+        converted: Row = {}
+        for name, value in row.items():
+            target = name
+            if name not in target_columns and dialect == "oracle" and name.upper() in target_columns:
+                target = name.upper()
+            if name not in target_columns and dialect == "tsql":
+                matches = [column for column in target_columns if column.casefold() == name.casefold()]
+                if len(matches) == 1:
+                    target = matches[0]
+            if target in converted:
+                raise ValueError("File headers collide under the target column mapping")
+            converted[target] = value
+        return converted
 
     def created_table(self, db_id: int, statement: exp.Expression) -> None:
         if not isinstance(statement, exp.Create) or not isinstance(statement.this, exp.Schema):

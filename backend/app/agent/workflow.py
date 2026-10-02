@@ -193,7 +193,7 @@ class WorkflowProgress:
         covered = True
         for row in source:
             match = next((index for index, (target, candidate) in enumerate(remaining)
-                          if covers(rows([row], self.schema.dialects.get(target[0])), [candidate],
+                          if covers([self.schema.source_row(target[0], rows([row], self.schema.dialects.get(target[0]))[0], set(candidate))], [candidate],
                                     self.schema.column_types.get(target, {}))), None)
             if match is None:
                 covered = False

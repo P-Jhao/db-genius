@@ -1,0 +1,395 @@
+........................FFOracle actual write cancellation: {'cause_type': 'DatabaseError', 'code': 0, 'full_code': 'DPY-4011'}
+..Oracle actual read cancellation: {'code': 1013, 'full_code': 'ORA-01013'}
+.............................................................................
+================================== FAILURES ===================================
+__________ test_oracle_real_current_user_names_decimal_unicode_lobs ___________
+
+self = <sqlalchemy.engine.base.Connection object at 0x00000163A55BCFE0>
+dialect = <sqlalchemy.dialects.oracle.oracledb.OracleDialect_oracledb object at 0x00000163A55BF410>
+context = <sqlalchemy.dialects.oracle.oracledb.OracleExecutionContext_oracledb object at 0x00000163A5663D40>
+statement = 'SELECT * FROM native_c5c36fe76edc'
+parameters = [immutabledict({})]
+
+    def _exec_single_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+        statement: Union[str, Compiled],
+        parameters: Optional[_AnyMultiExecuteParams],
+    ) -> CursorResult[Unpack[TupleAny]]:
+        """continue the _execute_context() method for a single DBAPI
+        cursor.execute() or cursor.executemany() call.
+    
+        """
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+    
+            if generic_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor, generic_setinputsizes, context
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e, str(statement), parameters, None, context
+                    )
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters: Optional[_AnyExecuteParams]
+    
+        if not context.executemany:
+            effective_parameters = parameters[0]
+        else:
+            effective_parameters = parameters
+    
+        evt_handled: bool = False
+        try:
+            if self._has_events or self.engine._has_events:
+                for fn in self.dispatch.before_cursor_execute:
+                    str_statement, effective_parameters = fn(
+                        self,
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+                        context.executemany,
+                    )
+    
+            if self._echo:
+                self._log_info(str_statement)
+    
+                stats = context._get_cache_stats()
+    
+                if not self.engine.hide_parameters:
+                    self._log_info(
+                        "[%s] %r",
+                        stats,
+                        sql_util._repr_params(
+                            effective_parameters,
+                            batches=10,
+                            ismulti=context.executemany,
+                        ),
+                    )
+                else:
+                    self._log_info(
+                        "[%s] [SQL parameters hidden due to "
+                        "hide_parameters=True]",
+                        stats,
+                    )
+            if context.execute_style is ExecuteStyle.EXECUTEMANY:
+                effective_parameters = cast(
+                    "_CoreMultiExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_executemany(
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+                    )
+            elif not effective_parameters and context.no_parameters:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute_no_params:
+                        if fn(cursor, str_statement, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+>                   self.dialect.do_execute_no_params(
+                        cursor, str_statement, context
+                    )
+
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1925: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py:1183: in do_execute_no_params
+    cursor.execute(statement)
+..\..\..\..\backend\.venv\Lib\site-packages\oracledb\cursor.py:844: in execute
+    impl.execute(self)
+src/oracledb/impl/thin/cursor.pyx:277: in oracledb.thin_impl.ThinCursorImpl.execute
+    ???
+src/oracledb/impl/thin/protocol.pyx:501: in oracledb.thin_impl.Protocol._process_single_message
+    ???
+src/oracledb/impl/thin/protocol.pyx:502: in oracledb.thin_impl.Protocol._process_single_message
+    ???
+src/oracledb/impl/thin/protocol.pyx:494: in oracledb.thin_impl.Protocol._process_message
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   oracledb.exceptions.DatabaseError: ORA-01466: unable to read data - table definition has changed
+E   Help: https://docs.oracle.com/error-help/db/ora-01466/
+
+src/oracledb/impl/thin/messages/base.pyx:102: DatabaseError
+
+The above exception was the direct cause of the following exception:
+
+oracle_target = NativeTarget(config=<credentials redacted>, engine=<isolated target>)
+
+    def test_oracle_real_current_user_names_decimal_unicode_lobs(oracle_target: tuple[DbConnectionConfig, Engine]) -> None:
+        config, engine = oracle_target
+        adapter = OracleAdapter()
+        assert adapter.test_connection(config)
+        table = "native_" + uuid4().hex[:12]
+        created = False
+        try:
+            adapter.execute(config, f'CREATE TABLE {table} (id NUMBER(10) PRIMARY KEY, "id" NUMBER(10),'
+                '"MixedName" NVARCHAR2(50), amount NUMBER(38,12) NOT NULL, content CLOB, payload BLOB, created TIMESTAMP(6))')
+            created = True
+            adapter.execute(config, f"INSERT INTO {table} VALUES (1,2,N'中文🙂',12345678901234567890.123456789012,"
+                "TO_CLOB('Unicode 文本'),HEXTORAW('010203'),TIMESTAMP '2026-10-01 02:03:04.123456')")
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"COMMENT ON TABLE {table} IS '当前用户真实表'")
+                connection.exec_driver_sql(f"CREATE INDEX ix_{table} ON {table} (amount)")
+            time.sleep(1.1)  # Keep fixture DDL before Oracle's READ ONLY snapshot.
+>           result = adapter.execute(config, f"SELECT * FROM {table}", trial_mode=True)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_oracle_real.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+app\adapters\native_relational.py:102: in execute
+    return super().execute(config, statement, trial_mode=trial_mode,
+app\adapters\relational.py:180: in execute
+    result = target.exec_driver_sql(statement)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1755: in exec_driver_sql
+    ret = self._execute_context(
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1822: in _execute_context
+    return self._exec_single_context(
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1962: in _exec_single_context
+    self._handle_dbapi_exception(
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:2332: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1925: in _exec_single_context
+    self.dialect.do_execute_no_params(
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py:1183: in do_execute_no_params
+    cursor.execute(statement)
+..\..\..\..\backend\.venv\Lib\site-packages\oracledb\cursor.py:844: in execute
+    impl.execute(self)
+src/oracledb/impl/thin/cursor.pyx:277: in oracledb.thin_impl.ThinCursorImpl.execute
+    ???
+src/oracledb/impl/thin/protocol.pyx:501: in oracledb.thin_impl.Protocol._process_single_message
+    ???
+src/oracledb/impl/thin/protocol.pyx:502: in oracledb.thin_impl.Protocol._process_single_message
+    ???
+src/oracledb/impl/thin/protocol.pyx:494: in oracledb.thin_impl.Protocol._process_message
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   sqlalchemy.exc.DatabaseError: (oracledb.exceptions.DatabaseError) ORA-01466: unable to read data - table definition has changed
+E   Help: https://docs.oracle.com/error-help/db/ora-01466/
+E   [SQL: SELECT * FROM native_c5c36fe76edc]
+E   (Background on this error at: https://sqlalche.me/e/21/4xp6)
+
+src/oracledb/impl/thin/messages/base.pyx:102: DatabaseError
+____________ test_oracle_real_allowed_writes_read_limit_and_trial _____________
+
+self = <sqlalchemy.engine.base.Connection object at 0x00000163A56BAF60>
+dialect = <sqlalchemy.dialects.oracle.oracledb.OracleDialect_oracledb object at 0x00000163A57749B0>
+context = <sqlalchemy.dialects.oracle.oracledb.OracleExecutionContext_oracledb object at 0x00000163A56BAA80>
+statement = 'SELECT * FROM native_20ca498138c3 ORDER BY id'
+parameters = [immutabledict({})]
+
+    def _exec_single_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+        statement: Union[str, Compiled],
+        parameters: Optional[_AnyMultiExecuteParams],
+    ) -> CursorResult[Unpack[TupleAny]]:
+        """continue the _execute_context() method for a single DBAPI
+        cursor.execute() or cursor.executemany() call.
+    
+        """
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+    
+            if generic_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor, generic_setinputsizes, context
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e, str(statement), parameters, None, context
+                    )
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters: Optional[_AnyExecuteParams]
+    
+        if not context.executemany:
+            effective_parameters = parameters[0]
+        else:
+            effective_parameters = parameters
+    
+        evt_handled: bool = False
+        try:
+            if self._has_events or self.engine._has_events:
+                for fn in self.dispatch.before_cursor_execute:
+                    str_statement, effective_parameters = fn(
+                        self,
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+                        context.executemany,
+                    )
+    
+            if self._echo:
+                self._log_info(str_statement)
+    
+                stats = context._get_cache_stats()
+    
+                if not self.engine.hide_parameters:
+                    self._log_info(
+                        "[%s] %r",
+                        stats,
+                        sql_util._repr_params(
+                            effective_parameters,
+                            batches=10,
+                            ismulti=context.executemany,
+                        ),
+                    )
+                else:
+                    self._log_info(
+                        "[%s] [SQL parameters hidden due to "
+                        "hide_parameters=True]",
+                        stats,
+                    )
+            if context.execute_style is ExecuteStyle.EXECUTEMANY:
+                effective_parameters = cast(
+                    "_CoreMultiExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_executemany(
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+                    )
+            elif not effective_parameters and context.no_parameters:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute_no_params:
+                        if fn(cursor, str_statement, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+>                   self.dialect.do_execute_no_params(
+                        cursor, str_statement, context
+                    )
+
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1925: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py:1183: in do_execute_no_params
+    cursor.execute(statement)
+..\..\..\..\backend\.venv\Lib\site-packages\oracledb\cursor.py:844: in execute
+    impl.execute(self)
+src/oracledb/impl/thin/cursor.pyx:277: in oracledb.thin_impl.ThinCursorImpl.execute
+    ???
+src/oracledb/impl/thin/protocol.pyx:501: in oracledb.thin_impl.Protocol._process_single_message
+    ???
+src/oracledb/impl/thin/protocol.pyx:502: in oracledb.thin_impl.Protocol._process_single_message
+    ???
+src/oracledb/impl/thin/protocol.pyx:494: in oracledb.thin_impl.Protocol._process_message
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   oracledb.exceptions.DatabaseError: ORA-01466: unable to read data - table definition has changed
+E   Help: https://docs.oracle.com/error-help/db/ora-01466/
+
+src/oracledb/impl/thin/messages/base.pyx:102: DatabaseError
+
+The above exception was the direct cause of the following exception:
+
+oracle_target = NativeTarget(config=<credentials redacted>, engine=<isolated target>)
+
+    def test_oracle_real_allowed_writes_read_limit_and_trial(oracle_target: tuple[DbConnectionConfig, Engine]) -> None:
+        config, engine = oracle_target
+        adapter = OracleAdapter()
+        table = "native_" + uuid4().hex[:12]
+        sequence = "seq_" + uuid4().hex[:12]
+        created = False
+        sequence_created = False
+        try:
+            adapter.execute(config, f"CREATE TABLE {table} (id NUMBER(10), value NUMBER(10))")
+            created = True
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (:1,:2)", [(value, value) for value in range(201)])
+                connection.exec_driver_sql(f"CREATE SEQUENCE {sequence}")
+                sequence_created = True
+            time.sleep(1.1)  # Fixture DDL must precede the READ ONLY snapshot.
+>           limited = adapter.execute(config, f"SELECT * FROM {table} ORDER BY id", trial_mode=True)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_oracle_real.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+app\adapters\native_relational.py:102: in execute
+    return super().execute(config, statement, trial_mode=trial_mode,
+app\adapters\relational.py:180: in execute
+    result = target.exec_driver_sql(statement)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1755: in exec_driver_sql
+    ret = self._execute_context(
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1822: in _execute_context
+    return self._exec_single_context(
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1962: in _exec_single_context
+    self._handle_dbapi_exception(
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:2332: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1925: in _exec_single_context
+    self.dialect.do_execute_no_params(
+..\..\..\..\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py:1183: in do_execute_no_params
+    cursor.execute(statement)
+..\..\..\..\backend\.venv\Lib\site-packages\oracledb\cursor.py:844: in execute
+    impl.execute(self)
+src/oracledb/impl/thin/cursor.pyx:277: in oracledb.thin_impl.ThinCursorImpl.execute
+    ???
+src/oracledb/impl/thin/protocol.pyx:501: in oracledb.thin_impl.Protocol._process_single_message
+    ???
+src/oracledb/impl/thin/protocol.pyx:502: in oracledb.thin_impl.Protocol._process_single_message
+    ???
+src/oracledb/impl/thin/protocol.pyx:494: in oracledb.thin_impl.Protocol._process_message
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   sqlalchemy.exc.DatabaseError: (oracledb.exceptions.DatabaseError) ORA-01466: unable to read data - table definition has changed
+E   Help: https://docs.oracle.com/error-help/db/ora-01466/
+E   [SQL: SELECT * FROM native_20ca498138c3 ORDER BY id]
+E   (Background on this error at: https://sqlalche.me/e/21/4xp6)
+
+src/oracledb/impl/thin/messages/base.pyx:102: DatabaseError
+=========================== short test summary info ===========================
+FAILED tests/test_oracle_real.py::test_oracle_real_current_user_names_decimal_unicode_lobs
+FAILED tests/test_oracle_real.py::test_oracle_real_allowed_writes_read_limit_and_trial
+2 failed, 103 passed in 213.86s (0:03:33)

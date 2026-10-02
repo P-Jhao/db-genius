@@ -44,6 +44,7 @@ class SchemaMetadata(TypedDict):
     errorMessage: str | None
     schemaInferred: NotRequired[bool]
     sampleSize: NotRequired[int]
+    schemaName: NotRequired[str]
 
 
 class QueryResult(TypedDict, total=False):

@@ -1,0 +1,110 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_________ test_actual_native_api_worker_and_controlled_reads[oracle] __________
+
+db_type = 'oracle'
+request = <FixtureRequest for <Function test_actual_native_api_worker_and_controlled_reads[oracle]>>
+tmp_path = WindowsPath('C:/Users/22126/AppData/Local/Temp/pytest-of-22126/pytest-605/test_actual_native_api_worker_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002206924CF20>
+
+    @pytest.mark.parametrize("db_type", ["oracle", "sqlserver"])
+    def test_actual_native_api_worker_and_controlled_reads(
+        db_type: str, request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        target, engine = fixture_target(request, db_type)
+        table = "api_" + uuid4().hex[:12]
+        created = False
+        system = create_engine(f"sqlite:///{tmp_path / 'api.sqlite'}",
+                               execution_options={"schema_translate_map": {"app": None}})
+        Base.metadata.create_all(system)
+        factory = sessionmaker(system, expire_on_commit=False)
+        monkeypatch.setenv("SQLCHAT_ENCRYPT_KEY", "0123456789abcdef0123456789abcdef")
+        get_settings.cache_clear()
+        for module in (main, api_auth, core_auth, database_tools, db_config_worker):
+            monkeypatch.setattr(module, "SessionLocal", factory)
+        queued: list[list[int]] = []
+        monkeypatch.setattr(db_config.verify_config, "apply_async", lambda *, args: queued.append(args))
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY)")
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (1)")
+            created = True
+            if db_type == "oracle":
+                time.sleep(1.1)
+            with factory() as session:
+                owner = User(username="native-owner", password_hash="unused", status=1)
+                other = User(username="native-outsider", password_hash="unused", status=1)
+                session.add_all([owner, other])
+                session.commit()
+            payload = {"name": "native target", "dbType": db_type, "host": target.host,
+                       "port": target.port, "dbName": target.db_name,
+                       "username": target.username, "password": target.password}
+            with TestClient(main.app) as client:
+                headers = {"Authorization": _token(factory, owner)}
+                response = client.post("/api/db-config", headers=headers, json=payload).json()
+                assert response["code"] == 200 and response["data"]["status"] == 0
+                assert "password" not in response["data"] and target.password not in str(response)
+                config_id = response["data"]["id"]
+>               assert queued == [[config_id, 1]]
+E               assert [(1, 1)] == [[1, 1]]
+E                 
+E                 At index 0 diff: (1, 1) != [1, 1]
+E                 Use -v to get more diff
+
+tests\test_native_api_real.py:67: AssertionError
+________ test_actual_native_api_worker_and_controlled_reads[sqlserver] ________
+
+db_type = 'sqlserver'
+request = <FixtureRequest for <Function test_actual_native_api_worker_and_controlled_reads[sqlserver]>>
+tmp_path = WindowsPath('C:/Users/22126/AppData/Local/Temp/pytest-of-22126/pytest-605/test_actual_native_api_worker_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022069492900>
+
+    @pytest.mark.parametrize("db_type", ["oracle", "sqlserver"])
+    def test_actual_native_api_worker_and_controlled_reads(
+        db_type: str, request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        target, engine = fixture_target(request, db_type)
+        table = "api_" + uuid4().hex[:12]
+        created = False
+        system = create_engine(f"sqlite:///{tmp_path / 'api.sqlite'}",
+                               execution_options={"schema_translate_map": {"app": None}})
+        Base.metadata.create_all(system)
+        factory = sessionmaker(system, expire_on_commit=False)
+        monkeypatch.setenv("SQLCHAT_ENCRYPT_KEY", "0123456789abcdef0123456789abcdef")
+        get_settings.cache_clear()
+        for module in (main, api_auth, core_auth, database_tools, db_config_worker):
+            monkeypatch.setattr(module, "SessionLocal", factory)
+        queued: list[list[int]] = []
+        monkeypatch.setattr(db_config.verify_config, "apply_async", lambda *, args: queued.append(args))
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY)")
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (1)")
+            created = True
+            if db_type == "oracle":
+                time.sleep(1.1)
+            with factory() as session:
+                owner = User(username="native-owner", password_hash="unused", status=1)
+                other = User(username="native-outsider", password_hash="unused", status=1)
+                session.add_all([owner, other])
+                session.commit()
+            payload = {"name": "native target", "dbType": db_type, "host": target.host,
+                       "port": target.port, "dbName": target.db_name,
+                       "username": target.username, "password": target.password}
+            with TestClient(main.app) as client:
+                headers = {"Authorization": _token(factory, owner)}
+                response = client.post("/api/db-config", headers=headers, json=payload).json()
+                assert response["code"] == 200 and response["data"]["status"] == 0
+                assert "password" not in response["data"] and target.password not in str(response)
+                config_id = response["data"]["id"]
+>               assert queued == [[config_id, 1]]
+E               assert [(1, 1)] == [[1, 1]]
+E                 
+E                 At index 0 diff: (1, 1) != [1, 1]
+E                 Use -v to get more diff
+
+tests\test_native_api_real.py:67: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_native_api_real.py::test_actual_native_api_worker_and_controlled_reads[oracle]
+FAILED tests/test_native_api_real.py::test_actual_native_api_worker_and_controlled_reads[sqlserver]
+2 failed in 8.71s

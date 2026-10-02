@@ -1,0 +1,4 @@
+app\storage\ocr.py:36: error: Returning Any from function declared to return "_OcrClient"  [no-any-return]
+app\agent\graph.py:64: error: Function is missing a return type annotation  [no-untyped-def]
+app\agent\graph.py:164: error: Returning Any from function declared to return "RunState"  [no-any-return]
+Found 3 errors in 2 files (checked 95 source files)

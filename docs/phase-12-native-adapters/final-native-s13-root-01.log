@@ -1,0 +1,5 @@
+.............................................................................................................................Oracle actual write cancellation: {'cause_type': 'DatabaseError', 'code': 0, 'full_code': 'DPY-4011'}
+..Oracle actual read cancellation: {'code': 1013, 'full_code': 'ORA-01013'}
+.Oracle actual bound catalog calls: 20
+..............................................................
+190 passed in 193.71s (0:03:13)

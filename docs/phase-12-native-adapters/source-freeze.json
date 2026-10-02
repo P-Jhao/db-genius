@@ -1,0 +1,322 @@
+{
+  "base": "62c19bb7096e397e53008ff2e235286d396e18a3",
+  "snapshot": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s12-native-final-8c1c8fa9e3884ad8b4d5e5cb27afa7a2",
+  "files": [
+    {
+      "path": "backend/app/adapters/native_reads.py",
+      "sha256": "f74941e55bf2e17a0b295d5853658d80598eaa1047b44503f8b6ae9812ebcf8d",
+      "size": 5209
+    },
+    {
+      "path": "backend/app/adapters/native_relational.py",
+      "sha256": "b978c0dceb51227d6c35b2c25e30735c17c81a831a93fc7a653165d75529e84c",
+      "size": 6405
+    },
+    {
+      "path": "backend/app/adapters/oracle.py",
+      "sha256": "d0d32e84fcbfe250d01a4c9778431721dd0cd74bbf34ceb2b77511b5186e1a76",
+      "size": 7484
+    },
+    {
+      "path": "backend/app/adapters/oracle_metadata.py",
+      "sha256": "b4b70a10cf4cb56d466946475ddaa95d08c8c044eb249ee744ce3f82204b7f4d",
+      "size": 3014
+    },
+    {
+      "path": "backend/app/adapters/oracle_read_catalog.py",
+      "sha256": "bcce7b66fddbe40f73ab3fe6b76de7c3f22e8603d0c903a172b1db3b12ed2383",
+      "size": 3194
+    },
+    {
+      "path": "backend/app/adapters/registry.py",
+      "sha256": "440990e66d30c521ec7ee8d5a40ac6a385236a2f2964d9bef4d4f15e6aa91a62",
+      "size": 1040
+    },
+    {
+      "path": "backend/app/adapters/sqlserver.py",
+      "sha256": "c45b77caea6b2e35110d353fe6b10b1f33e8b442aaf2ad6e66c6903549f824ae",
+      "size": 3797
+    },
+    {
+      "path": "backend/app/adapters/types.py",
+      "sha256": "e87c0541e4b147be4917d7c1ca9d5bca19e81a396228fc94a81d56f67894edac",
+      "size": 2012
+    },
+    {
+      "path": "backend/app/agent/workflow.py",
+      "sha256": "e518599737e48b0682e4b5bae177ea30f0b24795c24c9fdcf8927d650208f307",
+      "size": 11313
+    },
+    {
+      "path": "backend/app/agent/workflow_rows.py",
+      "sha256": "37341ef358aaa26d73918ce318b17f4086171384cf4f907bd23c59352edf2fcc",
+      "size": 7661
+    },
+    {
+      "path": "backend/app/agent/workflow_schema.py",
+      "sha256": "e850cb24fc6be81288e893ae0c412a0a8ede8c4363027723042c3ede4425a854",
+      "size": 5738
+    },
+    {
+      "path": "backend/app/services/database_tools.py",
+      "sha256": "79520e5caed64e2671dea47645431cf5aabdef180a1fa78c7235135a08dfa53b",
+      "size": 3347
+    },
+    {
+      "path": "backend/tests/native_database_fixtures.py",
+      "sha256": "3899538c520fd508edf30ff798b9d6604ff1c3bf1fffd6d4793cb351d046f088",
+      "size": 4768
+    },
+    {
+      "path": "backend/tests/test_native_adapters_limits.py",
+      "sha256": "54f0834a621a8726f1d148f28d9ba9b633b95e236ae452e933da07c9ff655329",
+      "size": 5237
+    },
+    {
+      "path": "backend/tests/test_native_adapters_protocol.py",
+      "sha256": "42b50030b805196fbdf8cec6aa97cc04520109c598e549c96a12ce6025ba3edc",
+      "size": 12812
+    },
+    {
+      "path": "backend/tests/test_native_adapters_safety.py",
+      "sha256": "c3a6180c9573efb485270fb71213d5bdba3d411eef288642ca0df4f234abe240",
+      "size": 7094
+    },
+    {
+      "path": "backend/tests/test_native_adapters_sessions.py",
+      "sha256": "17d9ce5aa6b7a26f20ceca549996f67bf8ff8b84412a2d72867d4f2fb10ef8a4",
+      "size": 8107
+    },
+    {
+      "path": "backend/tests/test_native_api_real.py",
+      "sha256": "6b15bd5f8190efa363df176ade934d0a8df13d43adb63881d328333f98980547",
+      "size": 4993
+    },
+    {
+      "path": "backend/tests/test_native_reads.py",
+      "sha256": "bbd386e4810e70273a22be545ce4bd800cdcb894a502d6f245abfaf0087ca6ce",
+      "size": 3224
+    },
+    {
+      "path": "backend/tests/test_native_workflow_bridge.py",
+      "sha256": "dc575921f647f63722ef45ebb38005ef56b382bde0d9c51bd65f8d8420f30141",
+      "size": 5015
+    },
+    {
+      "path": "backend/tests/test_native_workflow_real.py",
+      "sha256": "dcca6f6b3b8b915d4f00c8eb9eb4add65d88ef8a51f97525e0877c04b128562e",
+      "size": 4728
+    },
+    {
+      "path": "backend/tests/test_oracle_metadata.py",
+      "sha256": "9fe93bf9c5383b6fd1b6845b0ce02db0bf2f709c37cfd06cf41a0db4041118bc",
+      "size": 2891
+    },
+    {
+      "path": "backend/tests/test_oracle_read_catalog.py",
+      "sha256": "b94bfd838396993947a17fa3f1e2aafb0f0c8ef1a1b1dff79cae836612020fd6",
+      "size": 4579
+    },
+    {
+      "path": "backend/tests/test_oracle_real.py",
+      "sha256": "43c4873caa6b500309bdc812a1cc56169c365795c69aa9ef437dcb8e9cdfeb42",
+      "size": 9572
+    },
+    {
+      "path": "backend/tests/test_oracle_sequences_real.py",
+      "sha256": "36d4697c8b4dc9ddf710f85dcfe9e353491630cec3280643bae11333909980f0",
+      "size": 6801
+    },
+    {
+      "path": "backend/tests/test_oracle_service_bridge.py",
+      "sha256": "190e56fceb08f2fcf039df728fec0b1c0177c9aed40a81dc36e2662a3ed18894",
+      "size": 1502
+    },
+    {
+      "path": "backend/tests/test_sqlserver_real.py",
+      "sha256": "94b5c0610c91ff6b9cd9feaa455b58fe4d09b0e618394f6eeec4955a6958d704",
+      "size": 7663
+    },
+    {
+      "path": "docs/phase-12-native-adapters/README.md",
+      "sha256": "25b53016fd6059fd3acf37c73de8210107bc3715e864bda83a668726099e67bb",
+      "size": 13535
+    },
+    {
+      "path": "docs/phase-12-native-adapters/final-bridge.log",
+      "sha256": "4c23ff55a5003195ea584012c6861aa66b60b776f27273e78ed72092f61e6111",
+      "size": 18905
+    },
+    {
+      "path": "docs/phase-12-native-adapters/final-native-s13-revision.log",
+      "sha256": "ffac6712d9654d44edc3ccb4f60ee66334083ed042b87fbfecad70e2ec844196",
+      "size": 135
+    },
+    {
+      "path": "docs/phase-12-native-adapters/final-native-s13.log",
+      "sha256": "0c154c8261a245d01d58ae034e527203e15e3d1d400b63a3ed084f8b5c89b625",
+      "size": 19723
+    },
+    {
+      "path": "docs/phase-12-native-adapters/mypy.log",
+      "sha256": "e1933d29513c905ba6bf6828838a39f7d132a341e1fb63954bb71e0b3341fcff",
+      "size": 45
+    },
+    {
+      "path": "docs/phase-12-native-adapters/native-additions.log",
+      "sha256": "f9dbe9dd4217f0af464af0dd327cd953e83e1cac7a4b65040b52217264be0694",
+      "size": 326
+    },
+    {
+      "path": "docs/phase-12-native-adapters/native-api-real-revision.log",
+      "sha256": "b659a9a8a74d4c4d43169be8685eb8204377b7c2378f87242e62c08380d614cb",
+      "size": 100
+    },
+    {
+      "path": "docs/phase-12-native-adapters/native-api-real.log",
+      "sha256": "4c949436b855cf4d860109fd346dcf92ce9fccf2ce6d4ad7b5b6208488db7dd1",
+      "size": 6589
+    },
+    {
+      "path": "docs/phase-12-native-adapters/native-current-real.log",
+      "sha256": "44970c2c14246ba9fb4cdaa2aeb90967d1773659fff96fc60a4845baad32c144",
+      "size": 300
+    },
+    {
+      "path": "docs/phase-12-native-adapters/native-protocol.log",
+      "sha256": "8a0ad75c2f6d8ccd2e62b94664e86e1b41665f0791411e0a2c03b501bf4a2154",
+      "size": 101
+    },
+    {
+      "path": "docs/phase-12-native-adapters/oracle-boundary-and-quoted-revision.log",
+      "sha256": "0f1a36c110f69da0402229f1c800d4a7c27ab8bae6b6c9dd395d6cbece62e42a",
+      "size": 102
+    },
+    {
+      "path": "docs/phase-12-native-adapters/oracle-cancel-probe.log",
+      "sha256": "7ffc6559d38fe4f93a9f3c23bb2fa0c45a84104f14b78d3382e45eaf2339de90",
+      "size": 2433
+    },
+    {
+      "path": "docs/phase-12-native-adapters/oracle-catalog-expanded.log",
+      "sha256": "7ca0abf67b86802555bc99a311819a534d9f26072bd679bc24ac01604c701112",
+      "size": 144
+    },
+    {
+      "path": "docs/phase-12-native-adapters/oracle-catalog-final.log",
+      "sha256": "2100a190ec9ce67f1cd24fb80a4b5ff2945c85946b9936dc0c4b0a8a80a76a4d",
+      "size": 102
+    },
+    {
+      "path": "docs/phase-12-native-adapters/oracle-read-cancel.log",
+      "sha256": "1d3b932a510f54e645099057e4c12ebb1e12e3d2b0509f4372b9bd7bfb1e3157",
+      "size": 101
+    },
+    {
+      "path": "docs/phase-12-native-adapters/oracle-real-revision.log",
+      "sha256": "77b2b621da516d7127e581c419001dad66094fc1b20819b0ab32f7e380e7a7c7",
+      "size": 2854
+    },
+    {
+      "path": "docs/phase-12-native-adapters/oracle-real.log",
+      "sha256": "f3d97ceb254464f2de0899f8711334dbd86c1a1cfa7a9cc60c3b0e96239952cb",
+      "size": 13263
+    },
+    {
+      "path": "docs/phase-12-native-adapters/oracle-sequence-probe.json",
+      "sha256": "f7f938dc77fc95defe541013c76339049b92a2af23ba72e86ded1a4f4c70b350",
+      "size": 1650
+    },
+    {
+      "path": "docs/phase-12-native-adapters/oracle-types-and-workflow.log",
+      "sha256": "491fd35a915fa63b68c828cb4b3952da4c7295b89e336992e84da8c67515d1a1",
+      "size": 13052
+    },
+    {
+      "path": "docs/phase-12-native-adapters/probe-oracle-sequence.py",
+      "sha256": "4fc8baee5f106344fdbabe50b1da20800519645d427c9494e02abbc7c6814022",
+      "size": 3473
+    },
+    {
+      "path": "docs/phase-12-native-adapters/ruff.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0",
+      "size": 20
+    },
+    {
+      "path": "docs/phase-12-native-adapters/run-checks.py",
+      "sha256": "e9f1a74a4627038a388cbdda18a8ea622b74cf7720e2dc0b369461c3a2c64604",
+      "size": 2785
+    },
+    {
+      "path": "docs/phase-12-native-adapters/run-final-gate.py",
+      "sha256": "dac6049212b86ffe0a19e75f4c1b2cfcc810101d1aaa51041df2faa5fe9bc3c9",
+      "size": 3023
+    },
+    {
+      "path": "docs/phase-12-native-adapters/run-revision-gate.py",
+      "sha256": "bdc7c18ecc9c02f1b8203c06b162b73b2b03d7cd9c56866b246f7ccc1d582287",
+      "size": 1039
+    },
+    {
+      "path": "docs/phase-12-native-adapters/sqlserver-real.log",
+      "sha256": "791c44ccf7eba2ecd584fdd92c6fa59445836fb6e835073d5e3eba4347ec0e39",
+      "size": 100
+    },
+    {
+      "path": "docs/phase-12-native-adapters/sqlserver-workflow-real.log",
+      "sha256": "c157a4e22b7e10739585cbfcaedcb57e41c481e728a6d212844cbbe175bce923",
+      "size": 115
+    }
+  ],
+  "owned_source_count": 27,
+  "preserved_count": 578,
+  "bridges": [
+    {
+      "path": "backend/app/adapters/registry.py",
+      "before": "fd54e69885521117ecd001f5230b623bec796aa80cd240cd297ecaa588d4df8c",
+      "after": "440990e66d30c521ec7ee8d5a40ac6a385236a2f2964d9bef4d4f15e6aa91a62"
+    },
+    {
+      "path": "backend/app/adapters/types.py",
+      "before": "4e0e481660b9d045dc2fda2f44c95d76a202d20b8a10e53dce16677bec6d4306",
+      "after": "e87c0541e4b147be4917d7c1ca9d5bca19e81a396228fc94a81d56f67894edac"
+    },
+    {
+      "path": "backend/app/agent/workflow.py",
+      "before": "a99735161dcce07542cbf131b139f2e5c627c96e8d5fd416cf156dd9bd7fead8",
+      "after": "e518599737e48b0682e4b5bae177ea30f0b24795c24c9fdcf8927d650208f307"
+    },
+    {
+      "path": "backend/app/agent/workflow_rows.py",
+      "before": "c0fc1323660359c43d4e5c1dd48e972e305a03e0781764b1126231b9f4fa4215",
+      "after": "37341ef358aaa26d73918ce318b17f4086171384cf4f907bd23c59352edf2fcc"
+    },
+    {
+      "path": "backend/app/agent/workflow_schema.py",
+      "before": "87c1fa697e02253ef4aa605f42a7af51337bf933a49cbd61223882e3a06cf8d6",
+      "after": "e850cb24fc6be81288e893ae0c412a0a8ede8c4363027723042c3ede4425a854"
+    },
+    {
+      "path": "backend/app/services/database_tools.py",
+      "before": "06e8d7fc98fa4d0681f3a29e806789d37644beb05e151863a4bf2c0a3c94e040",
+      "after": "79520e5caed64e2671dea47645431cf5aabdef180a1fa78c7235135a08dfa53b"
+    }
+  ],
+  "new_business_lines": {
+    "backend/app/adapters/native_reads.py": 111,
+    "backend/app/adapters/native_relational.py": 129,
+    "backend/app/adapters/oracle.py": 145,
+    "backend/app/adapters/oracle_metadata.py": 59,
+    "backend/app/adapters/oracle_read_catalog.py": 72,
+    "backend/app/adapters/sqlserver.py": 81
+  },
+  "sensitive_scan": "passed: ignored runtime and target values",
+  "guards": {
+    "BASE.txt": "5fa0739cb3b7eccf872a89de11db2b8b37185ae8120c65e86fa82d2dd6d3f05a",
+    "baseline-files.json": "bf5627d88a9b39d709ab24199adf32cbb05e40ba0007776c7e62148426ba9c31",
+    "owned-paths.json": "9a3e2764b0a89fdc46d68d9ca0dc49c94a684dba13c45dee33549cbe26c04ef4",
+    "files.tsv": "f2b4f7a88454d576f1904287be25910bc2edd25e58ee7b9c84cc0f727fe297bf",
+    "preserved.tsv": "7b2fb7ce7e323541ae4b5d3778129800312cfbc3387d2d1ff2d79c97b2a69e20",
+    "public-bridges.diff": "4d235cd967b1671979f495610e5566647cd65b55c2ef0164f0544f63a0fe1076"
+  }
+}

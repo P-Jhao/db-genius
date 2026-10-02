@@ -1,0 +1,311 @@
+............................................................FF...........................................................Oracle actual write cancellation: {'cause_type': 'DatabaseError', 'code': 0, 'full_code': 'DPY-4011'}
+..Oracle actual read cancellation: {'code': 1013, 'full_code': 'ORA-01013'}
+.Oracle actual bound catalog calls: 20
+..............................................................
+================================== FAILURES ===================================
+_________ test_actual_native_api_worker_and_controlled_reads[oracle] __________
+
+db_type = 'oracle'
+request = <FixtureRequest for <Function test_actual_native_api_worker_and_controlled_reads[oracle]>>
+tmp_path = WindowsPath('C:/Users/22126/AppData/Local/Temp/pytest-of-22126/pytest-618/test_actual_native_api_worker_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B1B9E35DF0>
+
+    @pytest.mark.parametrize("db_type", ["oracle", "sqlserver"])
+    def test_actual_native_api_worker_and_controlled_reads(
+        db_type: str, request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        target, engine = fixture_target(request, db_type)
+        table = "api_" + uuid4().hex[:12]
+        created = False
+        system = create_engine(f"sqlite:///{tmp_path / 'api.sqlite'}",
+                               execution_options={"schema_translate_map": {"app": None}})
+        Base.metadata.create_all(system)
+        factory = sessionmaker(system, expire_on_commit=False)
+        monkeypatch.setenv("SQLCHAT_ENCRYPT_KEY", "0123456789abcdef0123456789abcdef")
+        get_settings.cache_clear()
+        for module in (main, api_auth, core_auth, database_tools, db_config_worker):
+            monkeypatch.setattr(module, "SessionLocal", factory)
+        queued: list[tuple[int, int]] = []
+        monkeypatch.setattr(db_config.verify_config, "apply_async", lambda *, args: queued.append(args))
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY)")
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (1)")
+            created = True
+            if db_type == "oracle":
+                wait_oracle_ddl(engine, [table.upper()])
+            with factory() as session:
+                owner = User(username="native-owner", password_hash="unused", status=1)
+                other = User(username="native-outsider", password_hash="unused", status=1)
+                session.add_all([owner, other])
+                session.commit()
+            payload = {"name": "native target", "dbType": db_type, "host": target.host,
+                       "port": target.port, "dbName": target.db_name,
+                       "username": target.username, "password": target.password}
+            with TestClient(main.app) as client:
+                headers = {"Authorization": _token(factory, owner)}
+>               response = client.post("/api/db-config", headers=headers, json=payload).json()
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_native_api_real.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:1204: in post
+    return self.request(
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\testclient.py:463: in request
+    return super().request(
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:797: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:980: in send
+    response = self._send_handling_auth(
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:1008: in _send_handling_auth
+    response = self._send_handling_redirects(
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:1043: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:1076: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\testclient.py:360: in handle_request
+    raise exc
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\testclient.py:357: in handle_request
+    portal.call(self.app, scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\anyio\from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:401: in __get_result
+    raise self._exception
+..\..\..\..\backend\.venv\Lib\site-packages\anyio\from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\middleware\cors.py:91: in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\middleware\cors.py:149: in simple_response
+    await self.app(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\routing.py:676: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:2734: in app
+    await route.handle(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:1780: in handle
+    await self.original_router.handle(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:2789: in handle
+    await included_router._handle_selected(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:1800: in _handle_selected
+    await original_route.handle(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:1279: in handle
+    await app(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:158: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:144: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:706: in app
+    raw_response = await run_endpoint_function(
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:354: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+..\..\..\..\backend\.venv\Lib\site-packages\anyio\_backends\_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\anyio\_backends\_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\api\db_config.py:16: in create
+    return success(service.create_config(session, user.id, request).model_dump(by_alias=True))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\db_config.py:87: in create_config
+    _enqueue(session, config.id, config.verification_version)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+session = <sqlalchemy.orm.session.Session object at 0x000001B1B9E734A0>
+config_id = 1, version = 1
+
+    def _enqueue(session: Session, config_id: int, version: int) -> bool:
+        try:
+>           verify_config.apply_async(args=(config_id, version), headers={"locale": current_locale()})
+E           TypeError: test_actual_native_api_worker_and_controlled_reads.<locals>.<lambda>() got an unexpected keyword argument 'headers'
+
+app\services\db_config.py:65: TypeError
+________ test_actual_native_api_worker_and_controlled_reads[sqlserver] ________
+
+db_type = 'sqlserver'
+request = <FixtureRequest for <Function test_actual_native_api_worker_and_controlled_reads[sqlserver]>>
+tmp_path = WindowsPath('C:/Users/22126/AppData/Local/Temp/pytest-of-22126/pytest-618/test_actual_native_api_worker_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B1B9EC7C80>
+
+    @pytest.mark.parametrize("db_type", ["oracle", "sqlserver"])
+    def test_actual_native_api_worker_and_controlled_reads(
+        db_type: str, request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        target, engine = fixture_target(request, db_type)
+        table = "api_" + uuid4().hex[:12]
+        created = False
+        system = create_engine(f"sqlite:///{tmp_path / 'api.sqlite'}",
+                               execution_options={"schema_translate_map": {"app": None}})
+        Base.metadata.create_all(system)
+        factory = sessionmaker(system, expire_on_commit=False)
+        monkeypatch.setenv("SQLCHAT_ENCRYPT_KEY", "0123456789abcdef0123456789abcdef")
+        get_settings.cache_clear()
+        for module in (main, api_auth, core_auth, database_tools, db_config_worker):
+            monkeypatch.setattr(module, "SessionLocal", factory)
+        queued: list[tuple[int, int]] = []
+        monkeypatch.setattr(db_config.verify_config, "apply_async", lambda *, args: queued.append(args))
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY)")
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (1)")
+            created = True
+            if db_type == "oracle":
+                wait_oracle_ddl(engine, [table.upper()])
+            with factory() as session:
+                owner = User(username="native-owner", password_hash="unused", status=1)
+                other = User(username="native-outsider", password_hash="unused", status=1)
+                session.add_all([owner, other])
+                session.commit()
+            payload = {"name": "native target", "dbType": db_type, "host": target.host,
+                       "port": target.port, "dbName": target.db_name,
+                       "username": target.username, "password": target.password}
+            with TestClient(main.app) as client:
+                headers = {"Authorization": _token(factory, owner)}
+>               response = client.post("/api/db-config", headers=headers, json=payload).json()
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_native_api_real.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:1204: in post
+    return self.request(
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\testclient.py:463: in request
+    return super().request(
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:797: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:980: in send
+    response = self._send_handling_auth(
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:1008: in _send_handling_auth
+    response = self._send_handling_redirects(
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:1043: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\httpx2\_client.py:1076: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\testclient.py:360: in handle_request
+    raise exc
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\testclient.py:357: in handle_request
+    portal.call(self.app, scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\anyio\from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:401: in __get_result
+    raise self._exception
+..\..\..\..\backend\.venv\Lib\site-packages\anyio\from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\middleware\cors.py:91: in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\middleware\cors.py:149: in simple_response
+    await self.app(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\routing.py:676: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:2734: in app
+    await route.handle(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:1780: in handle
+    await self.original_router.handle(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:2789: in handle
+    await included_router._handle_selected(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:1800: in _handle_selected
+    await original_route.handle(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:1279: in handle
+    await app(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:158: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:144: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:706: in app
+    raw_response = await run_endpoint_function(
+..\..\..\..\backend\.venv\Lib\site-packages\fastapi\routing.py:354: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+..\..\..\..\backend\.venv\Lib\site-packages\anyio\_backends\_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\anyio\_backends\_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\api\db_config.py:16: in create
+    return success(service.create_config(session, user.id, request).model_dump(by_alias=True))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\db_config.py:87: in create_config
+    _enqueue(session, config.id, config.verification_version)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+session = <sqlalchemy.orm.session.Session object at 0x000001B1BA916000>
+config_id = 1, version = 1
+
+    def _enqueue(session: Session, config_id: int, version: int) -> bool:
+        try:
+>           verify_config.apply_async(args=(config_id, version), headers={"locale": current_locale()})
+E           TypeError: test_actual_native_api_worker_and_controlled_reads.<locals>.<lambda>() got an unexpected keyword argument 'headers'
+
+app\services\db_config.py:65: TypeError
+=========================== short test summary info ===========================
+FAILED tests/test_native_api_real.py::test_actual_native_api_worker_and_controlled_reads[oracle]
+FAILED tests/test_native_api_real.py::test_actual_native_api_worker_and_controlled_reads[sqlserver]
+2 failed, 184 passed in 171.63s (0:02:51)

@@ -1,0 +1,4 @@
+.............................................................................Oracle actual write cancellation: {'cause_type': 'DatabaseError', 'code': 0, 'full_code': 'DPY-4011'}
+..Oracle actual read cancellation: {'code': 1013, 'full_code': 'ORA-01013'}
+..........
+89 passed in 76.81s (0:01:16)

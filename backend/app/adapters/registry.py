@@ -7,7 +7,9 @@ from app.adapters.mysql_family import (
     StarRocksAdapter,
     TidbAdapter,
 )
+from app.adapters.oracle import OracleAdapter
 from app.adapters.postgresql import PostgreSqlAdapter
+from app.adapters.sqlserver import SqlServerAdapter
 from app.adapters.types import DatabaseAdapter
 
 _ADAPTERS: dict[str, DatabaseAdapter] = {
@@ -19,6 +21,8 @@ _ADAPTERS: dict[str, DatabaseAdapter] = {
     "starrocks": StarRocksAdapter(),
     "oceanbase": OceanBaseAdapter(),
     "mongodb": MongoDbAdapter(),
+    "oracle": OracleAdapter(),
+    "sqlserver": SqlServerAdapter(),
 }
 
 

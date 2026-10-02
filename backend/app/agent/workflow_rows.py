@@ -74,6 +74,10 @@ def insert_values(statement: str, headers: list[str], dialect: str | None = None
         for value in tuple_value.expressions:
             if isinstance(value, exp.Literal):
                 values.append(value.this if value.is_string else Decimal(value.this))
+            elif isinstance(value, exp.National):
+                if not isinstance(value.this, str):
+                    raise TypeError("National string literal must contain text")
+                values.append(value.this)
             elif isinstance(value, exp.Null):
                 values.append(None)
             elif isinstance(value, exp.Boolean):

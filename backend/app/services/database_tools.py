@@ -1,6 +1,7 @@
 import threading
 
 from app.adapters import get_adapter
+from app.adapters.oracle import OracleAdapter
 from app.adapters.types import QueryResult, SchemaMetadata
 from app.core.config import get_settings
 from app.core.database import SessionLocal
@@ -52,14 +53,21 @@ def _execute(user_id: int, db_id: int, statement: str,
              cancel_event: threading.Event | None, *, read_only: bool) -> QueryResult:
     config = _ready_config(user_id, db_id)
     adapter = get_adapter(config.db_type)
+    oracle_connection = None
     if read_only:
         try:
-            allowed = adapter.is_read_only(statement)
+            if isinstance(adapter, OracleAdapter):
+                oracle_connection = connection_for(config)
+                allowed = adapter.is_read_only_for_config(
+                    oracle_connection, statement, timeout_seconds=get_settings().query_timeout_seconds,
+                )
+            else:
+                allowed = adapter.is_read_only(statement)
         except ValueError as error:
             raise BusinessError(400, "Comparison statement could not be safely parsed") from error
         if not allowed:
             raise BusinessError(403, "Comparison cannot execute migration writes", 403)
-    connection = connection_for(config)
+    connection = oracle_connection if oracle_connection is not None else connection_for(config)
     settings = get_settings()
     return adapter.execute(
         connection, statement, trial_mode=read_only or settings.trial_enabled,
