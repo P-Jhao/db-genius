@@ -17,6 +17,7 @@ from app.adapters.safety import UnsafeStatement
 from app.agent.cancellation import RunAborted, check_cancelled
 from app.agent.graph import RunContext, run_graph
 from app.agent.model import CompatibleChatModel
+from app.agent.product_locale import stream_error
 from app.agent.streaming import ModelStream
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Usage
@@ -26,6 +27,7 @@ from app.core.localization import translate
 from app.models import DbConfig, UploadedFile
 from app.schemas.context_compress import CompressOptions
 from app.services import chat_store, context_compress, model_config
+from app.services.trial import require_intent_available
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat")
@@ -40,15 +42,19 @@ def _check_resources(session: DatabaseSession, user_id: int, body: ChatRequest) 
     for db_id in db_ids:
         row = session.scalar(select(DbConfig).where(DbConfig.id == db_id, DbConfig.user_id == user_id))
         if row is None:
-            raise BusinessError(404, "Database not found", 404)
+            raise BusinessError(404, "error.dbConfig.notFound", 404)
+        if row.status == 0:
+            raise BusinessError(400, "error.dbConfig.verifying")
+        if row.status == 2:
+            raise BusinessError(400, "error.dbConfig.connectionFailed")
         if row.status != 1:
-            raise BusinessError(400, "Database is not connected")
+            raise ValueError("Unknown database configuration status")
     for file_id in set(body.file_ids or []):
         uploaded = session.scalar(select(UploadedFile).where(
             UploadedFile.id == file_id, UploadedFile.user_id == user_id,
         ))
         if uploaded is None:
-            raise BusinessError(404, "File not found", 404)
+            raise BusinessError(404, "error.file.notFound", 404)
 
 
 def _frame(task_id: str, kind: str, content: object, step: int) -> bytes:
@@ -154,9 +160,9 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
         elif isinstance(error, UnsafeStatement):
             public_error = str(error)
         elif isinstance(error, (ValueError, TypeError)):
-            public_error = "The model returned an invalid response."
+            public_error = stream_error(True, locale, task_id)
         else:
-            public_error = f"Chat request failed (taskId: {task_id})."
+            public_error = stream_error(False, locale, task_id)
         if conversation_id is not None:
             try:
                 await asyncio.to_thread(chat_store.finalize_run, user_id, conversation_id, task_id,
@@ -177,6 +183,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
 @router.post("")
 async def chat(body: ChatRequest, request: Request, user: CurrentUser,
                session: DatabaseSession) -> StreamingResponse:
+    require_intent_available(body.confirmed_intent)
     _check_resources(session, user.id, body)
     if body.conversation_id is not None:
         previous = await asyncio.to_thread(chat_store.history, user.id, body.conversation_id)

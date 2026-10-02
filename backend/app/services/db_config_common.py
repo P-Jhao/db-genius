@@ -3,6 +3,8 @@ from urllib.parse import quote, quote_plus
 from app.adapters import DbConnectionConfig, get_adapter
 from app.core.config import get_settings
 from app.core.errors import BusinessError
+from app.core.localization import translate
+from app.core.request_locale import current_locale
 from app.core.security import decrypt
 from app.models import DbConfig
 from app.schemas.db_config import DbConfigRequest, DbConfigVO
@@ -66,7 +68,8 @@ def to_vo(config: DbConfig) -> DbConfigVO:
 
 
 def diagnostic(exc: Exception, password: str = "") -> str:
-    detail = str(exc)
+    detail = (translate(exc.message, current_locale(), *exc.message_args)
+              if isinstance(exc, BusinessError) else str(exc))
     if password:
         for credential in {password, quote(password, safe=""), quote_plus(password)}:
             detail = detail.replace(credential, "[REDACTED]")

@@ -80,7 +80,7 @@ def test_api_worker_version_and_delete(database: tuple[sessionmaker[Session], Us
     factory, owner, outsider = database
     pending: list[tuple[int, int]] = []
     monkeypatch.setattr(db_config.verify_config, "apply_async",
-                        lambda *, args: pending.append((args[0], args[1])))
+                        lambda *, args, headers: pending.append((args[0], args[1])))
     payload = _payload(db_type)
     with TestClient(main.app) as client:
         owner_headers = {"Authorization": _token(factory, owner)}
@@ -130,7 +130,7 @@ def test_failure_queue_diagnostic_and_trial_mask(database: tuple[sessionmaker[Se
     factory, owner, _ = database
     payload = _payload("postgresql")
     monkeypatch.setattr(db_config.verify_config, "apply_async",
-                        lambda *, args: (_ for _ in ()).throw(OperationalError("connection refused")))
+                        lambda *, args, headers: (_ for _ in ()).throw(OperationalError("connection refused")))
     with TestClient(main.app) as client:
         headers = {"Authorization": _token(factory, owner)}
         created = client.post("/api/db-config", headers=headers, json=payload).json()
@@ -172,7 +172,7 @@ def test_failure_queue_diagnostic_and_trial_mask(database: tuple[sessionmaker[Se
 def test_worker_failure_and_timeout(database: tuple[sessionmaker[Session], User, User],
                                     monkeypatch: pytest.MonkeyPatch) -> None:
     factory, owner, _ = database
-    monkeypatch.setattr(db_config.verify_config, "apply_async", lambda *, args: None)
+    monkeypatch.setattr(db_config.verify_config, "apply_async", lambda *, args, headers: None)
     payload = _payload("postgresql")
     with factory() as session:
         created = db_config.create_config(session, owner.id, DbConfigRequest.model_validate(payload))

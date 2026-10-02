@@ -1,0 +1,46 @@
+{
+  "kind": "historical preparation; not final original locale/options proof",
+  "snapshot": "s13-backend-dsml-trial-f981de0be08d4813937ea7f7a210664f",
+  "baseCommit": "a56734b90871fc64f8d36821ff0b12bb6e5fa7db",
+  "completed": [
+    {
+      "sessionId": 12979,
+      "files": 19,
+      "passed": 183,
+      "skipped": 0,
+      "exitCode": 0,
+      "elapsedSeconds": 328.29,
+      "scope": "DSML/trial plus S08 cancel,S09 context,S10 workflow,S11 compare,Mongo workflow,partial metadata; before original 1/2 option text alignment"
+    },
+    {
+      "sessionId": 4616,
+      "passed": 15,
+      "skipped": 0,
+      "pytestExitCode": 0,
+      "elapsedSeconds": 7.99,
+      "scope": "trial original API matrix; shell then had Ruff diagnostic corrected separately"
+    },
+    {
+      "sessionId": 47107,
+      "passed": 1,
+      "skipped": 0,
+      "pytestExitCode": 0,
+      "elapsedSeconds": 6.18,
+      "scope": "concurrent French/Japanese POST SSE/history/usage; strict21 passed separately"
+    }
+  ],
+  "incompleteSessions": [
+    {
+      "sessionId": 71047,
+      "scope": "615 final 15-file bridge",
+      "known": "Ruff full passed,mypy89 passed,strict21 passed; pytest terminal unavailable after credit interruption; not counted passed"
+    },
+    {
+      "sessionId": 93400,
+      "scope": "637 full static",
+      "known": "Ruff passed; mypy terminal unavailable; rerun needed"
+    }
+  ],
+  "actualProviderTested": false,
+  "sharedWorkspaceModified": false
+}

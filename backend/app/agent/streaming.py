@@ -5,16 +5,39 @@ import json
 import threading
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import suppress
+from typing import cast
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, message_chunk_to_message
+from langchain_core.messages.tool import ToolCall
 from langchain_core.tools import BaseTool
 from langchain_core.utils.function_calling import convert_to_openai_tool
+from pydantic import BaseModel
 
 from app.agent.cancellation import check_cancelled
+from app.agent.dsml import AllowedTool, StructuredCall, SummaryFilter, reconcile, strip
 from app.agent.types import EventSink, Usage
 
 DEFAULT_TEMPERATURE = 0.7
+
+
+def _append(old: str | None, new: str | None, *, identity: bool = False) -> str | None:
+    if new is None:
+        return old
+    if old is None or (identity and old == new):
+        return new
+    return old + new
+
+
+def _collect_calls(calls: dict[int, StructuredCall], chunk: AIMessageChunk) -> None:
+    for part in chunk.tool_call_chunks:
+        index = part.get("index")
+        if type(index) is not int or index < 0:
+            raise TypeError("Model tool-call fragment requires a nonnegative index")
+        previous = calls.get(index, StructuredCall(None, None, None))
+        calls[index] = StructuredCall(_append(previous.name, part.get("name")),
+                                      _append(previous.args, part.get("args")),
+                                      _append(previous.id, part.get("id"), identity=True))
 
 
 class ModelStream:
@@ -39,6 +62,8 @@ class ModelStream:
         self.reasoning = ""
         aggregate: AIMessageChunk | None = None
         latest_usage: dict[str, int] | None = None
+        call_fragments: dict[int, StructuredCall] = {}
+        output_filter = SummaryFilter() if event == "summary_delta" else None
         options: dict[str, object] = (
             {"thinking": {"type": "disabled"}} if classification
             else {"temperature": DEFAULT_TEMPERATURE}
@@ -68,6 +93,7 @@ class ModelStream:
                 check_cancelled(self.cancel_event)
                 if not isinstance(chunk, AIMessageChunk):
                     raise TypeError("Model returned a non-assistant chunk")
+                _collect_calls(call_fragments, chunk)
                 if chunk.usage_metadata is not None:
                     metadata = chunk.usage_metadata
                     latest_usage = {
@@ -78,9 +104,10 @@ class ModelStream:
                 content_chunk = chunk.model_copy(update={"usage_metadata": None})
                 aggregate = content_chunk if aggregate is None else aggregate + content_chunk
                 if isinstance(chunk.content, str):
-                    self.partial += chunk.content
-                    if chunk.content and event is not None:
-                        await self.emit(event, chunk.content, step)
+                    text = output_filter.push(chunk.content) if output_filter else chunk.content
+                    self.partial += text
+                    if text and event is not None:
+                        await self.emit(event, text, step)
                 reasoning = chunk.additional_kwargs.get("reasoning_content")
                 if isinstance(reasoning, str):
                     self.reasoning += reasoning
@@ -99,20 +126,53 @@ class ModelStream:
         check_cancelled(self.cancel_event)
         if aggregate is None:
             raise RuntimeError("Model returned an empty stream")
-        for call in aggregate.tool_call_chunks:
-            if not call.get("id") or not call.get("name"):
+        if output_filter is not None:
+            tail = output_filter.finish()
+            self.partial += tail
+            if tail and event is not None:
+                await self.emit(event, tail, step)
+        recovered: list[dict[str, object]] | None = None
+        structured = [call_fragments[index] for index in sorted(call_fragments)]
+        content = aggregate.content
+        if tools and isinstance(content, str):
+            allowed = {}
+            schemas: dict[str, type[BaseModel]] = {}
+            for tool in tools:
+                schema = tool.get_input_schema()
+                if not issubclass(schema, BaseModel):
+                    raise TypeError("DSML recovery requires a Pydantic 2 tool schema")
+                schemas[tool.name] = schema
+                fields = schema.model_fields
+                allowed[tool.name] = AllowedTool(
+                    frozenset(name for name, field in fields.items() if field.is_required()),
+                    frozenset(fields),
+                )
+            content, recovered = reconcile(content, structured, allowed)
+            if recovered is not None:
+                for recovered_call in recovered:
+                    schemas[str(recovered_call["name"])].model_validate(recovered_call["args"], strict=True)
+        elif not classification and event != "content" and isinstance(content, str):
+            content = strip(content)
+        validated: list[ToolCall] = []
+        for call in structured:
+            if recovered is not None:
+                break
+            if not call.id or not call.name:
                 raise ValueError("Model returned a tool call without ID or name")
             try:
-                arguments = json.loads(call.get("args") or "")
+                arguments = json.loads("" if call.args is None else call.args)
             except json.JSONDecodeError as error:
                 raise ValueError("Model returned invalid tool-call JSON") from error
             if not isinstance(arguments, dict):
                 raise TypeError("Model tool-call arguments must be a JSON object")
+            validated.append({"name": call.name, "args": arguments, "id": call.id, "type": "tool_call"})
+        if len({call["id"] for call in validated}) != len(validated):
+            raise ValueError("Duplicate tool-call IDs")
         message = message_chunk_to_message(aggregate)
         if not isinstance(message, AIMessage):
             raise TypeError("Expected an assistant message")
-        if message.invalid_tool_calls:
-            raise ValueError("Model returned invalid tool-call JSON")
+        message = message.model_copy(update={"content": content, "invalid_tool_calls": [],
+            "tool_calls": validated if recovered is None else cast(list[ToolCall], recovered)})
         if not message.content and not message.tool_calls:
             raise RuntimeError("Model returned no content or tool calls")
         additional = dict(message.additional_kwargs)

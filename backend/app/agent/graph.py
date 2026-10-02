@@ -10,11 +10,13 @@ from pydantic import ValidationError
 
 from app.agent.cancellation import check_cancelled
 from app.agent.graph_sql import SQLNodes
+from app.agent.product_locale import clarification, intent_label, missing_database, product_text
 from app.agent.prompts import classification_prompt, system_prompt
 from app.agent.streaming import ModelStream
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Classification, EventSink, Intent
 from app.core.config import get_settings
+from app.services.trial import require_intent_available
 
 
 class RunState(TypedDict):
@@ -38,24 +40,17 @@ class RunContext:
     cancel_event: threading.Event | None = None
 
 
-def _clarification(intent: Intent, reason: str, locale: str) -> dict[str, object]:
-    chinese = locale.lower().startswith("zh")
-    question = "请确认意图并选择所需的数据源。" if chinese else "Confirm the intent and select the required database."
-    labels = {
-        "simple_chat": "普通问答" if chinese else "General question",
-        "sql_query": "数据库查询" if chinese else "Database query",
-        "workflow": "数据工作流" if chinese else "Data workflow",
-        "db_compare": "结构对比" if chinese else "Schema comparison",
-    }
-    return {"question": question, "reasoning": reason,
-            "options": [{"intent": key, "label": label} for key, label in labels.items()]}
+def _clarification(intent: Intent, reason: str, locale: str, request: ChatRequest) -> dict[str, object]:
+    return clarification(intent, reason, locale, has_database=bool(request.db_config_ids),
+                         has_comparison=request.pre_db_config_id is not None and
+                         request.test_db_config_id is not None)
 
 
-def _missing_resources(intent: Intent, request: ChatRequest) -> str | None:
+def _missing_resources(intent: Intent, request: ChatRequest, locale: str) -> str | None:
     if intent in ("sql_query", "workflow") and not request.db_config_ids:
-        return "A connected database is required."
+        return missing_database(intent, locale)
     if intent == "db_compare" and (request.pre_db_config_id is None or request.test_db_config_id is None):
-        return "Both pre and test databases are required."
+        return missing_database(intent, locale)
     return None
 
 
@@ -73,8 +68,9 @@ def build_graph(context: RunContext):
     async def classify(state: RunState) -> dict[str, object]:
         check_cancelled(context.cancel_event)
         if context.request.confirmed_intent is not None:
+            require_intent_available(context.request.confirmed_intent)
             return {"intent": context.request.confirmed_intent}
-        await context.emit("classifying", "Classifying intent", 0)
+        await context.emit("classifying", product_text("chat.classifying", context.locale), 0)
         response = await context.model_stream.call(
             [SystemMessage(content=classification_prompt(context.request, context.locale)),
              *context.history, HumanMessage(content=context.request.message)],
@@ -88,9 +84,10 @@ def build_graph(context: RunContext):
         except (ValidationError, ValueError) as error:
             raise ValueError("Invalid intent classification JSON") from error
         await context.emit("classified", value.model_dump(), 0)
+        require_intent_available(value.intent)
         if value.needsClarification or value.confidence < 0.7:
             return {"intent": value.intent,
-                    "clarification": _clarification(value.intent, value.reasoning, context.locale)}
+                    "clarification": _clarification(value.intent, value.reasoning, context.locale, context.request)}
         return {"intent": value.intent}
 
     async def prerequisites(state: RunState) -> dict[str, object]:
@@ -98,10 +95,11 @@ def build_graph(context: RunContext):
         intent = state["intent"]
         if intent is None:
             raise RuntimeError("Classification did not choose an intent")
-        missing = _missing_resources(intent, context.request)
+        missing = _missing_resources(intent, context.request, context.locale)
         if missing:
-            return {"clarification": _clarification(intent, missing, context.locale)}
-        await context.emit("routing", intent, 0)
+            return {"clarification": _clarification(intent, missing, context.locale, context.request)}
+        await context.emit("routing", product_text("chat.routing", context.locale,
+                                                  intent_label(intent, context.locale)), 0)
         return {}
 
     async def clarify(state: RunState) -> dict[str, object]:
@@ -116,7 +114,7 @@ def build_graph(context: RunContext):
         check_cancelled(context.cancel_event)
         messages = [SystemMessage(content=system_prompt("simple_chat", context.request, context.locale)),
                     *context.history, HumanMessage(content=context.request.message)]
-        await context.emit("thinking", "Answering", 0)
+        await context.emit("thinking", intent_label("simple_chat", context.locale), 0)
         answer = await context.model_stream.call(messages, event="content")
         check_cancelled(context.cancel_event)
         if not isinstance(answer.content, str):

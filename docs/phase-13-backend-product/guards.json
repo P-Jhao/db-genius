@@ -1,0 +1,739 @@
+{
+  "baseCommit": "637be1da324a677df17bf52d300adb65bee60169",
+  "latestAcceptedHeadAudited": "ed7594bd09b8be3dcdfcde89435fee34e2b55f01",
+  "latestBackendBusinessMatchesBase": true,
+  "sourceGuards": {
+    "AGENTS.md": {
+      "sha256": "9ab34cdb8fab2615f347454b0e59d10a5ad8b2e249b49beba9e1296636b87560",
+      "bytes": 1494,
+      "acceptedBlobSha256": "2f2e2b782e3ee52f982f31f8852afaceeeed8c63e2dbab0d7cc1e31713d7daad",
+      "normalizedSourceSha256": "2f2e2b782e3ee52f982f31f8852afaceeeed8c63e2dbab0d7cc1e31713d7daad",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/__init__.py": {
+      "sha256": "d9d6e46bc8e7139c66575f64eafa2611446b20b82ee9dcdd57d74d996e0b9afb",
+      "bytes": 31,
+      "acceptedBlobSha256": "eb6a34e1fe545d27fe87755a4a7da50efff2749cf219caebef2769dad58ecc25",
+      "normalizedSourceSha256": "eb6a34e1fe545d27fe87755a4a7da50efff2749cf219caebef2769dad58ecc25",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/__init__.py": {
+      "sha256": "5a3df7a7885a9a51cc9525854b2f2dfd3e1a8ca7c80b89377c2dcd16f632503a",
+      "bytes": 309,
+      "acceptedBlobSha256": "82bc89f8f4425f66fe08bbfa94de4a66053c3670bcbb0609b8c35abcad00387b",
+      "normalizedSourceSha256": "82bc89f8f4425f66fe08bbfa94de4a66053c3670bcbb0609b8c35abcad00387b",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/cancellation.py": {
+      "sha256": "8a61e446412335abc09a3d1402c9e91a2d89e8764138c77506ac07d3c2a76459",
+      "bytes": 3808,
+      "acceptedBlobSha256": "29e82322f889cbc44b9880b3d1187b988411af7f7398ebedb7d36f90ee26f80e",
+      "normalizedSourceSha256": "29e82322f889cbc44b9880b3d1187b988411af7f7398ebedb7d36f90ee26f80e",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/diagnostics.py": {
+      "sha256": "8fdd20a98bcd657db4e2e8bcfeb365c5fb3d406b8acfbb72428dcbd819498f0d",
+      "bytes": 869,
+      "acceptedBlobSha256": "f63553b974c350f00c9e0bd9828526a2abce77f5ed6854756f7cefc1b83befac",
+      "normalizedSourceSha256": "f63553b974c350f00c9e0bd9828526a2abce77f5ed6854756f7cefc1b83befac",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/document.py": {
+      "sha256": "14b3472e756fde8cc03e3eef97a3235eec0721e6c05bb38d783b2fcc3cd843c4",
+      "bytes": 2630,
+      "acceptedBlobSha256": "cec67a199d56aa6006c38add35fff939d017f716b6a46485c91af12e22555e3c",
+      "normalizedSourceSha256": "cec67a199d56aa6006c38add35fff939d017f716b6a46485c91af12e22555e3c",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/mongodb.py": {
+      "sha256": "8c5b873071a08b09df57c34ecf878b57f032d7d231abe8095377463560d47ea5",
+      "bytes": 11379,
+      "acceptedBlobSha256": "6b054ce976793c5748e244faa42fa5870446c73b5992cc52a5666336620a21f6",
+      "normalizedSourceSha256": "6b054ce976793c5748e244faa42fa5870446c73b5992cc52a5666336620a21f6",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/mongodb_command.py": {
+      "sha256": "e451aa68cea967f400766886c66f2b87d0e3bdf6c48efba0800799c5182b1677",
+      "bytes": 4825,
+      "acceptedBlobSha256": "429a201a3443768f15bd2f94945aaee5cf15c8c3ff137a8c8f8893700e9524ec",
+      "normalizedSourceSha256": "429a201a3443768f15bd2f94945aaee5cf15c8c3ff137a8c8f8893700e9524ec",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/mongodb_metadata.py": {
+      "sha256": "c75e43b62e46e6ec17e11db0ad031a4c321005cc328c6f5f4bc585e69e747e93",
+      "bytes": 3186,
+      "acceptedBlobSha256": "252b9344b873dc7c33ff7efd312e6ca6484d3a7c38e82060120ea0481795278c",
+      "normalizedSourceSha256": "252b9344b873dc7c33ff7efd312e6ca6484d3a7c38e82060120ea0481795278c",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/mysql.py": {
+      "sha256": "83fda5400697f9d6839aa35bf8a7e82450e0d62e3aefe22fdf1a8666d6878f19",
+      "bytes": 227,
+      "acceptedBlobSha256": "c2834f7717c6f2d1ae739fbee79b1b931b5db80b32b2b25f6bc629671b608197",
+      "normalizedSourceSha256": "c2834f7717c6f2d1ae739fbee79b1b931b5db80b32b2b25f6bc629671b608197",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/mysql_family.py": {
+      "sha256": "00c1fb5098c1006130e41b4037db3f90bfbb8f9c0f25e0a47beededb500525a9",
+      "bytes": 2952,
+      "acceptedBlobSha256": "1317894aa2a2d6159b5777c6eea0df1f20e7c373348da048dfe761af89aa3148",
+      "normalizedSourceSha256": "1317894aa2a2d6159b5777c6eea0df1f20e7c373348da048dfe761af89aa3148",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/mysql_family_metadata.py": {
+      "sha256": "fba1ec6c21d8e548379798be2b96ccab7c628bf89b958277d86a9ef9af29f5c5",
+      "bytes": 4822,
+      "acceptedBlobSha256": "51e62458ba17a8e3906aa8f3ba67dcbff5a0a8dd7fdcc46c2bca7f680df28d91",
+      "normalizedSourceSha256": "51e62458ba17a8e3906aa8f3ba67dcbff5a0a8dd7fdcc46c2bca7f680df28d91",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/postgresql.py": {
+      "sha256": "a135e8599406d4b245413b08379664752a5279f4a8c7e22033daa5b4fa92fd5c",
+      "bytes": 631,
+      "acceptedBlobSha256": "ed8b552701d77d2cd817584577a2ba587504bf37863aea391123518a5aad9987",
+      "normalizedSourceSha256": "ed8b552701d77d2cd817584577a2ba587504bf37863aea391123518a5aad9987",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/registry.py": {
+      "sha256": "fd54e69885521117ecd001f5230b623bec796aa80cd240cd297ecaa588d4df8c",
+      "bytes": 870,
+      "acceptedBlobSha256": "504050d37d4421eae88a895dc467f3f09ef686ffd09b1e3e3a960555e38126ed",
+      "normalizedSourceSha256": "504050d37d4421eae88a895dc467f3f09ef686ffd09b1e3e3a960555e38126ed",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/relational.py": {
+      "sha256": "dd0ab5c24da35e98203f8a60311eca147284120ff57180d0674a01259abea5a9",
+      "bytes": 16732,
+      "acceptedBlobSha256": "be5bd01fa4b368e83a0d7503495f6afc653c9bde30a17edada64032e046c0403",
+      "normalizedSourceSha256": "be5bd01fa4b368e83a0d7503495f6afc653c9bde30a17edada64032e046c0403",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/safety.py": {
+      "sha256": "a54c3e2f2743a31aa2ac27ee0d2416d2f9c98c49ed7af9748618848ab8975fe2",
+      "bytes": 3141,
+      "acceptedBlobSha256": "f0d985499948d520040dd0a5e5b0daa3991f55649d35873e762dd44a5450a995",
+      "normalizedSourceSha256": "f0d985499948d520040dd0a5e5b0daa3991f55649d35873e762dd44a5450a995",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/adapters/types.py": {
+      "sha256": "4e0e481660b9d045dc2fda2f44c95d76a202d20b8a10e53dce16677bec6d4306",
+      "bytes": 1978,
+      "acceptedBlobSha256": "4d06414a29b6f4754dd5b1a4e9890abbe75263d89cba672042964c6b1ca50fd6",
+      "normalizedSourceSha256": "4d06414a29b6f4754dd5b1a4e9890abbe75263d89cba672042964c6b1ca50fd6",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/cancellation.py": {
+      "sha256": "dae07269efd86886a2b71c905ad44aa50c3346e6a2fb8fb59a12b8c88a1333e0",
+      "bytes": 414,
+      "acceptedBlobSha256": "18a836b87aea0b4f2d2ad219537c2adbc0ac1aa7313b4f9d21d84feab831ede7",
+      "normalizedSourceSha256": "18a836b87aea0b4f2d2ad219537c2adbc0ac1aa7313b4f9d21d84feab831ede7",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/compare.py": {
+      "sha256": "4dce5d0dc2efc3cef4a9699e87eb467954a28653fcdcc6f0293019f01d2f3e9d",
+      "bytes": 7161,
+      "acceptedBlobSha256": "239d15f76f668eb23c3b9bf226d426539ac9926bc403793833f7038744f83437",
+      "normalizedSourceSha256": "239d15f76f668eb23c3b9bf226d426539ac9926bc403793833f7038744f83437",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/compare_locale.py": {
+      "sha256": "4fa26a4f3387741064b01cc5aaa7492df7558221d2242b8a12bc9b0686582120",
+      "bytes": 9455,
+      "acceptedBlobSha256": "b2855d5d2f2271424608fc6ecee18653c8283e6f605a9fc9004d149d5f48d035",
+      "normalizedSourceSha256": "b2855d5d2f2271424608fc6ecee18653c8283e6f605a9fc9004d149d5f48d035",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/context_runtime.py": {
+      "sha256": "4d8828c4b3a319f886c7904fd0ce7d1278635a2e1c7dab4a308a01100694d065",
+      "bytes": 8715,
+      "acceptedBlobSha256": "8d2d6d992abd61943ecb7e15f1e0b37b2e58611db4f350eb81a73d16ff312ab4",
+      "normalizedSourceSha256": "8d2d6d992abd61943ecb7e15f1e0b37b2e58611db4f350eb81a73d16ff312ab4",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/graph_sql.py": {
+      "sha256": "40168bfcf209e724b75a8d8a710b556b768f39c79c8dd4e99222abe3ebb9339e",
+      "bytes": 12042,
+      "acceptedBlobSha256": "66d0371e41fb9b19d5ad105667795bf528ec8a425531f054b8661a5cfc21ca50",
+      "normalizedSourceSha256": "66d0371e41fb9b19d5ad105667795bf528ec8a425531f054b8661a5cfc21ca50",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/output_guard.py": {
+      "sha256": "bb9bfe8ed7e979a4da1f3c91226d334a56d9e61f97ac8c9d9023f69a9f0050e7",
+      "bytes": 6683,
+      "acceptedBlobSha256": "2772dcb22b68f870b9d4bcf095e487975459527ca64effd6edfc26c5f6ce7bd8",
+      "normalizedSourceSha256": "2772dcb22b68f870b9d4bcf095e487975459527ca64effd6edfc26c5f6ce7bd8",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/prompts.py": {
+      "sha256": "297a84989ef7e8b12838667ad8da5c052157cf4cd2d6f3d0ca644ffe4c31e756",
+      "bytes": 6623,
+      "acceptedBlobSha256": "c508a69afb022df2bf6cac4ce04e07b575c1605f14c35842d165b7843300b4dc",
+      "normalizedSourceSha256": "c508a69afb022df2bf6cac4ce04e07b575c1605f14c35842d165b7843300b4dc",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/sql_errors.py": {
+      "sha256": "df1f62c65f658a74c39a7f54dc51674c41ff0165e1ab2fd488261dc1acd3989d",
+      "bytes": 1733,
+      "acceptedBlobSha256": "2c869962b834f759923ffd25d46cdc173d3e8558bc796fa6ea03074fb8e62ce0",
+      "normalizedSourceSha256": "2c869962b834f759923ffd25d46cdc173d3e8558bc796fa6ea03074fb8e62ce0",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/tools.py": {
+      "sha256": "3f6524977a2488111a95baac13b2c8590fc86af186ed2c10ecf404346999aea1",
+      "bytes": 10031,
+      "acceptedBlobSha256": "0e824a3379f480a6b7e0a0dbc183615f336c80775381823706c7b744cf8b4bd4",
+      "normalizedSourceSha256": "0e824a3379f480a6b7e0a0dbc183615f336c80775381823706c7b744cf8b4bd4",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/types.py": {
+      "sha256": "ca3d9e29853d6830ad5aa09b4effb09bc9cdbe99922b77c60ee8e5671136c691",
+      "bytes": 2155,
+      "acceptedBlobSha256": "caf618ddad2ba1906fc975fbe39122ef73c4270978e11b2931f0e24c4aae8856",
+      "normalizedSourceSha256": "caf618ddad2ba1906fc975fbe39122ef73c4270978e11b2931f0e24c4aae8856",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/workflow.py": {
+      "sha256": "a99735161dcce07542cbf131b139f2e5c627c96e8d5fd416cf156dd9bd7fead8",
+      "bytes": 11257,
+      "acceptedBlobSha256": "2197b2ea323ce2d5d8ba28a6d50aeada04905fda05479b731fdec2c452a4729d",
+      "normalizedSourceSha256": "2197b2ea323ce2d5d8ba28a6d50aeada04905fda05479b731fdec2c452a4729d",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/workflow_mongodb.py": {
+      "sha256": "6b6cd953a641ab7c39fc468e16c618e2d38c0beb3422e570ef53c71f95346a9a",
+      "bytes": 4239,
+      "acceptedBlobSha256": "db421f96da4a7dad7e7baea710cd239d0fe63d0834d3fa2e4ae603041cb828fe",
+      "normalizedSourceSha256": "db421f96da4a7dad7e7baea710cd239d0fe63d0834d3fa2e4ae603041cb828fe",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/workflow_rows.py": {
+      "sha256": "c0fc1323660359c43d4e5c1dd48e972e305a03e0781764b1126231b9f4fa4215",
+      "bytes": 7432,
+      "acceptedBlobSha256": "6c7eeeceabd1773d7606ae4f282fc07d00093555d7baf99b6b10816f9e28cbf3",
+      "normalizedSourceSha256": "6c7eeeceabd1773d7606ae4f282fc07d00093555d7baf99b6b10816f9e28cbf3",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/workflow_schema.py": {
+      "sha256": "87c1fa697e02253ef4aa605f42a7af51337bf933a49cbd61223882e3a06cf8d6",
+      "bytes": 4568,
+      "acceptedBlobSha256": "204b6955c9596ffe9cf81a4491f2ef97c56768e3d909f593c43f2ca519955aad",
+      "normalizedSourceSha256": "204b6955c9596ffe9cf81a4491f2ef97c56768e3d909f593c43f2ca519955aad",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/agent/workflow_values.py": {
+      "sha256": "658641a777ea1571dafad8bea1da62f93da569822414cfa56c473b2031cdc92b",
+      "bytes": 2420,
+      "acceptedBlobSha256": "9642ad51185e114f578f3dcff6672f732a0dd3ea176d49b03f05328989d8f4fe",
+      "normalizedSourceSha256": "9642ad51185e114f578f3dcff6672f732a0dd3ea176d49b03f05328989d8f4fe",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/api/__init__.py": {
+      "sha256": "497f9375fef554be09b3a1ec33aa99b78d90f22c884272a19fd6fe694179331e",
+      "bytes": 67,
+      "acceptedBlobSha256": "21f104e07876ef4e283c361225798020723af4421b7441548e2fedf209125576",
+      "normalizedSourceSha256": "21f104e07876ef4e283c361225798020723af4421b7441548e2fedf209125576",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/api/auth.py": {
+      "sha256": "cad290457044d6d3277d9118d2715966c4c10a575ba6ec74104534f10f410457",
+      "bytes": 1391,
+      "acceptedBlobSha256": "0eff58c644b9bf068751e81f4296d633e3edfa336607187eb7585cce19800f65",
+      "normalizedSourceSha256": "0eff58c644b9bf068751e81f4296d633e3edfa336607187eb7585cce19800f65",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/api/file.py": {
+      "sha256": "9b25476c4b2d19f69d911ae52aae40f06337d339b2871ef3592ca0355c8cfea7",
+      "bytes": 610,
+      "acceptedBlobSha256": "4782f1c2e791f5223207cc50124b7720748b7d70063ded427e01367f42af5937",
+      "normalizedSourceSha256": "4782f1c2e791f5223207cc50124b7720748b7d70063ded427e01367f42af5937",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/api/model_config.py": {
+      "sha256": "e61931303a787e9ca6366b0d3f69ae94da1e37d77ce6604de8ca020f07320059",
+      "bytes": 2613,
+      "acceptedBlobSha256": "18c01628c7c20bc7885c5e82155dbde928bab09f860732b1119b1c4ff8c2c69a",
+      "normalizedSourceSha256": "18c01628c7c20bc7885c5e82155dbde928bab09f860732b1119b1c4ff8c2c69a",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/api/system.py": {
+      "sha256": "f49db231db8d189785f9edb4a2d9a54e588cee98da9db54c567300b845d57c66",
+      "bytes": 278,
+      "acceptedBlobSha256": "5d92b74fcf3573bedad1470de19d3efea31bd4568f8258feabdaf78863bfdff1",
+      "normalizedSourceSha256": "5d92b74fcf3573bedad1470de19d3efea31bd4568f8258feabdaf78863bfdff1",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/core/auth.py": {
+      "sha256": "1818e12ecbbcd12b5bb745c09a6ce0bcc2deb4be3cf8d67a598be4ef2d1bab57",
+      "bytes": 1901,
+      "acceptedBlobSha256": "85b906640e981503a16e3c9793c3ab32310d37241d5a79adcca76db674611bb3",
+      "normalizedSourceSha256": "85b906640e981503a16e3c9793c3ab32310d37241d5a79adcca76db674611bb3",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/core/config.py": {
+      "sha256": "5d9431f0a8db2204e1a4bd7d3432ac1bd1a1582ee0d024bbe9afded826e19844",
+      "bytes": 4726,
+      "acceptedBlobSha256": "a95a4f9dc422e40c3e91949a83ef8b6022309583f5e9086e0270885fe7561259",
+      "normalizedSourceSha256": "a95a4f9dc422e40c3e91949a83ef8b6022309583f5e9086e0270885fe7561259",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/core/database.py": {
+      "sha256": "1f46d7d5daef01c6d4f45b2f02629bbc61ccd80c39fafe6dbc453032c5c961a8",
+      "bytes": 765,
+      "acceptedBlobSha256": "d6e14da87f2a8029ae099953a4bc9193f100aa36007320eb5a6c4db8b9723f0b",
+      "normalizedSourceSha256": "d6e14da87f2a8029ae099953a4bc9193f100aa36007320eb5a6c4db8b9723f0b",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/core/errors.py": {
+      "sha256": "d5bafccc975555a05f5cfd41256d0a33651d37e5984a6f776870653b14385dfa",
+      "bytes": 768,
+      "acceptedBlobSha256": "f4eedb7499be91aa4c7cbb724d7c4d36436f195f0462183fc789bc053b1188d9",
+      "normalizedSourceSha256": "f4eedb7499be91aa4c7cbb724d7c4d36436f195f0462183fc789bc053b1188d9",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/core/localization.py": {
+      "sha256": "da91f3b5aebd05cf804d7525c0a6bc4fd3f4311247ea50b033cbd0ed11194897",
+      "bytes": 1914,
+      "acceptedBlobSha256": "42fe2f25fbe722a0aae8c19e26e7b0ae8721c9cff1659623ba25313d3a81bd4e",
+      "normalizedSourceSha256": "42fe2f25fbe722a0aae8c19e26e7b0ae8721c9cff1659623ba25313d3a81bd4e",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/core/ownership.py": {
+      "sha256": "b852a8a0316b08cc8639a3a37c6a518e02f9f1967dabee39abee29130b1c0a4b",
+      "bytes": 530,
+      "acceptedBlobSha256": "452a0b8bb2f4c84f0d2598418c909f75f6061e970a3ec94e55f0ff6c707d8ab5",
+      "normalizedSourceSha256": "452a0b8bb2f4c84f0d2598418c909f75f6061e970a3ec94e55f0ff6c707d8ab5",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/core/security.py": {
+      "sha256": "82f6f659d078af30fc558f5cea61bcc199c21a3728051efffdbb5312d7fed95d",
+      "bytes": 1195,
+      "acceptedBlobSha256": "49333fb94a3ba8652acd0c3446ba49873e0fcd02de2a064ed8f77065ff06118b",
+      "normalizedSourceSha256": "49333fb94a3ba8652acd0c3446ba49873e0fcd02de2a064ed8f77065ff06118b",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/models/__init__.py": {
+      "sha256": "bd3f62bd07bbd0db82b1b7520fdd4387049c92fcaec6230257908cc563ce5c09",
+      "bytes": 304,
+      "acceptedBlobSha256": "07d056ae0b97523b2aa7a1399aa0231e35ffaa8f52bbb1d16d495346d783f515",
+      "normalizedSourceSha256": "07d056ae0b97523b2aa7a1399aa0231e35ffaa8f52bbb1d16d495346d783f515",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/models/entities.py": {
+      "sha256": "6bf8dafc1c0025d7e80f5fdd3dacda73d512ff0bc7be57b6a8ed5b32cf207d46",
+      "bytes": 6628,
+      "acceptedBlobSha256": "056956cc784d7098cc19a145c178830dd9f3903b878735fd2fc4b27d8513fbb4",
+      "normalizedSourceSha256": "056956cc784d7098cc19a145c178830dd9f3903b878735fd2fc4b27d8513fbb4",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/i18n/messages.properties": {
+      "sha256": "6a27d24d1cd89644798c8a5c2521a8eb509d536a39322ce7be298b4a4a1680fb",
+      "bytes": 4406,
+      "acceptedBlobSha256": "96ab71b28cf31ccc3aed65eec5a5347039099f4d3bbeea471637ba138cae1ae1",
+      "normalizedSourceSha256": "96ab71b28cf31ccc3aed65eec5a5347039099f4d3bbeea471637ba138cae1ae1",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/i18n/messages_es.properties": {
+      "sha256": "f8a7762d05afe482fe13a2f5edaa41e34476bbc06c36f5e6e0f5d5f8be7ffde9",
+      "bytes": 4992,
+      "acceptedBlobSha256": "67aa4c6c4c3d2046370aac2ac1f8d92cb4c5c4884f5a3d53c660206883c44345",
+      "normalizedSourceSha256": "67aa4c6c4c3d2046370aac2ac1f8d92cb4c5c4884f5a3d53c660206883c44345",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/i18n/messages_fr.properties": {
+      "sha256": "8727200039388ca784fa10f80e5aa7d40d4d912046cfd92cf71da450ba7e807b",
+      "bytes": 5276,
+      "acceptedBlobSha256": "fb1eff779b4062ad828a29a6c38a4b6526873bbdf94cec032fcf5fa87d6ac326",
+      "normalizedSourceSha256": "fb1eff779b4062ad828a29a6c38a4b6526873bbdf94cec032fcf5fa87d6ac326",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/i18n/messages_ja.properties": {
+      "sha256": "fcaab9e91c385c1237a45627b2fbb3d9f7be0fe11a4262191ebdb43fd22b9113",
+      "bytes": 5724,
+      "acceptedBlobSha256": "ed3caf77acb169e6cfc8046fd7fc8aac5fb5fdc1302bea4ce04053dfb2629cbb",
+      "normalizedSourceSha256": "ed3caf77acb169e6cfc8046fd7fc8aac5fb5fdc1302bea4ce04053dfb2629cbb",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/i18n/messages_ms.properties": {
+      "sha256": "1a96dfd905d9c614a02d8247db5c7bfabef0969411bfd424188fd7f64a17c098",
+      "bytes": 4637,
+      "acceptedBlobSha256": "c25f8b48c7775bee9f0307a0ed71762bdeb9660a337adf4fc63d8cbb1e3dd43f",
+      "normalizedSourceSha256": "c25f8b48c7775bee9f0307a0ed71762bdeb9660a337adf4fc63d8cbb1e3dd43f",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/i18n/messages_zh_CN.properties": {
+      "sha256": "897f95bb1755da83f953fa4eb811c140b8033f7bf1277edd6f404aea9c620651",
+      "bytes": 3857,
+      "acceptedBlobSha256": "c2283edfb200c0ff32106cd7994216222bf29f2f1c6fd359cf74f1b3701923c1",
+      "normalizedSourceSha256": "c2283edfb200c0ff32106cd7994216222bf29f2f1c6fd359cf74f1b3701923c1",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/i18n/messages_zh_TW.properties": {
+      "sha256": "158e948074d7370b059aadccf04d600627d77bd316fb968930180987a9fc9673",
+      "bytes": 3884,
+      "acceptedBlobSha256": "9e5163fed119814264a1b2aae960bf1849d96a98d2552c6047abb26d93c3d8a6",
+      "normalizedSourceSha256": "9e5163fed119814264a1b2aae960bf1849d96a98d2552c6047abb26d93c3d8a6",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/_context-policy_en.md": {
+      "sha256": "47d3b4e912ea846aad69921f8ae13b74cb8fc741fcff192aceaf3aa4f16753db",
+      "bytes": 1172,
+      "acceptedBlobSha256": "afa32ff83c2ee6693c81c1607ab1e5539bf245b4eea07c792eb4f223b3fa4b06",
+      "normalizedSourceSha256": "afa32ff83c2ee6693c81c1607ab1e5539bf245b4eea07c792eb4f223b3fa4b06",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/_context-policy_zh_CN.md": {
+      "sha256": "2b4ee90d6e763ab2b5659de119ec3acb3151f0d14b85ba09bfc5fd1e1d7d4ecb",
+      "bytes": 1080,
+      "acceptedBlobSha256": "4370e5afb641a33ae44cadfd45669968d71aafd5d540e746ebaf6209168d1e56",
+      "normalizedSourceSha256": "4370e5afb641a33ae44cadfd45669968d71aafd5d540e746ebaf6209168d1e56",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/db-compare-agent-system_en.md": {
+      "sha256": "49f0f5efeea720acf9c8e0f28c7c294e95a0df4d3050aa77b0bf3e4bd5d4724f",
+      "bytes": 3363,
+      "acceptedBlobSha256": "624e8331078f6f7ade2cfdaf93da065647ae43706d3ea16c79b905fabe252b0e",
+      "normalizedSourceSha256": "624e8331078f6f7ade2cfdaf93da065647ae43706d3ea16c79b905fabe252b0e",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/db-compare-agent-system_zh_CN.md": {
+      "sha256": "c106b8f592bfd66010e0dbfd11b0fc4575105bb9166b7ba3d8bf2248586f7ca3",
+      "bytes": 2945,
+      "acceptedBlobSha256": "47a75186cc3cb6b0e27a236bfd9edf109d0ed97de6153d66d63ca0037875757c",
+      "normalizedSourceSha256": "47a75186cc3cb6b0e27a236bfd9edf109d0ed97de6153d66d63ca0037875757c",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/db-sql-agent-system_en.md": {
+      "sha256": "9dbcd9582bc019bb78abed56b7c0bafc868321cbe359bb24dbd6fe5c86d90e46",
+      "bytes": 1714,
+      "acceptedBlobSha256": "faa1aea9febc7f68321d42cb3548881ccb48f7e3d62a274e901e667a39f1e9f2",
+      "normalizedSourceSha256": "faa1aea9febc7f68321d42cb3548881ccb48f7e3d62a274e901e667a39f1e9f2",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/db-sql-agent-system_zh_CN.md": {
+      "sha256": "3c9e1132dd3266fbade0418586c4cb364027122e7e0c6b1769d1a68f9ebd434c",
+      "bytes": 1567,
+      "acceptedBlobSha256": "88962f036fcd4100571344f274d579c576fc40e03b69e20fb97d2619bb100365",
+      "normalizedSourceSha256": "88962f036fcd4100571344f274d579c576fc40e03b69e20fb97d2619bb100365",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/db-workflow-agent-files_en.md": {
+      "sha256": "e600ef46d77942a13f4cc5a63006a233d79be14b248dac8e772bf053dab34aa6",
+      "bytes": 757,
+      "acceptedBlobSha256": "6b0223a00bc0e6b2fa66880bb2c37cb175406cdeae098d912351f4ab60d09527",
+      "normalizedSourceSha256": "6b0223a00bc0e6b2fa66880bb2c37cb175406cdeae098d912351f4ab60d09527",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/db-workflow-agent-files_zh_CN.md": {
+      "sha256": "8e94a7ca47d9fc6d07fadef967ea43ed517ac0ade8292ca6a1eb28ab687571c0",
+      "bytes": 703,
+      "acceptedBlobSha256": "bd7e9d5b9221c2850ddf39c6d0d03ab610a0fc45aa8d11a148ec8512c7e61b83",
+      "normalizedSourceSha256": "bd7e9d5b9221c2850ddf39c6d0d03ab610a0fc45aa8d11a148ec8512c7e61b83",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/db-workflow-agent-system_en.md": {
+      "sha256": "c98cce74669b8ffb3d0c504a9da5ab837b152624857b097b88a15b16ea35ada8",
+      "bytes": 1700,
+      "acceptedBlobSha256": "9c38131185d146682e1308ce6bf4dc6912675d6c4e0a21f781191aeb94344718",
+      "normalizedSourceSha256": "9c38131185d146682e1308ce6bf4dc6912675d6c4e0a21f781191aeb94344718",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/db-workflow-agent-system_zh_CN.md": {
+      "sha256": "4a7d5dd7c05591a1772690a7d268b72cb30649ada55c80bb23a30412712ab367",
+      "bytes": 1560,
+      "acceptedBlobSha256": "2ff11e0d4d0040354652416b8600f987503eca022b0b5790c420daadaf93a3a4",
+      "normalizedSourceSha256": "2ff11e0d4d0040354652416b8600f987503eca022b0b5790c420daadaf93a3a4",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/intent-classifier_en.md": {
+      "sha256": "b557d0fc19aee19a1624bd24e871c2c8005c745e544f9ae7229d8caab910be8e",
+      "bytes": 2697,
+      "acceptedBlobSha256": "65301ab053cc2f5d138187c3e02aa3d6356afb756ce5c78c7a49f580d1f3beb1",
+      "normalizedSourceSha256": "65301ab053cc2f5d138187c3e02aa3d6356afb756ce5c78c7a49f580d1f3beb1",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/intent-classifier_zh_CN.md": {
+      "sha256": "7ee47d189ae283dafb2cb04afa3726e0bf093212f7622572967ae011ca949b22",
+      "bytes": 2287,
+      "acceptedBlobSha256": "6bfc5555a8f79dc0fd3e6e49218071f07fdd704aa20a9b42ce779e51682177fd",
+      "normalizedSourceSha256": "6bfc5555a8f79dc0fd3e6e49218071f07fdd704aa20a9b42ce779e51682177fd",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/simple-chat-agent-system_en.md": {
+      "sha256": "e9eabdb1183c1a5916c1500853421e994c9a7b6dc205ab5923b1ad24687b525f",
+      "bytes": 575,
+      "acceptedBlobSha256": "d8e9ee4ff683ad43ca0227f01e6ecee1cc0aa1a9b2a1b071fe02e947b90eafa9",
+      "normalizedSourceSha256": "d8e9ee4ff683ad43ca0227f01e6ecee1cc0aa1a9b2a1b071fe02e947b90eafa9",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/simple-chat-agent-system_zh_CN.md": {
+      "sha256": "ade189621e001d18fbce579ebabc09ad661137b0acfa2b2b96c8c932ec22abd6",
+      "bytes": 517,
+      "acceptedBlobSha256": "4cd9045cd6b51a2c9364ca034f4488f439b4d2a34f514d9265396e51fe2b565e",
+      "normalizedSourceSha256": "4cd9045cd6b51a2c9364ca034f4488f439b4d2a34f514d9265396e51fe2b565e",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/step-condenser_en.md": {
+      "sha256": "b1a8f5598ae114089fc190eb9c0852eaeaab4bb470cc95c61ac842a0a3673390",
+      "bytes": 1000,
+      "acceptedBlobSha256": "4efa90f2f2a327a296510db8cd6ae2d2741df0bb6ad10eb115a18056aa54b320",
+      "normalizedSourceSha256": "4efa90f2f2a327a296510db8cd6ae2d2741df0bb6ad10eb115a18056aa54b320",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/step-condenser_zh_CN.md": {
+      "sha256": "bc7a9a9ce34f69bd59fe41775bc25c5ea2167e3e6a1111f617854aa5e20ce8d2",
+      "bytes": 887,
+      "acceptedBlobSha256": "d03a4d28582be10864b476098848a9f55cc4a782b0fdfd48d3ea454597e8bf8a",
+      "normalizedSourceSha256": "d03a4d28582be10864b476098848a9f55cc4a782b0fdfd48d3ea454597e8bf8a",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/summary-compressor_en.md": {
+      "sha256": "2c8aca8370ee3a675cf3588e248c4ff336cc7b54be4853b88c59fcbb669ffe16",
+      "bytes": 1388,
+      "acceptedBlobSha256": "f9283cf67508e4046e2753c40ca91c9a7802b8a987b4d68c289d88baa513513f",
+      "normalizedSourceSha256": "f9283cf67508e4046e2753c40ca91c9a7802b8a987b4d68c289d88baa513513f",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/summary-compressor_zh_CN.md": {
+      "sha256": "89eabdc125d264c85ba708ad8d914d10698c53bfd0b304c86ad37ae3c8b7fce3",
+      "bytes": 1141,
+      "acceptedBlobSha256": "0f31d9bbffed5606810c0f9dbf178b3fceb7a8f48b46e9f6e7b12e656ee6933e",
+      "normalizedSourceSha256": "0f31d9bbffed5606810c0f9dbf178b3fceb7a8f48b46e9f6e7b12e656ee6933e",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/tool-call-summary_en.md": {
+      "sha256": "068da577549590f5a26355e43a731d093aaac22f37ac4078a0acb5617f987c43",
+      "bytes": 1177,
+      "acceptedBlobSha256": "568117f26fc2e54d6681e44c37075e5e6dcf29e59ddbf9d380817d0398046ced",
+      "normalizedSourceSha256": "568117f26fc2e54d6681e44c37075e5e6dcf29e59ddbf9d380817d0398046ced",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/resources/prompts/tool-call-summary_zh_CN.md": {
+      "sha256": "48fb8a8cb3edc2d28fb1c25b4ebcdd2289cee0abafbb8a79cb7c69604a8cb74b",
+      "bytes": 1138,
+      "acceptedBlobSha256": "7c13d3be24f177ccb3b73faa3cda52f6be83c8f3cccb39d275ae63eb11c727f4",
+      "normalizedSourceSha256": "7c13d3be24f177ccb3b73faa3cda52f6be83c8f3cccb39d275ae63eb11c727f4",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/schemas/__init__.py": {
+      "sha256": "aeefbc2d8dae9aaeea1de04fa12cdb51d3210f6c96a31e9735f0697b902b7caa",
+      "bytes": 46,
+      "acceptedBlobSha256": "5cfb4aca9cee1cde525fbc1b6f30094cbb519fe2ab6aecd43969b823dc8c74fa",
+      "normalizedSourceSha256": "5cfb4aca9cee1cde525fbc1b6f30094cbb519fe2ab6aecd43969b823dc8c74fa",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/schemas/auth.py": {
+      "sha256": "f98969ec76f487a1bba589a8ccc6b8c4e208aa8240ca02c96d5e870d845b4c5c",
+      "bytes": 405,
+      "acceptedBlobSha256": "4b91976db7d68f78bfe0c3c475f267eb8e6918c01d639a58a9dee3682e220460",
+      "normalizedSourceSha256": "4b91976db7d68f78bfe0c3c475f267eb8e6918c01d639a58a9dee3682e220460",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/schemas/base.py": {
+      "sha256": "4e14819c1dddb7b252c0f2ab0ab6bc602f5b603b3cfb94d338963f74e3b67376",
+      "bytes": 538,
+      "acceptedBlobSha256": "aa0d84d56604cd30b69683db0e164b3f0deff54a34f8b1035a8ec4c0520c2051",
+      "normalizedSourceSha256": "aa0d84d56604cd30b69683db0e164b3f0deff54a34f8b1035a8ec4c0520c2051",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/schemas/context_compress.py": {
+      "sha256": "be1e897271ce83f2fcc9736166ee2785970765258f4fb5ce8fd3c6a0e85c746d",
+      "bytes": 443,
+      "acceptedBlobSha256": "9c324628759ace14850c5c1062d74a51ad4e5a8efba96dcf63403cb9e9aac973",
+      "normalizedSourceSha256": "9c324628759ace14850c5c1062d74a51ad4e5a8efba96dcf63403cb9e9aac973",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/schemas/db_config.py": {
+      "sha256": "676164a7e4af2a64b6f93620f3c3c578fad54b9748981186de4ed7aa6b9973be",
+      "bytes": 701,
+      "acceptedBlobSha256": "c9befe74c0947c72a69efd7b6491f5995756e4de65d72a549b7d1a697c6d86cc",
+      "normalizedSourceSha256": "c9befe74c0947c72a69efd7b6491f5995756e4de65d72a549b7d1a697c6d86cc",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/schemas/model_config.py": {
+      "sha256": "7f3b229605cd02d67e6f8355d5c59cbea332ba9aa06de786bf274fc947599c1f",
+      "bytes": 2255,
+      "acceptedBlobSha256": "eebfcd0aef3dd2ebf1c2a5edff9bb28d102cef1485fecc5e388581df26f34c8e",
+      "normalizedSourceSha256": "eebfcd0aef3dd2ebf1c2a5edff9bb28d102cef1485fecc5e388581df26f34c8e",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/schemas/uploaded_file.py": {
+      "sha256": "eeb1815e18b6df7890f994eb88bf506bb2d9eff0f7657ad9a5c87b3d5f2c6276",
+      "bytes": 394,
+      "acceptedBlobSha256": "26b891f61063a6f0d30122ace2665ea9c4f07ad91cfb33610a1688bde609a3d3",
+      "normalizedSourceSha256": "26b891f61063a6f0d30122ace2665ea9c4f07ad91cfb33610a1688bde609a3d3",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/auth.py": {
+      "sha256": "43df0d72eb92043f17f09647a3543ffab6fc8177146916734bb29ce008b54443",
+      "bytes": 2351,
+      "acceptedBlobSha256": "396454517fb3d5b4a69eb914bebdc734ae3f27bf5d509a9e54e2aae3a1db60f2",
+      "normalizedSourceSha256": "396454517fb3d5b4a69eb914bebdc734ae3f27bf5d509a9e54e2aae3a1db60f2",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/bootstrap.py": {
+      "sha256": "2e709d497ab249529af8b4a266f58b023aff02f9b682649b71e8749f3a529976",
+      "bytes": 998,
+      "acceptedBlobSha256": "3bd9f46a26bacf6c333ebc7412914509ae0ed8a4be0fb16fbc7a627463d7049d",
+      "normalizedSourceSha256": "3bd9f46a26bacf6c333ebc7412914509ae0ed8a4be0fb16fbc7a627463d7049d",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/chat_store.py": {
+      "sha256": "1c14963336566a8d8a4aba3b29d76518c3451f0234d1a2ef38606376d229dec8",
+      "bytes": 10541,
+      "acceptedBlobSha256": "63156fe869fe8565fe7a4ce3af0c42322ae6d43f3754e16b7df176a824609c91",
+      "normalizedSourceSha256": "63156fe869fe8565fe7a4ce3af0c42322ae6d43f3754e16b7df176a824609c91",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/context_compress.py": {
+      "sha256": "02af24ca443b739f1e9fc7e3a525beb6aaeb422abf19686eba817d5a2db3c64b",
+      "bytes": 6577,
+      "acceptedBlobSha256": "1a39005483ea699046761dc07b97c1dd6c9a3347acc54548e5ac82fa4ba7f064",
+      "normalizedSourceSha256": "1a39005483ea699046761dc07b97c1dd6c9a3347acc54548e5ac82fa4ba7f064",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/database_tools.py": {
+      "sha256": "06e8d7fc98fa4d0681f3a29e806789d37644beb05e151863a4bf2c0a3c94e040",
+      "bytes": 2908,
+      "acceptedBlobSha256": "50f37ddb70e614d15b6fea382bab41b494e371f7e7a839f0be4a48ef52d17428",
+      "normalizedSourceSha256": "50f37ddb70e614d15b6fea382bab41b494e371f7e7a839f0be4a48ef52d17428",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/db_config_worker.py": {
+      "sha256": "fbd20b4ae9dd874a9da689d045e5fab5018d327d29a851b41f0e68af24b0ed5b",
+      "bytes": 1863,
+      "acceptedBlobSha256": "03ae89f773480ee75ea8611d710d9c675f9dc82a865e745c1f8473da6bdd6dc8",
+      "normalizedSourceSha256": "03ae89f773480ee75ea8611d710d9c675f9dc82a865e745c1f8473da6bdd6dc8",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/file_tools.py": {
+      "sha256": "79a736f0c4fe3e6ff29d447740b672cbf9e16a535ba2fc7f49ac31b64c60caa7",
+      "bytes": 2201,
+      "acceptedBlobSha256": "6ba40bc22a2b94bc42e2a1f4f3fd45fec05c6d4c6f48fc7b0e5d021bf64f9670",
+      "normalizedSourceSha256": "6ba40bc22a2b94bc42e2a1f4f3fd45fec05c6d4c6f48fc7b0e5d021bf64f9670",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/file_upload.py": {
+      "sha256": "cc060f3cbaa56472f38e9842a6ac7ab5a9a1fb4999a0d881e8f7e07c5cdfa8ce",
+      "bytes": 6322,
+      "acceptedBlobSha256": "f18f70646b5c1dc64b9a9fd52dc5f9c278a15d0b03b7ba66c59e5751be15b896",
+      "normalizedSourceSha256": "f18f70646b5c1dc64b9a9fd52dc5f9c278a15d0b03b7ba66c59e5751be15b896",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/model_config.py": {
+      "sha256": "dd70275129773371a308574c6786603c78185aab0715906190f36766c353991f",
+      "bytes": 9642,
+      "acceptedBlobSha256": "ad580b64e161b17fd0c670ecb78e9ad81ba1ee49efb48189cdfed5696d8ae5a9",
+      "normalizedSourceSha256": "ad580b64e161b17fd0c670ecb78e9ad81ba1ee49efb48189cdfed5696d8ae5a9",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/model_config_info.py": {
+      "sha256": "31e3181e37671b0bce122dd6559c409b164e3a05982722add340f8cef54d77b4",
+      "bytes": 2640,
+      "acceptedBlobSha256": "0291c2b194bb2837d81ec7d37f576174db320af922eb1e929fdfb7416b9a00cc",
+      "normalizedSourceSha256": "0291c2b194bb2837d81ec7d37f576174db320af922eb1e929fdfb7416b9a00cc",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/services/schema_diff.py": {
+      "sha256": "0c7f951aa9a9fb7e121f0fcf6011a3382af39b619d393e6a7c30612eb6dd4a0e",
+      "bytes": 6510,
+      "acceptedBlobSha256": "771aa302508e78a99f5b12b67d63c62fe446ea20426e70066b77f6f42c691d7e",
+      "normalizedSourceSha256": "771aa302508e78a99f5b12b67d63c62fe446ea20426e70066b77f6f42c691d7e",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/storage/backend.py": {
+      "sha256": "a337e11123023b8b528f1184b9dbf2b95fc1ba4659f28c49daefe28f317b89db",
+      "bytes": 909,
+      "acceptedBlobSha256": "a7f2911ec61f9b3be3b06a06b01af5220622ab120201ef52e16d9554d0602df4",
+      "normalizedSourceSha256": "a7f2911ec61f9b3be3b06a06b01af5220622ab120201ef52e16d9554d0602df4",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/storage/local.py": {
+      "sha256": "79fb1a35714ebf90ad02f788c0525494545c0bc53f4ff1e46c98c8eaa66c7b4d",
+      "bytes": 1738,
+      "acceptedBlobSha256": "c2d8e3d7eb3c9b8d6a65bcb08e139d405016a67d193b722a912cccc3d206287b",
+      "normalizedSourceSha256": "c2d8e3d7eb3c9b8d6a65bcb08e139d405016a67d193b722a912cccc3d206287b",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/storage/ocr.py": {
+      "sha256": "0f392f596def9b2fa2dbbbfd459ac58c75bb1c58a67ad84ca26530cf655dbe5f",
+      "bytes": 3064,
+      "acceptedBlobSha256": "720294280309154325386d8d7654a26c780f957c6bb754b9859705ae900ec006",
+      "normalizedSourceSha256": "720294280309154325386d8d7654a26c780f957c6bb754b9859705ae900ec006",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/storage/oss.py": {
+      "sha256": "4f6801c1c4c152613ba5723694c030b6c2bad25faafd717cc593c963020e93e0",
+      "bytes": 1243,
+      "acceptedBlobSha256": "949169ce2ae0bdbf00e5d5b36af109a51fbd26c537796e1126ffaf6eba6215b2",
+      "normalizedSourceSha256": "949169ce2ae0bdbf00e5d5b36af109a51fbd26c537796e1126ffaf6eba6215b2",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/storage/parsers/__init__.py": {
+      "sha256": "4eb144c60af046ea2259aa0b0795e7fdad7a2d7f52a1c0cf48787485a89fb71b",
+      "bytes": 379,
+      "acceptedBlobSha256": "fd8eb9ce20125b312cef5a615853fc73e24a87e7da2a01dcd99cf68018217f98",
+      "normalizedSourceSha256": "fd8eb9ce20125b312cef5a615853fc73e24a87e7da2a01dcd99cf68018217f98",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/storage/parsers/documents.py": {
+      "sha256": "e7d6d4d80537a44fa2cd9070069fd82e94228c8ce9618b63ff7ae3fa5b8d40a6",
+      "bytes": 1984,
+      "acceptedBlobSha256": "7fbb8e5e156210dea536f12acbe55b50baf780b84b305183fdc45e67f990d7be",
+      "normalizedSourceSha256": "7fbb8e5e156210dea536f12acbe55b50baf780b84b305183fdc45e67f990d7be",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/storage/parsers/tabular.py": {
+      "sha256": "64ea0b104e8fd740c5d6235101e30bbade6e3ab5c9e348be824211f763d7fb04",
+      "bytes": 3914,
+      "acceptedBlobSha256": "24cb33d37cac75d52833ecf0a9430bd94a6ff22db01ce5de8d71570ed5d0be5f",
+      "normalizedSourceSha256": "24cb33d37cac75d52833ecf0a9430bd94a6ff22db01ce5de8d71570ed5d0be5f",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/storage/parsers/zip_guard.py": {
+      "sha256": "3e21e9a83b6fb1d916ecf1345ca6a261a995212bd3e3af10444f14c029f78e09",
+      "bytes": 918,
+      "acceptedBlobSha256": "048e282d18f94ee1d8105a4af134642a44529cbf48fb3d93f427998f9e6b5a50",
+      "normalizedSourceSha256": "048e282d18f94ee1d8105a4af134642a44529cbf48fb3d93f427998f9e6b5a50",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/storage/validation.py": {
+      "sha256": "eb7848b5b577e96013041f79dd6d4929c2b4d3720699ca609aabbe9e678c297d",
+      "bytes": 2289,
+      "acceptedBlobSha256": "fce47f33a16de405c59ae5ec88a851046195e03b50889609e3120907376ffee0",
+      "normalizedSourceSha256": "fce47f33a16de405c59ae5ec88a851046195e03b50889609e3120907376ffee0",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/tasks/__init__.py": {
+      "sha256": "94499d2c4b930bb4bb5c98712489f59510d2c62abfabf9b3e7c98b9a87a56606",
+      "bytes": 61,
+      "acceptedBlobSha256": "2e345dd57f59ec0eff789925d138ca169e9a5d74b2e063e3afe0a81988f47a39",
+      "normalizedSourceSha256": "2e345dd57f59ec0eff789925d138ca169e9a5d74b2e063e3afe0a81988f47a39",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/app/tasks/celery_app.py": {
+      "sha256": "77c4ef31e7c95be9769a7d2870b6430ba0cc15a12b40a0d159d9f5027a37939e",
+      "bytes": 539,
+      "acceptedBlobSha256": "64fa3dfb901f0937d4108dc936ba924a05941051ed79000cdf6d5c7c695ad461",
+      "normalizedSourceSha256": "64fa3dfb901f0937d4108dc936ba924a05941051ed79000cdf6d5c7c695ad461",
+      "normalizedSourceMatchesAccepted": true
+    },
+    "backend/pyproject.toml": {
+      "sha256": "9a0adae9eff337881ae3e3e644b4c9e0519088a991ede86b6165eb614207f02d",
+      "bytes": 1189,
+      "acceptedBlobSha256": "8bd72e1c647b81640715e41b88a33bf529a2e7127ab204de22d1106a99934d6f",
+      "normalizedSourceSha256": "8bd72e1c647b81640715e41b88a33bf529a2e7127ab204de22d1106a99934d6f",
+      "normalizedSourceMatchesAccepted": true
+    }
+  },
+  "sourceGuardCount": 103,
+  "exportLineEndings": "Windows git archive exports CRLF; guards explicitly record raw export and accepted LF blob/normalized SHA",
+  "mainOnlyTrialImportAndRegistration": true,
+  "passwordReprFalsePreserved": true,
+  "acceptedDbConfigAllBusinessMethodsPreserved": true,
+  "modelWireMessagesAndCompletionUrlPreserved": true,
+  "rootAgentsSha256": "7784449dc858f16ad62cac70e4422d534cc8cd09c39687b9c6e40b08633ce034",
+  "oldFrozenManifestShaVerified": {
+    "c09-metadata-diagnostics-final-b24342e321dd43639f3c77c59e915c93/docs/phase-c09-metadata-diagnostics/final-freeze.json": "dfc3a127dc10ab4f664d1c808116b8bc0f1e9d5cf81c35debc8dfcc394575551",
+    "s12-mongodb-compare-revision-9af5cd50ec6840ea973f10455def6f67/docs/phase-12-mongodb/compare-revision-freeze.json": "aac517ef3ec09621ffa95234fd77f62b28a6b0843e7f90f27e1bba62e351c544"
+  }
+}

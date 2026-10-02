@@ -8,6 +8,7 @@ from urllib.parse import urlsplit, urlunsplit
 import httpx
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
+from langchain_core.messages.tool import ToolCallChunk
 from langchain_core.outputs import ChatGenerationChunk, ChatResult
 from pydantic import SecretStr
 
@@ -70,11 +71,11 @@ def _usage_chunk(value: object) -> ChatGenerationChunk | None:
     prompt = value.get("prompt_tokens")
     completion = value.get("completion_tokens")
     total = value.get("total_tokens")
-    if not isinstance(prompt, int) or not isinstance(completion, int):
+    if type(prompt) is not int or type(completion) is not int:
         raise TypeError("Model usage requires prompt and completion token counts")
     if total is None:
         total = prompt + completion
-    if not isinstance(total, int) or min(prompt, completion, total) < 0:
+    if type(total) is not int or min(prompt, completion, total) < 0:
         raise ValueError("Invalid model usage values")
     return ChatGenerationChunk(
         message=AIMessageChunk(
@@ -117,8 +118,12 @@ def _delta_chunk(packet: dict[str, object]) -> ChatGenerationChunk | None:
         if not isinstance(calls, list):
             raise ValueError("Invalid model tool calls")
         for call in calls:
-            if not isinstance(call, dict) or not isinstance(call.get("index"), int):
+            if not isinstance(call, dict) or type(call.get("index")) is not int:
                 raise TypeError("Model tool call requires an index")
+            if call["index"] < 0:
+                raise ValueError("Model tool-call index must be nonnegative")
+            if call.get("id") is not None and not isinstance(call["id"], str):
+                raise TypeError("Model tool-call ID must be text")
             function = call.get("function")
             if function is not None and not isinstance(function, dict):
                 raise ValueError("Invalid model tool function")
@@ -142,7 +147,7 @@ def _delta_chunk(packet: dict[str, object]) -> ChatGenerationChunk | None:
         message=AIMessageChunk(
             content=content or "",
             additional_kwargs=additional,
-            tool_call_chunks=cast(list, chunks),
+            tool_call_chunks=cast(list[ToolCallChunk], chunks),
         )
     )
 

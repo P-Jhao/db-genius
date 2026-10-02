@@ -1,0 +1,2157 @@
+--- a/backend/app/agent/dsml.py
++++ b/backend/app/agent/dsml.py
+@@ -0,0 +1,234 @@
++"""Restricted recovery of provider DSML tool text and summary cleanup."""
++
++import json
++import math
++import re
++from dataclasses import dataclass
++from uuid import uuid4
++
++_PREFIX = r"[｜|]+DSML[｜|]+"
++_WRAPPER = re.compile(fr"<{_PREFIX}tool_calls\s*>(.*?)</{_PREFIX}tool_calls\s*>", re.IGNORECASE | re.DOTALL)
++_INVOKE = re.compile(fr"<(?:{_PREFIX})?invoke\b([^>]*)>(.*?)</(?:{_PREFIX})?invoke\s*>", re.IGNORECASE | re.DOTALL)
++_PARAMETER = re.compile(fr"<(?:{_PREFIX})?parameter\b([^>]*)>(.*?)</(?:{_PREFIX})?parameter\s*>", re.IGNORECASE | re.DOTALL)
++_ATTRIBUTE = re.compile(r'\b(name|string)\s*=\s*"([^"]*)"', re.IGNORECASE)
++_PROTOCOL = re.compile(r"<(?:(?:[｜|]+DSML[｜|]+)|tool_calls\b|invoke\b|parameter\b)", re.IGNORECASE)
++_CLOSING = re.compile(fr"</(?:{_PREFIX})?(?:tool_calls|invoke|parameter)\s*>", re.IGNORECASE)
++_SIMPLE_BLOCK = re.compile(r"<(tool_calls|invoke)\b[^>]*>.*?</\1\s*>", re.IGNORECASE | re.DOTALL)
++
++
++@dataclass(frozen=True)
++class RecoveredCall:
++    name: str
++    args: dict[str, object]
++
++
++@dataclass(frozen=True)
++class StructuredCall:
++    name: str | None
++    args: str | None
++    id: str | None
++
++
++@dataclass(frozen=True)
++class AllowedTool:
++    required: frozenset[str]
++    fields: frozenset[str]
++
++
++_LEGACY_ARGUMENTS: dict[str, dict[str, str]] = {
++    "getDatabaseSchema": {"dbConfigId": "db_id"},
++    "executeSql": {"dbConfigId": "db_id", "sql": "statement"},
++    "readFile": {"fileId": "file_id"},
++    "readImage": {"fileId": "file_id"},
++    "compareDatabases": {"preDbConfigId": "pre_id", "testDbConfigId": "test_id"},
++    "readToolOutput": {"artifactId": "artifact_id", "limit": "length"},
++    "doTerminate": {"summary": "reason"},
++}
++
++
++def _normalize(name: str, arguments: dict[str, object], schema: AllowedTool) -> dict[str, object]:
++    aliases = _LEGACY_ARGUMENTS.get(name, {})
++    normalized: dict[str, object] = {}
++    for key, value in arguments.items():
++        canonical = aliases.get(key, key)
++        if canonical not in schema.fields:
++            raise ValueError(f"Unknown DSML argument for {name}: {key}")
++        if canonical in normalized:
++            raise ValueError(f"Conflicting DSML argument aliases for {name}: {canonical}")
++        normalized[canonical] = value
++    return normalized
++
++
++def _attributes(text: str) -> dict[str, str]:
++    values: dict[str, str] = {}
++    for match in _ATTRIBUTE.finditer(text):
++        key = match.group(1).lower()
++        if key in values:
++            raise ValueError(f"Duplicate DSML {key} attribute")
++        values[key] = match.group(2)
++    return values
++
++
++def _typed_value(raw: str, string: str | None) -> object:
++    if string is not None and string.lower() not in {"true", "false"}:
++        raise ValueError("Invalid DSML string attribute")
++    if string is not None and string.lower() == "true":
++        return raw
++    value = raw.strip()
++    try:
++        return int(value)
++    except ValueError:
++        pass
++    try:
++        number = float(value)
++    except ValueError:
++        number = None
++    if number is not None:
++        if not math.isfinite(number):
++            raise ValueError("Non-finite DSML numeric parameter")
++        return number
++    if value.lower() in {"true", "false"}:
++        return value.lower() == "true"
++    return raw
++
++
++def _parse_invokes(body: str) -> list[RecoveredCall]:
++    calls: list[RecoveredCall] = []
++    position = 0
++    for invoke in _INVOKE.finditer(body):
++        if body[position:invoke.start()].strip():
++            raise ValueError("Malformed DSML invoke sequence")
++        attributes = _attributes(invoke.group(1))
++        name = attributes.get("name", "")
++        if not name:
++            raise ValueError("DSML invoke is missing a tool name")
++        arguments: dict[str, object] = {}
++        parameter_position = 0
++        for parameter in _PARAMETER.finditer(invoke.group(2)):
++            if invoke.group(2)[parameter_position:parameter.start()].strip():
++                raise ValueError("Malformed DSML parameter sequence")
++            parameter_attributes = _attributes(parameter.group(1))
++            key = parameter_attributes.get("name", "")
++            if not key or key in arguments:
++                raise ValueError("DSML parameter name is missing or duplicated")
++            arguments[key] = _typed_value(parameter.group(2), parameter_attributes.get("string"))
++            parameter_position = parameter.end()
++        if invoke.group(2)[parameter_position:].strip():
++            raise ValueError("DSML invoke has malformed parameters")
++        calls.append(RecoveredCall(name, arguments))
++        position = invoke.end()
++    if body[position:].strip() or not calls:
++        raise ValueError("Malformed DSML tool call block")
++    return calls
++
++
++def parse(content: str, *, allow_simple: bool = False) -> tuple[list[RecoveredCall], str] | None:
++    """Parse a complete wrapper; simple invokes require a corroborating structured call."""
++    wrappers = list(_WRAPPER.finditer(content))
++    if len(wrappers) > 1:
++        raise ValueError("Multiple DSML tool-call wrappers are ambiguous")
++    if wrappers:
++        wrapper = wrappers[0]
++        outside = content[:wrapper.start()] + content[wrapper.end():]
++        if _PROTOCOL.search(outside):
++            raise ValueError("DSML protocol text outside the tool-call wrapper")
++        return _parse_invokes(wrapper.group(1)), outside.strip()
++    if _INVOKE.search(content) and (allow_simple or re.match(fr"\s*<{_PREFIX}invoke\b", content,
++                                                          re.IGNORECASE)):
++        return _parse_invokes(content), ""
++    if not allow_simple and re.search(fr"<{_PREFIX}", content, re.IGNORECASE) is None:
++        return None
++    if _PROTOCOL.search(content):
++        raise ValueError("Incomplete DSML tool-call block")
++    return None
++
++
++def reconcile(content: str, structured: list[StructuredCall],
++              allowed: dict[str, AllowedTool]) -> tuple[str, list[dict[str, object]] | None]:
++    """Return recovered calls only with an explicit tool allowlist and unambiguous evidence."""
++    parsed = parse(content, allow_simple=bool(structured))
++    if parsed is None:
++        return content, None
++    recovered, clean = parsed
++    if not structured and clean:
++        return strip(content), None
++    if structured and len(structured) != len(recovered):
++        raise ValueError("DSML and structured tool-call counts differ")
++    calls: list[dict[str, object]] = []
++    for index, candidate in enumerate(recovered):
++        if candidate.name not in allowed:
++            raise ValueError(f"Unknown DSML tool: {candidate.name}")
++        schema = allowed[candidate.name]
++        normalized = _normalize(candidate.name, candidate.args, schema)
++        original = structured[index] if structured else None
++        if original is not None and original.name and original.name != candidate.name:
++            raise ValueError("DSML and structured tool names differ")
++        if original is not None and not original.id:
++            raise ValueError("Structured tool call lacks an ID")
++        arguments = normalized
++        if original is not None and original.args:
++            try:
++                existing = json.loads(original.args)
++            except json.JSONDecodeError:
++                pass
++            else:
++                if not isinstance(existing, dict):
++                    raise TypeError("Model tool-call arguments must be a JSON object")
++                # Original valid structured arguments take precedence over DSML text.
++                arguments = existing
++        if not schema.required.issubset(arguments):
++            raise ValueError(f"DSML tool arguments are missing required fields for {candidate.name}")
++        if any(key not in schema.fields for key in arguments):
++            raise ValueError(f"Unknown structured argument for {candidate.name}")
++        calls.append({"name": candidate.name, "args": arguments,
++                      "id": original.id if original is not None else f"dsml-{uuid4().hex}",
++                      "type": "tool_call"})
++    ids = [call["id"] for call in calls]
++    if len(set(ids)) != len(ids):
++        raise ValueError("Duplicate tool-call IDs")
++    return clean, calls
++
++
++def strip(content: str) -> str:
++    """Remove protocol blocks and unfinished markers from a final summary."""
++    clean = _WRAPPER.sub("", content)
++    clean = _SIMPLE_BLOCK.sub("", clean)
++    clean = _INVOKE.sub("", clean)
++    clean = _CLOSING.sub("", clean)
++    # An unfinished invoke may contain SQL parameters, so do not expose its body.
++    marker = re.search(fr"<(?:{_PREFIX})?(?:invoke|parameter)\b", clean, re.IGNORECASE)
++    if marker is not None:
++        clean = clean[:marker.start()]
++    clean = re.sub(fr"</?{_PREFIX}[^>\n]*>?", "", clean, flags=re.IGNORECASE)
++    clean = re.sub(r"</?tool_calls\b[^>\n]*>?", "", clean, flags=re.IGNORECASE)
++    for index, character in enumerate(clean):
++        if character == "<":
++            tail = re.sub(r"\|+", "||", clean[index:index + 40].replace("｜", "|").lower())
++            tail = tail.replace("</", "<", 1)
++            if len(tail) > 2 and any(prefix.startswith(tail) or tail.startswith(prefix) for prefix in (
++                "<||dsml||tool_calls", "<||dsml||invoke", "<||dsml||parameter",
++                "<tool_calls", "<invoke", "<parameter",
++            )):
++                clean = clean[:index]
++                break
++    return clean
++
++
++class SummaryFilter:
++    """Hold text after '<' until final cleanup, so fragments cannot reach SSE."""
++
++    def __init__(self) -> None:
++        self.held = ""
++
++    def push(self, value: str) -> str:
++        if self.held:
++            self.held += value
++            return ""
++        index = value.find("<")
++        if index < 0:
++            return value
++        self.held = value[index:]
++        return value[:index]
++
++    def finish(self) -> str:
++        return strip(self.held) if self.held else ""
+--- a/backend/app/agent/model.py
++++ b/backend/app/agent/model.py
+@@ -8,6 +8,7 @@
+ import httpx
+ from langchain_core.language_models.chat_models import BaseChatModel
+ from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
++from langchain_core.messages.tool import ToolCallChunk
+ from langchain_core.outputs import ChatGenerationChunk, ChatResult
+ from pydantic import SecretStr
+ 
+@@ -70,11 +71,11 @@
+     prompt = value.get("prompt_tokens")
+     completion = value.get("completion_tokens")
+     total = value.get("total_tokens")
+-    if not isinstance(prompt, int) or not isinstance(completion, int):
++    if type(prompt) is not int or type(completion) is not int:
+         raise TypeError("Model usage requires prompt and completion token counts")
+     if total is None:
+         total = prompt + completion
+-    if not isinstance(total, int) or min(prompt, completion, total) < 0:
++    if type(total) is not int or min(prompt, completion, total) < 0:
+         raise ValueError("Invalid model usage values")
+     return ChatGenerationChunk(
+         message=AIMessageChunk(
+@@ -117,8 +118,12 @@
+         if not isinstance(calls, list):
+             raise ValueError("Invalid model tool calls")
+         for call in calls:
+-            if not isinstance(call, dict) or not isinstance(call.get("index"), int):
++            if not isinstance(call, dict) or type(call.get("index")) is not int:
+                 raise TypeError("Model tool call requires an index")
++            if call["index"] < 0:
++                raise ValueError("Model tool-call index must be nonnegative")
++            if call.get("id") is not None and not isinstance(call["id"], str):
++                raise TypeError("Model tool-call ID must be text")
+             function = call.get("function")
+             if function is not None and not isinstance(function, dict):
+                 raise ValueError("Invalid model tool function")
+@@ -142,7 +147,7 @@
+         message=AIMessageChunk(
+             content=content or "",
+             additional_kwargs=additional,
+-            tool_call_chunks=cast(list, chunks),
++            tool_call_chunks=cast(list[ToolCallChunk], chunks),
+         )
+     )
+ 
+--- a/backend/app/agent/streaming.py
++++ b/backend/app/agent/streaming.py
+@@ -5,16 +5,39 @@
+ import threading
+ from collections.abc import AsyncGenerator, AsyncIterator
+ from contextlib import suppress
++from typing import cast
+ 
+ from langchain_core.language_models.chat_models import BaseChatModel
+ from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, message_chunk_to_message
++from langchain_core.messages.tool import ToolCall
+ from langchain_core.tools import BaseTool
+ from langchain_core.utils.function_calling import convert_to_openai_tool
++from pydantic import BaseModel
+ 
+ from app.agent.cancellation import check_cancelled
++from app.agent.dsml import AllowedTool, StructuredCall, SummaryFilter, reconcile, strip
+ from app.agent.types import EventSink, Usage
+ 
+ DEFAULT_TEMPERATURE = 0.7
++
++
++def _append(old: str | None, new: str | None, *, identity: bool = False) -> str | None:
++    if new is None:
++        return old
++    if old is None or (identity and old == new):
++        return new
++    return old + new
++
++
++def _collect_calls(calls: dict[int, StructuredCall], chunk: AIMessageChunk) -> None:
++    for part in chunk.tool_call_chunks:
++        index = part.get("index")
++        if type(index) is not int or index < 0:
++            raise TypeError("Model tool-call fragment requires a nonnegative index")
++        previous = calls.get(index, StructuredCall(None, None, None))
++        calls[index] = StructuredCall(_append(previous.name, part.get("name")),
++                                      _append(previous.args, part.get("args")),
++                                      _append(previous.id, part.get("id"), identity=True))
+ 
+ 
+ class ModelStream:
+@@ -39,6 +62,8 @@
+         self.reasoning = ""
+         aggregate: AIMessageChunk | None = None
+         latest_usage: dict[str, int] | None = None
++        call_fragments: dict[int, StructuredCall] = {}
++        output_filter = SummaryFilter() if event == "summary_delta" else None
+         options: dict[str, object] = (
+             {"thinking": {"type": "disabled"}} if classification
+             else {"temperature": DEFAULT_TEMPERATURE}
+@@ -68,6 +93,7 @@
+                 check_cancelled(self.cancel_event)
+                 if not isinstance(chunk, AIMessageChunk):
+                     raise TypeError("Model returned a non-assistant chunk")
++                _collect_calls(call_fragments, chunk)
+                 if chunk.usage_metadata is not None:
+                     metadata = chunk.usage_metadata
+                     latest_usage = {
+@@ -78,9 +104,10 @@
+                 content_chunk = chunk.model_copy(update={"usage_metadata": None})
+                 aggregate = content_chunk if aggregate is None else aggregate + content_chunk
+                 if isinstance(chunk.content, str):
+-                    self.partial += chunk.content
+-                    if chunk.content and event is not None:
+-                        await self.emit(event, chunk.content, step)
++                    text = output_filter.push(chunk.content) if output_filter else chunk.content
++                    self.partial += text
++                    if text and event is not None:
++                        await self.emit(event, text, step)
+                 reasoning = chunk.additional_kwargs.get("reasoning_content")
+                 if isinstance(reasoning, str):
+                     self.reasoning += reasoning
+@@ -99,20 +126,53 @@
+         check_cancelled(self.cancel_event)
+         if aggregate is None:
+             raise RuntimeError("Model returned an empty stream")
+-        for call in aggregate.tool_call_chunks:
+-            if not call.get("id") or not call.get("name"):
++        if output_filter is not None:
++            tail = output_filter.finish()
++            self.partial += tail
++            if tail and event is not None:
++                await self.emit(event, tail, step)
++        recovered: list[dict[str, object]] | None = None
++        structured = [call_fragments[index] for index in sorted(call_fragments)]
++        content = aggregate.content
++        if tools and isinstance(content, str):
++            allowed = {}
++            schemas: dict[str, type[BaseModel]] = {}
++            for tool in tools:
++                schema = tool.get_input_schema()
++                if not issubclass(schema, BaseModel):
++                    raise TypeError("DSML recovery requires a Pydantic 2 tool schema")
++                schemas[tool.name] = schema
++                fields = schema.model_fields
++                allowed[tool.name] = AllowedTool(
++                    frozenset(name for name, field in fields.items() if field.is_required()),
++                    frozenset(fields),
++                )
++            content, recovered = reconcile(content, structured, allowed)
++            if recovered is not None:
++                for recovered_call in recovered:
++                    schemas[str(recovered_call["name"])].model_validate(recovered_call["args"], strict=True)
++        elif not classification and event != "content" and isinstance(content, str):
++            content = strip(content)
++        validated: list[ToolCall] = []
++        for call in structured:
++            if recovered is not None:
++                break
++            if not call.id or not call.name:
+                 raise ValueError("Model returned a tool call without ID or name")
+             try:
+-                arguments = json.loads(call.get("args") or "")
++                arguments = json.loads("" if call.args is None else call.args)
+             except json.JSONDecodeError as error:
+                 raise ValueError("Model returned invalid tool-call JSON") from error
+             if not isinstance(arguments, dict):
+                 raise TypeError("Model tool-call arguments must be a JSON object")
++            validated.append({"name": call.name, "args": arguments, "id": call.id, "type": "tool_call"})
++        if len({call["id"] for call in validated}) != len(validated):
++            raise ValueError("Duplicate tool-call IDs")
+         message = message_chunk_to_message(aggregate)
+         if not isinstance(message, AIMessage):
+             raise TypeError("Expected an assistant message")
+-        if message.invalid_tool_calls:
+-            raise ValueError("Model returned invalid tool-call JSON")
++        message = message.model_copy(update={"content": content, "invalid_tool_calls": [],
++            "tool_calls": validated if recovered is None else cast(list[ToolCall], recovered)})
+         if not message.content and not message.tool_calls:
+             raise RuntimeError("Model returned no content or tool calls")
+         additional = dict(message.additional_kwargs)
+--- a/backend/app/agent/graph.py
++++ b/backend/app/agent/graph.py
+@@ -10,11 +10,13 @@
+ 
+ from app.agent.cancellation import check_cancelled
+ from app.agent.graph_sql import SQLNodes
++from app.agent.product_locale import clarification, intent_label, missing_database, product_text
+ from app.agent.prompts import classification_prompt, system_prompt
+ from app.agent.streaming import ModelStream
+ from app.agent.tools import RunTools
+ from app.agent.types import ChatRequest, Classification, EventSink, Intent
+ from app.core.config import get_settings
++from app.services.trial import require_intent_available
+ 
+ 
+ class RunState(TypedDict):
+@@ -38,24 +40,17 @@
+     cancel_event: threading.Event | None = None
+ 
+ 
+-def _clarification(intent: Intent, reason: str, locale: str) -> dict[str, object]:
+-    chinese = locale.lower().startswith("zh")
+-    question = "请确认意图并选择所需的数据源。" if chinese else "Confirm the intent and select the required database."
+-    labels = {
+-        "simple_chat": "普通问答" if chinese else "General question",
+-        "sql_query": "数据库查询" if chinese else "Database query",
+-        "workflow": "数据工作流" if chinese else "Data workflow",
+-        "db_compare": "结构对比" if chinese else "Schema comparison",
+-    }
+-    return {"question": question, "reasoning": reason,
+-            "options": [{"intent": key, "label": label} for key, label in labels.items()]}
++def _clarification(intent: Intent, reason: str, locale: str, request: ChatRequest) -> dict[str, object]:
++    return clarification(intent, reason, locale, has_database=bool(request.db_config_ids),
++                         has_comparison=request.pre_db_config_id is not None and
++                         request.test_db_config_id is not None)
+ 
+ 
+-def _missing_resources(intent: Intent, request: ChatRequest) -> str | None:
++def _missing_resources(intent: Intent, request: ChatRequest, locale: str) -> str | None:
+     if intent in ("sql_query", "workflow") and not request.db_config_ids:
+-        return "A connected database is required."
++        return missing_database(intent, locale)
+     if intent == "db_compare" and (request.pre_db_config_id is None or request.test_db_config_id is None):
+-        return "Both pre and test databases are required."
++        return missing_database(intent, locale)
+     return None
+ 
+ 
+@@ -73,8 +68,9 @@
+     async def classify(state: RunState) -> dict[str, object]:
+         check_cancelled(context.cancel_event)
+         if context.request.confirmed_intent is not None:
++            require_intent_available(context.request.confirmed_intent)
+             return {"intent": context.request.confirmed_intent}
+-        await context.emit("classifying", "Classifying intent", 0)
++        await context.emit("classifying", product_text("chat.classifying", context.locale), 0)
+         response = await context.model_stream.call(
+             [SystemMessage(content=classification_prompt(context.request, context.locale)),
+              *context.history, HumanMessage(content=context.request.message)],
+@@ -88,9 +84,10 @@
+         except (ValidationError, ValueError) as error:
+             raise ValueError("Invalid intent classification JSON") from error
+         await context.emit("classified", value.model_dump(), 0)
++        require_intent_available(value.intent)
+         if value.needsClarification or value.confidence < 0.7:
+             return {"intent": value.intent,
+-                    "clarification": _clarification(value.intent, value.reasoning, context.locale)}
++                    "clarification": _clarification(value.intent, value.reasoning, context.locale, context.request)}
+         return {"intent": value.intent}
+ 
+     async def prerequisites(state: RunState) -> dict[str, object]:
+@@ -98,10 +95,11 @@
+         intent = state["intent"]
+         if intent is None:
+             raise RuntimeError("Classification did not choose an intent")
+-        missing = _missing_resources(intent, context.request)
++        missing = _missing_resources(intent, context.request, context.locale)
+         if missing:
+-            return {"clarification": _clarification(intent, missing, context.locale)}
+-        await context.emit("routing", intent, 0)
++            return {"clarification": _clarification(intent, missing, context.locale, context.request)}
++        await context.emit("routing", product_text("chat.routing", context.locale,
++                                                  intent_label(intent, context.locale)), 0)
+         return {}
+ 
+     async def clarify(state: RunState) -> dict[str, object]:
+@@ -116,7 +114,7 @@
+         check_cancelled(context.cancel_event)
+         messages = [SystemMessage(content=system_prompt("simple_chat", context.request, context.locale)),
+                     *context.history, HumanMessage(content=context.request.message)]
+-        await context.emit("thinking", "Answering", 0)
++        await context.emit("thinking", intent_label("simple_chat", context.locale), 0)
+         answer = await context.model_stream.call(messages, event="content")
+         check_cancelled(context.cancel_event)
+         if not isinstance(answer.content, str):
+--- a/backend/app/agent/product_locale.py
++++ b/backend/app/agent/product_locale.py
+@@ -0,0 +1,48 @@
++"""Source language resources for graph events and safe public stream errors."""
++
++from app.agent.types import Intent
++from app.core.localization import _messages, select_locale, translate
++
++_ERRORS = {
++    "en": ("The model returned an invalid response.", "Chat request failed (taskId: {task_id})."),
++    "zh-CN": ("模型返回了无效响应。", "聊天请求失败（taskId: {task_id}）。"),
++    "zh-TW": ("模型傳回了無效回應。", "聊天請求失敗（taskId: {task_id}）。"),
++    "fr": ("Le modèle a renvoyé une réponse invalide.", "La requête de chat a échoué (taskId: {task_id})."),
++    "ms": ("Model mengembalikan respons yang tidak sah.", "Permintaan sembang gagal (taskId: {task_id})."),
++    "ja": ("モデルが無効な応答を返しました。", "チャットのリクエストに失敗しました（taskId: {task_id}）。"),
++    "es": ("El modelo devolvió una respuesta no válida.", "La solicitud de chat falló (taskId: {task_id})."),
++}
++
++
++def product_text(key: str, locale: str, *args: object) -> str:
++    pattern = _messages(select_locale(locale)).get(key)
++    if pattern is None:
++        raise KeyError(f"Missing product translation: {key}")
++    return pattern.format(*args)
++
++
++def intent_label(intent: Intent, locale: str) -> str:
++    return product_text("intent." + intent, locale)
++
++
++def clarification(intent: Intent, reason: str, locale: str, *, has_database: bool = False,
++                  has_comparison: bool = False) -> dict[str, object]:
++    label = intent_label(intent, locale)
++    if intent == "sql_query" and not has_database:
++        label = product_text("chat.clarify.sqlQueryNeedDb", locale)
++    elif intent == "db_compare" and not has_comparison:
++        label = product_text("chat.clarify.dbCompareNeedConfig", locale)
++    options = [{"intent": intent, "label": label}]
++    if intent != "simple_chat":
++        options.append({"intent": "simple_chat", "label": product_text("chat.clarify.simpleChat", locale)})
++    return {"question": product_text("chat.clarify.question", locale), "reasoning": reason, "options": options}
++
++
++def missing_database(intent: Intent, locale: str) -> str:
++    keys = {"sql_query": "error.chat.sqlQueryNoDbConfig", "workflow": "error.chat.workflowNoDbConfig",
++            "db_compare": "error.chat.compareNoDbConfig"}
++    return translate(keys[intent], locale)
++
++
++def stream_error(invalid: bool, locale: str, task_id: str) -> str:
++    return _ERRORS[select_locale(locale)][0 if invalid else 1].format(task_id=task_id)
+--- a/backend/app/services/trial.py
++++ b/backend/app/services/trial.py
+@@ -0,0 +1,16 @@
++"""Trial status and intent limits shared by HTTP and graph routing."""
++
++from app.agent.types import Intent
++from app.core.config import get_settings
++from app.core.errors import deny_trial
++
++
++def status() -> dict[str, bool]:
++    return {"trialEnabled": get_settings().trial_enabled}
++
++
++def require_intent_available(intent: Intent | None) -> None:
++    if intent == "workflow":
++        deny_trial("error.trial.workflow")
++    elif intent == "db_compare":
++        deny_trial("error.trial.dbCompare")
+--- a/backend/app/api/trial.py
++++ b/backend/app/api/trial.py
+@@ -0,0 +1,13 @@
++"""Public trial mode status used before login."""
++
++from fastapi import APIRouter
++
++from app.core.errors import success
++from app.services import trial
++
++router = APIRouter(prefix="/trial")
++
++
++@router.get("/status")
++def status() -> dict[str, object]:
++    return success(trial.status())
+--- a/backend/app/main.py
++++ b/backend/app/main.py
+@@ -12,6 +12,7 @@
+ from app.api.file import router as file_router
+ from app.api.model_config import router as model_config_router
+ from app.api.system import router as system_router
++from app.api.trial import router as trial_router
+ from app.core.config import get_settings
+ from app.core.database import SessionLocal
+ from app.core.errors import BusinessError
+@@ -62,3 +63,4 @@
+ app.include_router(model_config_router, prefix="/api")
+ 
+ app.include_router(file_router, prefix="/api")
++app.include_router(trial_router, prefix="/api")
+--- a/backend/app/api/chat.py
++++ b/backend/app/api/chat.py
+@@ -17,6 +17,7 @@
+ from app.agent.cancellation import RunAborted, check_cancelled
+ from app.agent.graph import RunContext, run_graph
+ from app.agent.model import CompatibleChatModel
++from app.agent.product_locale import stream_error
+ from app.agent.streaming import ModelStream
+ from app.agent.tools import RunTools
+ from app.agent.types import ChatRequest, Usage
+@@ -26,6 +27,7 @@
+ from app.models import DbConfig, UploadedFile
+ from app.schemas.context_compress import CompressOptions
+ from app.services import chat_store, context_compress, model_config
++from app.services.trial import require_intent_available
+ 
+ logger = logging.getLogger(__name__)
+ router = APIRouter(prefix="/chat")
+@@ -40,15 +42,19 @@
+     for db_id in db_ids:
+         row = session.scalar(select(DbConfig).where(DbConfig.id == db_id, DbConfig.user_id == user_id))
+         if row is None:
+-            raise BusinessError(404, "Database not found", 404)
++            raise BusinessError(404, "error.dbConfig.notFound", 404)
++        if row.status == 0:
++            raise BusinessError(400, "error.dbConfig.verifying")
++        if row.status == 2:
++            raise BusinessError(400, "error.dbConfig.connectionFailed")
+         if row.status != 1:
+-            raise BusinessError(400, "Database is not connected")
++            raise ValueError("Unknown database configuration status")
+     for file_id in set(body.file_ids or []):
+         uploaded = session.scalar(select(UploadedFile).where(
+             UploadedFile.id == file_id, UploadedFile.user_id == user_id,
+         ))
+         if uploaded is None:
+-            raise BusinessError(404, "File not found", 404)
++            raise BusinessError(404, "error.file.notFound", 404)
+ 
+ 
+ def _frame(task_id: str, kind: str, content: object, step: int) -> bytes:
+@@ -154,9 +160,9 @@
+         elif isinstance(error, UnsafeStatement):
+             public_error = str(error)
+         elif isinstance(error, (ValueError, TypeError)):
+-            public_error = "The model returned an invalid response."
++            public_error = stream_error(True, locale, task_id)
+         else:
+-            public_error = f"Chat request failed (taskId: {task_id})."
++            public_error = stream_error(False, locale, task_id)
+         if conversation_id is not None:
+             try:
+                 await asyncio.to_thread(chat_store.finalize_run, user_id, conversation_id, task_id,
+@@ -177,6 +183,7 @@
+ @router.post("")
+ async def chat(body: ChatRequest, request: Request, user: CurrentUser,
+                session: DatabaseSession) -> StreamingResponse:
++    require_intent_available(body.confirmed_intent)
+     _check_resources(session, user.id, body)
+     if body.conversation_id is not None:
+         previous = await asyncio.to_thread(chat_store.history, user.id, body.conversation_id)
+--- a/backend/app/core/request_locale.py
++++ b/backend/app/core/request_locale.py
+@@ -0,0 +1,22 @@
++"""Explicit locale scopes for HTTP calls and independently delivered worker tasks."""
++
++from collections.abc import Iterator
++from contextlib import contextmanager
++from contextvars import ContextVar
++
++from app.core.localization import select_locale
++
++_locale: ContextVar[str] = ContextVar("sqlchat_request_locale", default="en")
++
++
++def current_locale() -> str:
++    return _locale.get()
++
++
++@contextmanager
++def locale_scope(accept_language: str | None) -> Iterator[None]:
++    token = _locale.set(select_locale(accept_language))
++    try:
++        yield
++    finally:
++        _locale.reset(token)
+--- a/backend/app/api/db_config.py
++++ b/backend/app/api/db_config.py
+@@ -1,7 +1,8 @@
+-from fastapi import APIRouter
++from fastapi import APIRouter, Request
+ 
+ from app.api.auth import CurrentUser, DatabaseSession
+ from app.core.errors import success
++from app.core.request_locale import locale_scope
+ from app.schemas.db_config import DbConfigRequest
+ from app.services import db_config as service
+ 
+@@ -9,14 +10,17 @@
+ 
+ 
+ @router.post("")
+-def create(request: DbConfigRequest, user: CurrentUser, session: DatabaseSession) -> dict[str, object]:
+-    return success(service.create_config(session, user.id, request).model_dump(by_alias=True))
++def create(request: DbConfigRequest, http: Request, user: CurrentUser,
++           session: DatabaseSession) -> dict[str, object]:
++    with locale_scope(http.headers.get("accept-language")):
++        return success(service.create_config(session, user.id, request).model_dump(by_alias=True))
+ 
+ 
+ @router.put("/{config_id}")
+-def update(config_id: int, request: DbConfigRequest, user: CurrentUser,
++def update(config_id: int, request: DbConfigRequest, http: Request, user: CurrentUser,
+            session: DatabaseSession) -> dict[str, object]:
+-    return success(service.update_config(session, user.id, config_id, request).model_dump(by_alias=True))
++    with locale_scope(http.headers.get("accept-language")):
++        return success(service.update_config(session, user.id, config_id, request).model_dump(by_alias=True))
+ 
+ 
+ @router.delete("/{config_id}")
+@@ -46,8 +50,9 @@
+ 
+ 
+ @router.post("/{config_id}/refresh-doc")
+-def refresh_doc(config_id: int, user: CurrentUser, session: DatabaseSession) -> dict[str, object]:
+-    return success(service.refresh_doc(session, user.id, config_id))
++def refresh_doc(config_id: int, http: Request, user: CurrentUser, session: DatabaseSession) -> dict[str, object]:
++    with locale_scope(http.headers.get("accept-language")):
++        return success(service.refresh_doc(session, user.id, config_id))
+ 
+ 
+ @router.get("/{config_id}/doc")
+--- a/backend/app/services/db_config.py
++++ b/backend/app/services/db_config.py
+@@ -10,6 +10,7 @@
+ from app.core.config import get_settings
+ from app.core.errors import BusinessError, deny_trial
+ from app.core.ownership import require_owned
++from app.core.request_locale import current_locale
+ from app.core.security import encrypt
+ from app.models import DbConfig
+ from app.schemas.db_config import DbConfigRequest, DbConfigVO
+@@ -61,7 +62,7 @@
+ 
+ def _enqueue(session: Session, config_id: int, version: int) -> bool:
+     try:
+-        verify_config.apply_async(args=(config_id, version))
++        verify_config.apply_async(args=(config_id, version), headers={"locale": current_locale()})
+         return True
+     except OperationalError as exc:
+         session.execute(update(DbConfig).where(
+--- a/backend/app/services/db_config_common.py
++++ b/backend/app/services/db_config_common.py
+@@ -3,6 +3,8 @@
+ from app.adapters import DbConnectionConfig, get_adapter
+ from app.core.config import get_settings
+ from app.core.errors import BusinessError
++from app.core.localization import translate
++from app.core.request_locale import current_locale
+ from app.core.security import decrypt
+ from app.models import DbConfig
+ from app.schemas.db_config import DbConfigRequest, DbConfigVO
+@@ -66,7 +68,8 @@
+ 
+ 
+ def diagnostic(exc: Exception, password: str = "") -> str:
+-    detail = str(exc)
++    detail = (translate(exc.message, current_locale(), *exc.message_args)
++              if isinstance(exc, BusinessError) else str(exc))
+     if password:
+         for credential in {password, quote(password, safe=""), quote_plus(password)}:
+             detail = detail.replace(credential, "[REDACTED]")
+--- a/backend/app/services/db_config_init.py
++++ b/backend/app/services/db_config_init.py
+@@ -1,3 +1,5 @@
++import logging
++
+ from sqlalchemy import select
+ from sqlalchemy.orm import Session
+ 
+@@ -6,20 +8,24 @@
+ from app.models import DbConfig, User
+ from app.services.db_config import _enqueue
+ 
++logger = logging.getLogger(__name__)
++
+ 
+ def initialize_trial_database(session: Session) -> None:
+     settings = get_settings()
+     if not settings.trial_enabled:
+         return
+-    if not all((settings.trial_builtin_host, settings.trial_builtin_username,
+-                settings.trial_builtin_password, settings.trial_builtin_db_name)):
+-        raise ValueError("Trial built-in database connection is incomplete")
++    if not all(value.strip() for value in (settings.trial_builtin_host, settings.trial_builtin_username,
++                                          settings.trial_builtin_password, settings.trial_builtin_db_name)):
++        logger.warning("Trial built-in database connection is incomplete; initialization skipped")
++        return
+     existing = session.scalar(select(DbConfig.id).where(DbConfig.builtin.is_(True)).limit(1))
+     if existing is not None:
+         return
+     admin = session.scalar(select(User).where(User.username == settings.bootstrap_username))
+     if admin is None:
+-        raise RuntimeError("Trial built-in database requires the bootstrap admin account")
++        logger.warning("Trial bootstrap admin is absent; built-in database initialization skipped")
++        return
+     config = DbConfig(
+         user_id=admin.id, name=settings.trial_builtin_db_name, db_type="mysql",
+         host=settings.trial_builtin_host, port=settings.trial_builtin_port,
+--- a/backend/app/tasks/db_config.py
++++ b/backend/app/tasks/db_config.py
+@@ -1,7 +1,15 @@
++from celery import Task  # type: ignore[import-untyped]
++
++from app.core.request_locale import locale_scope
+ from app.services.db_config_worker import verify_and_generate
+ from app.tasks.celery_app import celery_app
+ 
+ 
+-@celery_app.task(name="sqlchat.db_config.verify", time_limit=120)
+-def verify_config(config_id: int, version: int) -> None:
+-    verify_and_generate(config_id, version)
++@celery_app.task(bind=True, name="sqlchat.db_config.verify", time_limit=120)  # type: ignore[untyped-decorator]
++def verify_config(task: Task, config_id: int, version: int) -> None:
++    headers = task.request.headers
++    locale = headers.get("locale") if isinstance(headers, dict) else None
++    if locale is not None and not isinstance(locale, str):
++        raise TypeError("Verification task locale must be a string")
++    with locale_scope(locale):
++        verify_and_generate(config_id, version)
+--- a/backend/tests/test_dsml.py
++++ b/backend/tests/test_dsml.py
+@@ -0,0 +1,294 @@
++"""DSML recovery through the real HTTP model stream and restricted tool list."""
++
++import json
++import threading
++from collections.abc import Iterator
++
++import pytest
++from langchain_core.messages import HumanMessage, ToolMessage
++from langchain_core.tools import BaseTool
++from test_model_protocol import Provider, frame, model
++
++from app.agent.dsml import AllowedTool, StructuredCall, parse, reconcile, strip
++from app.agent.graph import RunContext, run_graph
++from app.agent.streaming import ModelStream
++from app.agent.tools import RunTools
++from app.agent.types import ChatRequest, Usage
++from app.core.errors import BusinessError
++
++
++@pytest.fixture
++def provider() -> Iterator[Provider]:
++    service = Provider([])
++    thread = threading.Thread(target=service.serve_forever, daemon=True)
++    thread.start()
++    yield service
++    service.shutdown()
++    service.server_close()
++    thread.join(timeout=2)
++
++
++def _parameter(name: str, value: str, *, string: bool = False, bars: str = "｜｜") -> str:
++    flag = str(string).lower()
++    return (f'<{bars}DSML{bars}parameter name="{name}" string="{flag}">{value}'
++            f'</{bars}DSML{bars}parameter>')
++
++
++def _invoke(name: str, body: str, *, bars: str = "｜｜") -> str:
++    return f'<{bars}DSML{bars}invoke name="{name}">{body}</{bars}DSML{bars}invoke>'
++
++
++def _wrapper(body: str, *, bars: str = "｜｜") -> str:
++    return f'<{bars}DSML{bars}tool_calls>{body}</{bars}DSML{bars}tool_calls>'
++
++
++def _sql_text(*, bars: str = "｜｜", db_id: str = "12") -> str:
++    return _wrapper(_invoke("executeSql", _parameter("dbConfigId", db_id, bars=bars)
++                            + _parameter("sql", "SELECT 1", string=True, bars=bars), bars=bars), bars=bars)
++
++
++def _reply(content: str, *, calls: list[dict[str, object]] | None = None,
++           reasoning: str | None = None) -> list[bytes]:
++    delta: dict[str, object] = {"content": content}
++    if calls is not None:
++        delta["tool_calls"] = calls
++    if reasoning is not None:
++        delta["reasoning_content"] = reasoning
++    return [frame({"choices": [{"delta": delta}]}),
++            frame({"usage": {"prompt_tokens": 3, "completion_tokens": 4}}), frame("[DONE]")]
++
++
++def _tools() -> list[BaseTool]:
++    request = ChatRequest.model_validate({"message": "query", "dbConfigIds": [12]})
++    return RunTools(7, request).for_intent("sql_query")
++
++
++def test_original_fullwidth_and_halfwidth_values_and_cleanup() -> None:
++    for bars in ("｜｜", "||"):
++        content = _wrapper(_invoke("demo", _parameter("text", " 42 ", string=True, bars=bars)
++                                   + _parameter("number", "42", bars=bars)
++                                   + _parameter("fraction", "1.25", bars=bars)
++                                   + _parameter("flag", "true", bars=bars)
++                                   + _parameter("fallback", "other", bars=bars), bars=bars), bars=bars)
++        parsed = parse(content)
++        assert parsed is not None
++        calls, clean = parsed
++        assert clean == ""
++        assert calls[0].args == {"text": " 42 ", "number": 42, "fraction": 1.25,
++                                 "flag": True, "fallback": "other"}
++        assert strip(f"Before\n{content}\nAfter") == "Before\n\nAfter"
++    assert strip("Answer <｜｜DSML｜") == "Answer "
++    assert strip("Answer </｜｜DS") == "Answer "
++
++
++@pytest.mark.asyncio
++async def test_empty_structured_arguments_recovered_with_original_id_and_usage(provider: Provider) -> None:
++    dsml = _sql_text()
++    call = {"index": 0, "id": "call_original", "function": {"name": "executeSql", "arguments": ""}}
++    packet = frame({"choices": [{"delta": {"content": dsml, "tool_calls": [call],
++                                             "reasoning_content": "looking"}}]})
++    provider.replies = [[packet[:11], packet[11:33], packet[33:],
++                         frame({"usage": {"prompt_tokens": 3, "completion_tokens": 4}}), frame("[DONE]")],
++                        _reply("Done")]
++    events: list[tuple[str, object]] = []
++
++    async def emit(kind: str, value: object, _step: int) -> None:
++        events.append((kind, value))
++
++    usage = Usage()
++    stream = ModelStream(model(provider), emit, usage)
++    result = await stream.call([HumanMessage(content="query")], event=None, tools=_tools())
++    assert result.content == ""
++    assert len(result.tool_calls) == 1
++    assert result.tool_calls[0]["id"] == "call_original"
++    assert result.tool_calls[0]["args"] == {"db_id": 12, "statement": "SELECT 1"}
++    assert result.additional_kwargs["reasoning_content"] == "looking"
++    assert usage.totalTokens == 7
++    assert events == []
++    followup = await stream.call([HumanMessage(content="query"), result,
++                                  ToolMessage(content="one row", tool_call_id="call_original")])
++    assert followup.content == "Done"
++    sent = provider.requests[1]["messages"]
++    assert isinstance(sent, list)
++    assert sent[1]["tool_calls"][0]["id"] == "call_original"
++    assert sent[2]["tool_call_id"] == "call_original"
++
++
++@pytest.mark.asyncio
++async def test_unstructured_full_wrapper_recovers_only_in_tool_branch(provider: Provider) -> None:
++    provider.replies = [_reply(_sql_text(bars="||")), _reply("done"), _reply(_sql_text(bars="||"))]
++
++    async def emit(_kind: str, _value: object, _step: int) -> None:
++        pass
++
++    stream = ModelStream(model(provider), emit, Usage())
++    call = await stream.call([HumanMessage(content="query")], event=None, tools=_tools())
++    assert len(call.tool_calls) == 1
++    recovered_id = call.tool_calls[0]["id"]
++    assert isinstance(recovered_id, str)
++    assert recovered_id.startswith("dsml-")
++    assert call.tool_calls[0]["args"]["db_id"] == 12
++    followup = await stream.call([HumanMessage(content="query"), call,
++                                  ToolMessage(content="one row", tool_call_id=recovered_id)])
++    assert followup.content == "done"
++    sent = provider.requests[1]["messages"]
++    assert isinstance(sent, list)
++    assert sent[1]["tool_calls"][0]["id"] == recovered_id
++    assert sent[2]["tool_call_id"] == recovered_id
++    plain = await stream.call([HumanMessage(content="explain DSML")], event="content")
++    assert plain.tool_calls == []
++    assert "DSML" in plain.content
++
++
++@pytest.mark.asyncio
++async def test_code_example_and_malformed_or_unknown_do_not_execute(provider: Provider) -> None:
++    example = f"Here is an example:\n```xml\n{_sql_text()}\n```\nDo not run it."
++    simple_example = '<invoke name="executeSql"><parameter name="dbConfigId">12</parameter></invoke>'
++    malformed = "<｜｜DSML｜｜tool_calls><｜｜DSML｜｜invoke name=\"executeSql\">broken"
++    unknown = _wrapper(_invoke("deleteEverything", _parameter("db_id", "12")))
++    provider.replies = [_reply(example), _reply(simple_example), _reply(malformed), _reply(unknown)]
++
++    async def emit(_kind: str, _value: object, _step: int) -> None:
++        pass
++
++    stream = ModelStream(model(provider), emit, Usage())
++    ordinary = await stream.call([HumanMessage(content="example")], event=None, tools=_tools())
++    assert ordinary.tool_calls == []
++    assert "executeSql" not in ordinary.content
++    simple = await stream.call([HumanMessage(content="simple example")], event=None, tools=_tools())
++    assert simple.tool_calls == [] and simple.content == simple_example
++    with pytest.raises(ValueError, match="Incomplete DSML"):
++        await stream.call([HumanMessage(content="broken")], event=None, tools=_tools())
++    with pytest.raises(ValueError, match="Unknown DSML tool"):
++        await stream.call([HumanMessage(content="unknown")], event=None, tools=_tools())
++
++
++def test_mismatched_multiple_calls_and_duplicate_structured_call() -> None:
++    first = _sql_text()
++    repeated = _wrapper(_invoke("executeSql", _parameter("db_id", "12")
++                                + _parameter("statement", "SELECT 1", string=True))
++                        + _invoke("executeSql", _parameter("db_id", "12")
++                                  + _parameter("statement", "SELECT 2", string=True)))
++    structured = [StructuredCall("executeSql", json.dumps({"db_id": 12, "statement": "SELECT 1"}), "call_1")]
++    allowed = {"executeSql": AllowedTool(frozenset({"db_id", "statement"}),
++                                         frozenset({"db_id", "statement"}))}
++    clean, calls = reconcile(first, structured, allowed)
++    assert clean == "" and calls is not None and len(calls) == 1
++    assert calls[0]["id"] == "call_1"
++    with pytest.raises(ValueError, match="counts differ"):
++        reconcile(repeated, structured, allowed)
++    with pytest.raises(ValueError, match="missing required"):
++        reconcile(first, [StructuredCall("executeSql", '{"db_id": 13}', "call_1")], allowed)
++
++
++@pytest.mark.parametrize(("name", "legacy", "canonical", "fields"), [
++    ("getDatabaseSchema", {"dbConfigId": 9}, {"db_id": 9}, {"db_id"}),
++    ("readFile", {"fileId": 9}, {"file_id": 9}, {"file_id"}),
++    ("readImage", {"fileId": 9}, {"file_id": 9}, {"file_id"}),
++    ("compareDatabases", {"preDbConfigId": 1, "testDbConfigId": 2},
++     {"pre_id": 1, "test_id": 2}, {"pre_id", "test_id"}),
++    ("readToolOutput", {"artifactId": "a", "offset": 0, "limit": 100},
++     {"artifact_id": "a", "offset": 0, "length": 100}, {"artifact_id", "offset", "length"}),
++    ("doTerminate", {"summary": "done"}, {"reason": "done"}, {"reason"}),
++])
++def test_known_legacy_argument_names_are_mapped_only_for_allowed_tools(
++    name: str, legacy: dict[str, object], canonical: dict[str, object], fields: set[str],
++) -> None:
++    body = "".join(_parameter(key, str(value), string=isinstance(value, str))
++                   for key, value in legacy.items())
++    content = _wrapper(_invoke(name, body))
++    clean, calls = reconcile(content, [], {name: AllowedTool(frozenset(fields), frozenset(fields))})
++    assert clean == "" and calls is not None
++    assert calls[0]["args"] == canonical
++
++
++def test_legacy_alias_conflicts_and_unknown_arguments_fail() -> None:
++    allowed = {"executeSql": AllowedTool(frozenset({"db_id", "statement"}),
++                                         frozenset({"db_id", "statement"}))}
++    conflict = _wrapper(_invoke("executeSql", _parameter("dbConfigId", "12")
++                                + _parameter("db_id", "12")
++                                + _parameter("sql", "SELECT 1", string=True)))
++    with pytest.raises(ValueError, match="Conflicting DSML argument"):
++        reconcile(conflict, [], allowed)
++    unknown = _wrapper(_invoke("executeSql", _parameter("dbConfigId", "12")
++                               + _parameter("sql", "SELECT 1", string=True)
++                               + _parameter("userId", "7")))
++    with pytest.raises(ValueError, match="Unknown DSML argument"):
++        reconcile(unknown, [], allowed)
++
++
++def test_simple_invoke_requires_corresponding_structured_call() -> None:
++    simple = ('<invoke name="executeSql"><parameter name="dbConfigId">12</parameter>'
++              '<parameter name="sql" string="true">SELECT 1</parameter></invoke>')
++    schema = {"executeSql": AllowedTool(frozenset({"db_id", "statement"}),
++                                        frozenset({"db_id", "statement"}))}
++    assert reconcile(simple, [], schema) == (simple, None)
++    clean, calls = reconcile(simple, [StructuredCall("executeSql", "", "call_simple")], schema)
++    assert clean == "" and calls is not None
++    assert calls[0]["id"] == "call_simple"
++    assert calls[0]["args"] == {"db_id": 12, "statement": "SELECT 1"}
++
++
++@pytest.mark.asyncio
++async def test_graph_executes_recovered_legacy_call_once_and_checks_selection(
++    provider: Provider, monkeypatch: pytest.MonkeyPatch,
++) -> None:
++    from app.services import database_tools
++
++    executions: list[tuple[int, int, str]] = []
++    monkeypatch.setattr(database_tools, "get_schema", lambda _user, _db: {"tables": [], "incomplete": False})
++
++    def execute(user: int, db_id: int, statement: str) -> dict[str, object]:
++        executions.append((user, db_id, statement))
++        return {"success": True, "rowCount": 1, "data": [{"value": 1}]}
++
++    monkeypatch.setattr(database_tools, "execute_statement", execute)
++
++    async def emit(_kind: str, _value: object, _step: int) -> None:
++        pass
++
++    provider.replies = [_reply(_sql_text()), _reply("one row")]
++    request = ChatRequest.model_validate({"message": "query", "confirmedIntent": "sql_query", "dbConfigIds": [12]})
++    context = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
++                         RunTools(7, request), emit)
++    result = await run_graph(context)
++    assert result["answer"] == "one row"
++    assert executions == [(7, 12, "SELECT 1")]
++
++    structured = {"index": 0, "id": "call_structured", "function": {
++        "name": "executeSql", "arguments": '{"db_id":12,"statement":"SELECT 1"}',
++    }}
++    provider.replies = [_reply(_sql_text(), calls=[structured]), _reply("one row")]
++    duplicate = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
++                           RunTools(7, request), emit)
++    assert (await run_graph(duplicate))["answer"] == "one row"
++    assert executions == [(7, 12, "SELECT 1"), (7, 12, "SELECT 1")]
++
++    provider.replies = [_reply(_sql_text(db_id="13"))]
++    unauthorized = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
++                              RunTools(7, request), emit)
++    with pytest.raises(BusinessError, match="not selected"):
++        await run_graph(unauthorized)
++    assert executions == [(7, 12, "SELECT 1"), (7, 12, "SELECT 1")]
++
++
++@pytest.mark.asyncio
++async def test_summary_delta_and_final_text_hide_split_protocol(provider: Provider) -> None:
++    dsml = _sql_text()
++    provider.replies = [[frame({"choices": [{"delta": {"content": "Answer <"}}]}),
++                         frame({"choices": [{"delta": {"content": dsml[1:25]}}]}),
++                         frame({"choices": [{"delta": {"content": dsml[25:] + " after"}}]}),
++                         frame("[DONE]")]]
++    emitted: list[str] = []
++
++    async def emit(kind: str, value: object, _step: int) -> None:
++        if kind == "summary_delta":
++            assert isinstance(value, str)
++            emitted.append(value)
++
++    result = await ModelStream(model(provider), emit, Usage()).call(
++        [HumanMessage(content="summarize")], event="summary_delta",
++    )
++    assert result.content == "Answer  after"
++    assert "".join(emitted) == "Answer  after"
++    assert all("DSML" not in value and "invoke" not in value for value in emitted)
+--- a/backend/tests/test_dsml_revision.py
++++ b/backend/tests/test_dsml_revision.py
+@@ -0,0 +1,130 @@
++"""Original structured calls win; recovered text never grants extra capabilities."""
++
++import json
++import threading
++
++import pytest
++from langchain_core.messages import HumanMessage, ToolMessage
++from test_dsml import _invoke, _parameter, _reply, _sql_text, _tools, _wrapper
++from test_model_protocol import Provider, frame, model
++
++from app.agent.cancellation import RunAborted
++from app.agent.dsml import AllowedTool, StructuredCall, reconcile, strip
++from app.agent.streaming import ModelStream
++from app.agent.types import Usage
++
++pytest_plugins = ["test_model_protocol"]
++
++ALLOWED = {"executeSql": AllowedTool(frozenset({"db_id", "statement"}),
++                                     frozenset({"db_id", "statement"}))}
++
++
++def test_original_valid_structured_arguments_win_and_ids_are_not_duplicated() -> None:
++    clean, calls = reconcile(_sql_text(), [StructuredCall("executeSql", json.dumps({
++        "db_id": 12, "statement": "SELECT 2",
++    }), "original")], ALLOWED)
++    assert clean == "" and calls is not None
++    assert calls[0]["args"] == {"db_id": 12, "statement": "SELECT 2"}
++    double = _wrapper(_invoke("executeSql", _parameter("db_id", "12")
++                               + _parameter("statement", "SELECT 1", string=True)) * 2)
++    with pytest.raises(ValueError, match="Duplicate tool-call IDs"):
++        reconcile(double, [StructuredCall("executeSql", "", "same")] * 2, ALLOWED)
++
++
++@pytest.mark.parametrize("arguments", ["[]", "null", "true", '"text"'])
++def test_valid_non_object_json_is_not_silently_repaired(arguments: str) -> None:
++    with pytest.raises(TypeError, match="JSON object"):
++        reconcile(_sql_text(), [StructuredCall("executeSql", arguments, "id")], ALLOWED)
++
++
++@pytest.mark.parametrize("number", ["NaN", "Infinity", "-inf", "1e999"])
++def test_non_finite_numbers_and_missing_fields_fail_explicitly(number: str) -> None:
++    content = _wrapper(_invoke("executeSql", _parameter("db_id", number)
++                               + _parameter("statement", "SELECT 1", string=True)))
++    with pytest.raises(ValueError, match="Non-finite"):
++        reconcile(content, [], ALLOWED)
++
++
++def test_original_invoke_only_and_residual_prose_are_supported() -> None:
++    text = _invoke("executeSql", _parameter("db_id", "12")
++                    + _parameter("statement", "SELECT 1", string=True))
++    clean, calls = reconcile(text, [], ALLOWED)
++    assert clean == "" and calls is not None
++    args = calls[0]["args"]
++    assert isinstance(args, dict) and args["statement"] == "SELECT 1"
++    assert strip("Conclusion\n<｜｜DSML｜｜tool_calls>\nunfinished prose") == "Conclusion\n\nunfinished prose"
++    assert strip("x < y and trailing <") == "x < y and trailing <"
++    with pytest.raises(ValueError, match="missing required"):
++        reconcile(_wrapper(_invoke("executeSql", _parameter("db_id", "12"))), [], ALLOWED)
++
++
++@pytest.mark.asyncio
++async def test_fragmented_ids_names_invalid_json_recovery_and_reasoning_roundtrip(provider: Provider) -> None:
++    provider.replies = [[
++        frame({"choices": [{"delta": {"content": _sql_text()[:40], "reasoning_content": "read ",
++            "tool_calls": [{"index": 0, "id": "call_", "function": {
++                "name": "execute", "arguments": "{invalid"}}]}}]}),
++        frame({"choices": [{"delta": {"content": _sql_text()[40:], "reasoning_content": "schema",
++            "tool_calls": [{"index": 0, "id": "fragment", "function": {
++                "name": "Sql", "arguments": " json"}}]}}]}),
++        frame({"usage": {"prompt_tokens": 4, "completion_tokens": 2, "total_tokens": 6}}),
++        frame({"usage": {"prompt_tokens": 4, "completion_tokens": 2, "total_tokens": 6}}),
++        frame("[DONE]"),
++    ], _reply("Verified")]
++
++    async def emit(_kind: str, _text: object, _step: int) -> None:
++        pass
++
++    usage = Usage()
++    stream = ModelStream(model(provider), emit, usage)
++    result = await stream.call([HumanMessage(content="query")], tools=_tools(), event=None)
++    assert result.tool_calls[0]["id"] == "call_fragment"
++    assert result.tool_calls[0]["name"] == "executeSql"
++    assert result.additional_kwargs["reasoning_content"] == "read schema"
++    assert usage.callCount == 1 and usage.totalTokens == 6
++    await stream.call([result, ToolMessage(content="one row", tool_call_id="call_fragment")])
++    sent = provider.requests[1]["messages"]
++    assert isinstance(sent, list)
++    assert sent[0]["reasoning_content"] == "read schema"
++    assert sent[0]["tool_calls"][0]["id"] == sent[1]["tool_call_id"] == "call_fragment"
++    assert provider.requests[0]["temperature"] == 0.7
++
++
++@pytest.mark.asyncio
++async def test_plain_code_remains_text_and_summary_cancellation_never_emits_protocol(provider: Provider) -> None:
++    example = f"Example only:\n```xml\n{_sql_text()}\n```"
++    provider.replies = [_reply(example), [
++        frame({"usage": {"prompt_tokens": 4, "completion_tokens": 2, "total_tokens": 6}}),
++        frame({"choices": [{"delta": {"content": "Verified <"}}]}),
++        frame({"choices": [{"delta": {"content": _sql_text()[1:]}}]}), frame("[DONE]"),
++    ]]
++    cancellation = threading.Event()
++    events: list[str] = []
++
++    async def emit(kind: str, value: object, _step: int) -> None:
++        assert isinstance(value, str)
++        events.append(value)
++        if kind == "summary_delta":
++            cancellation.set()
++
++    usage = Usage()
++    stream = ModelStream(model(provider), emit, usage, cancellation)
++    answer = await stream.call([HumanMessage(content="explain")], event="content")
++    assert answer.content == example and not answer.tool_calls
++    events.clear()
++    with pytest.raises(RunAborted):
++        await stream.call([HumanMessage(content="summarize")], event="summary_delta")
++    assert events == ["Verified "] and stream.partial == "Verified "
++    assert usage.callCount == 2 and usage.totalTokens == 13
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize("bad", [{"index": True}, {"index": -1}, {"index": 0, "id": 4}])
++async def test_invalid_tool_identity_is_explicit_failure(provider: Provider, bad: dict[str, object]) -> None:
++    provider.replies = [[frame({"choices": [{"delta": {"tool_calls": [bad]}}]}), frame("[DONE]")]]
++
++    async def emit(_kind: str, _text: object, _step: int) -> None:
++        pass
++
++    with pytest.raises((ValueError, TypeError)):
++        await ModelStream(model(provider), emit, Usage()).call([HumanMessage(content="query")], tools=_tools())
+--- a/backend/tests/test_dsml_http.py
++++ b/backend/tests/test_dsml_http.py
+@@ -0,0 +1,91 @@
++"""DSML decisions and summary cleanup across POST SSE and persisted history."""
++
++import json
++import threading
++
++import pytest
++from fastapi.testclient import TestClient
++from sqlalchemy.orm import Session, sessionmaker
++from test_chat_api import parse_events
++from test_dsml import _reply, _sql_text
++from test_model_protocol import Provider, frame
++
++from app.models import DbConfig, User
++from app.services import chat_store, database_tools
++
++pytest_plugins = ["test_chat_api"]
++
++
++def selected_database(user: User) -> int:
++    factory: sessionmaker[Session] = chat_store.SessionLocal  # type: ignore[attr-defined]
++    with factory() as session:
++        config = DbConfig(user_id=user.id, name="fixture", db_type="postgresql", host="localhost",
++                          port=5432, db_name="fixture", username="fixture", status=1)
++        session.add(config)
++        session.commit()
++        return config.id
++
++
++def test_recovered_call_and_split_final_summary_match_history(
++    chat_client: tuple[TestClient, User, User, DbConfig], provider: Provider,
++    monkeypatch: pytest.MonkeyPatch,
++) -> None:
++    client, user, _, _foreign = chat_client
++    db_id = selected_database(user)
++    calls: list[str] = []
++    monkeypatch.setattr(database_tools, "get_schema", lambda _user, _db: {"tables": [], "incomplete": False})
++
++    def execute(_user: int, _db: int, statement: str,
++                cancel_event: threading.Event | None = None) -> dict[str, object]:
++        calls.append(statement)
++        return {"success": True, "rowCount": 1, "data": [{"value": 1}]}
++
++    monkeypatch.setattr(database_tools, "execute_statement", execute)
++    protocol = _sql_text(db_id=str(db_id))
++    first = frame({"choices": [{"delta": {"content": protocol, "tool_calls": [{"index": 0,
++        "id": "original_id", "function": {"name": "executeSql", "arguments": ""}}]}}]})
++    provider.replies = [[first[:8], first[8:53], first[53:], frame("[DONE]")],
++        [frame({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "end",
++            "function": {"name": "doTerminate", "arguments": '{"reason":"verified"}'}}]}}]}),
++         frame("[DONE]")],
++        [frame({"choices": [{"delta": {"content": part}}]}) for part in
++            ["One row. <", protocol[1:16], protocol[16:], " Verified."]]
++        + [frame("[DONE]")]]
++    response = client.post("/api/chat", json={"message": "query", "confirmedIntent": "sql_query",
++                                             "dbConfigIds": [db_id]})
++    events = parse_events(response.text)
++    assert calls == ["SELECT 1"] and not any(event["type"] == "error" for event in events)
++    streamed = "".join(str(event["content"]) for event in events if event["type"] == "summary_delta")
++    final = [event["content"] for event in events if event["type"] == "summary"]
++    assert streamed == "One row.  Verified." and final == [streamed]
++    assert "DSML" not in response.text and "original_id" not in response.text
++    history = client.get(f"/api/chat/conversations/{events[0]['content']}/messages").json()["data"]
++    assert history[-1]["content"] == streamed and history[-1]["type"] == "summary"
++    sent = provider.requests[1]["messages"]
++    assert isinstance(sent, list)
++    assistant = next(message for message in sent if message.get("tool_calls"))
++    tool = next(message for message in sent if message["role"] == "tool")
++    assert assistant["tool_calls"][0]["id"] == tool["tool_call_id"] == "original_id"
++
++
++@pytest.mark.parametrize("invalid", ["", "<｜｜DSML｜｜tool_calls><｜｜DSML｜｜invoke broken"])
++def test_invalid_model_never_claims_success_or_executes_query(
++    chat_client: tuple[TestClient, User, User, DbConfig], provider: Provider,
++    monkeypatch: pytest.MonkeyPatch, invalid: str,
++) -> None:
++    client, user, _, _foreign = chat_client
++    db_id = selected_database(user)
++    monkeypatch.setattr(database_tools, "get_schema", lambda _user, _db: {"tables": [], "incomplete": False})
++
++    def forbidden(*_args: object, **_kwargs: object) -> None:
++        raise AssertionError("Malformed provider tool text must not execute")
++
++    monkeypatch.setattr(database_tools, "execute_statement", forbidden)
++    provider.replies = [_reply(invalid)]
++    response = client.post("/api/chat", json={"message": "query", "confirmedIntent": "sql_query",
++                                             "dbConfigIds": [db_id]})
++    events = parse_events(response.text)
++    assert [event["type"] for event in events][-3:] == ["usage", "error", "done"]
++    assert not any(event["type"] in {"summary", "summary_delta"} for event in events)
++    history = client.get(f"/api/chat/conversations/{events[0]['content']}/messages").json()["data"]
++    assert history[-1]["type"] == "error" and "DSML" not in json.dumps(history)
+--- a/backend/tests/test_product_locale.py
++++ b/backend/tests/test_product_locale.py
+@@ -0,0 +1,98 @@
++"""Seven source locales keep independent HTTP, SSE, and model language."""
++
++import json
++from concurrent.futures import ThreadPoolExecutor
++
++import pytest
++from fastapi.testclient import TestClient
++from test_chat_api import parse_events, reply
++from test_model_protocol import Provider
++
++from app.agent.prompts import language
++from app.core.config import get_settings
++from app.core.localization import SUPPORTED_LOCALES, translate
++from app.models import DbConfig, User
++
++pytest_plugins = ["test_chat_api"]
++
++
++@pytest.mark.parametrize("locale", list(SUPPORTED_LOCALES))
++def test_trial_errors_and_clarification_keep_request_locale(
++    chat_client: tuple[TestClient, User, User, DbConfig], provider: Provider,
++    monkeypatch: pytest.MonkeyPatch, locale: str,
++) -> None:
++    client, _, _, _ = chat_client
++    monkeypatch.setattr(get_settings(), "trial_enabled", True)
++    denied = client.post("/api/chat", headers={"Accept-Language": locale},
++                         json={"message": "run", "confirmedIntent": "workflow", "dbConfigIds": [999]})
++    assert denied.status_code == 200 and denied.json()["code"] == 403
++    assert denied.json()["message"] == translate("error.trial.workflow", locale)
++    assert provider.requests == []
++    monkeypatch.setattr(get_settings(), "trial_enabled", False)
++    provider.replies = [reply(json.dumps({"intent": "sql_query", "confidence": 0.99,
++        "reasoning": "reason in " + locale, "needsClarification": False}))]
++    response = client.post("/api/chat", headers={"Accept-Language": locale}, json={"message": "query"})
++    events = parse_events(response.text)
++    clarification = next(event["content"] for event in events if event["type"] == "clarify")
++    assert isinstance(clarification, dict)
++    options = clarification["options"]
++    assert isinstance(options, list) and len(options) == 2
++    from app.core.localization import _messages
++    resource = _messages(locale)
++    assert options == [{"intent": "sql_query", "label": resource["chat.clarify.sqlQueryNeedDb"]},
++                       {"intent": "simple_chat", "label": resource["chat.clarify.simpleChat"]}]
++    assert clarification["question"] == resource["chat.clarify.question"]
++    assert clarification["reasoning"] == translate("error.chat.sqlQueryNoDbConfig", locale)
++    classifying = next(event["content"] for event in events if event["type"] == "classifying")
++    assert classifying == resource["chat.classifying"]
++    messages = provider.requests[0]["messages"]
++    assert language(locale) in str(messages)
++    assert not any(event["type"] == "error" for event in events)
++
++
++@pytest.mark.parametrize("intent", ["workflow", "db_compare"])
++def test_low_confidence_classified_trial_intent_is_still_rejected(
++    chat_client: tuple[TestClient, User, User, DbConfig], provider: Provider,
++    monkeypatch: pytest.MonkeyPatch, intent: str,
++) -> None:
++    client, _, _, _ = chat_client
++    monkeypatch.setattr(get_settings(), "trial_enabled", True)
++    provider.replies = [reply(json.dumps({"intent": intent, "confidence": 0.2,
++                                         "reasoning": "uncertain", "needsClarification": True}))]
++    events = parse_events(client.post("/api/chat", headers={"Accept-Language": "ja"},
++                                     json={"message": "run"}).text)
++    assert [event["type"] for event in events][-3:] == ["usage", "error", "done"]
++    assert not any(event["type"] in {"clarify", "routing", "summary"} for event in events)
++    error = next(event["content"] for event in events if event["type"] == "error")
++    key = "error.trial.workflow" if intent == "workflow" else "error.trial.dbCompare"
++    assert error == translate(key, "ja") and len(provider.requests) == 1
++
++
++def test_two_concurrent_http_languages_do_not_leak(
++    chat_client: tuple[TestClient, User, User, DbConfig], monkeypatch: pytest.MonkeyPatch,
++) -> None:
++    client, _, _, _ = chat_client
++    monkeypatch.setattr(get_settings(), "trial_enabled", True)
++
++    def request(locale: str) -> str:
++        return str(client.post("/api/chat", headers={"Accept-Language": locale},
++                               json={"message": "run", "confirmedIntent": "db_compare"}).json()["message"])
++
++    with ThreadPoolExecutor(max_workers=2) as pool:
++        results = list(pool.map(request, ["fr", "ja"]))
++    assert results == [translate("error.trial.dbCompare", locale) for locale in ("fr", "ja")]
++
++
++@pytest.mark.parametrize("locale", list(SUPPORTED_LOCALES))
++def test_provider_error_is_localized_but_provider_body_is_never_exposed(
++    chat_client: tuple[TestClient, User, User, DbConfig], provider: Provider, locale: str,
++) -> None:
++    from app.agent.product_locale import stream_error
++    client, _, _, _ = chat_client
++    provider.replies = [503]
++    events = parse_events(client.post("/api/chat", headers={"Accept-Language": locale},
++        json={"message": "hi", "confirmedIntent": "simple_chat"}).text)
++    error = next(event for event in events if event["type"] == "error")
++    assert isinstance(error["taskId"], str)
++    assert error["content"] == stream_error(False, locale, error["taskId"])
++    assert not any(event["type"] in {"content", "summary"} for event in events)
+--- a/backend/tests/test_queue_locale.py
++++ b/backend/tests/test_queue_locale.py
+@@ -0,0 +1,143 @@
++"""Locale headers leave business task arguments and fixed document format intact."""
++
++import threading
++from collections.abc import Iterator
++from concurrent.futures import ThreadPoolExecutor
++from typing import cast
++from unittest.mock import Mock
++
++import pytest
++from fastapi.testclient import TestClient
++from sqlalchemy.orm import Session, sessionmaker
++from test_db_config_partial import metadata
++
++from app.api.auth import database_session
++from app.core.auth import current_user
++from app.core.errors import BusinessError
++from app.core.localization import translate
++from app.core.request_locale import current_locale, locale_scope
++from app.main import app
++from app.models import DbConfig, User
++from app.services import db_config, db_config_worker
++from app.services.db_config_common import diagnostic
++from app.tasks import db_config as task_module
++
++pytest_plugins = ["test_db_config_partial"]
++
++
++def run_task(config_id: int, headers: dict[str, object] | None) -> None:
++    task = task_module.verify_config
++    task.push_request(headers=headers)
++    try:
++        task.run(config_id, 1)
++    finally:
++        task.pop_request()
++
++
++def test_scope_restores_locale_even_when_business_error_is_raised() -> None:
++    with locale_scope("es"):
++        with pytest.raises(BusinessError), locale_scope("ja-JP"):
++            assert current_locale() == "ja"
++            raise BusinessError(403, "error.trial.workflow")
++        assert current_locale() == "es"
++    assert current_locale() == "en"
++
++
++def test_old_task_without_header_has_explicit_default_and_malformed_header_is_error(
++    monkeypatch: pytest.MonkeyPatch,
++) -> None:
++    seen: list[str] = []
++    monkeypatch.setattr(task_module, "verify_and_generate", lambda _id, _version: seen.append(current_locale()))
++    with locale_scope("fr"):
++        run_task(12, None)
++        assert current_locale() == "fr"
++        with pytest.raises(TypeError, match="locale must be a string"):
++            run_task(12, {"locale": 42})
++        assert current_locale() == "fr"
++    assert seen == ["en"]
++
++
++def test_concurrent_task_locales_and_exception_reset(monkeypatch: pytest.MonkeyPatch) -> None:
++    barrier = threading.Barrier(2)
++
++    def worker(_id: int, _version: int) -> None:
++        before = current_locale()
++        barrier.wait(timeout=5)
++        assert before == current_locale()
++        raise BusinessError(403, "error.trial.workflow")
++
++    monkeypatch.setattr(task_module, "verify_and_generate", worker)
++
++    def invoke(locale: str) -> tuple[str, str]:
++        with locale_scope(locale):
++            with pytest.raises(BusinessError) as error:
++                run_task(12, {"locale": locale})
++            return current_locale(), diagnostic(error.value)
++
++    with ThreadPoolExecutor(max_workers=2) as pool:
++        results = list(pool.map(invoke, ["fr", "ja"]))
++    assert results == [(locale, "BusinessError: " + translate("error.trial.workflow", locale))
++                       for locale in ("fr", "ja")]
++    assert current_locale() == "en"
++
++
++def test_create_update_refresh_send_normalized_header_with_unchanged_arguments(
++    store: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch,
++) -> None:
++    publish = Mock()
++    monkeypatch.setattr(task_module.verify_config, "apply_async", publish)
++
++    def session_override() -> Iterator[Session]:
++        with store() as session:
++            yield session
++
++    with store() as session:
++        owner = session.get(User, 1)
++        assert owner is not None
++    app.dependency_overrides[database_session] = session_override
++    app.dependency_overrides[current_user] = lambda: owner
++    body = {"name": "new", "dbType": "mysql", "host": "localhost", "port": 3306,
++            "dbName": "synthetic", "username": "fixture", "password": "synthetic-password"}
++    try:
++        client = TestClient(app)
++        response = client.post("/api/db-config", headers={"Accept-Language": "fr-FR"}, json=body)
++        assert response.json()["code"] == 200
++        config_id = response.json()["data"]["id"]
++        assert client.put(f"/api/db-config/{config_id}", headers={"Accept-Language": "ja-JP"},
++                          json=body).json()["code"] == 200
++        assert client.post(f"/api/db-config/{config_id}/refresh-doc",
++                           headers={"Accept-Language": "zh_Hant"}).json()["code"] == 200
++    finally:
++        app.dependency_overrides.clear()
++    calls = publish.call_args_list
++    assert [call.kwargs["args"] for call in calls] == [(config_id, 1), (config_id, 2), (config_id, 3)]
++    assert [call.kwargs["headers"] for call in calls] == [{"locale": "fr"}, {"locale": "ja"},
++                                                        {"locale": "zh-TW"}]
++    assert current_locale() == "en"
++
++
++@pytest.mark.parametrize("locale", ["fr", "ja"])
++@pytest.mark.parametrize("partial", [False, True])
++def test_worker_preserves_fixed_status_document_and_localizes_business_errors(
++    store: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch, locale: str, partial: bool,
++) -> None:
++    adapter = Mock()
++    adapter.test_connection.return_value = True
++    adapter.extract_metadata.return_value = metadata(partial)
++    monkeypatch.setattr(db_config_worker, "get_adapter", lambda _type: adapter)
++    run_task(12, {"locale": locale})
++    with store() as session:
++        config = session.get(DbConfig, 12)
++        assert config is not None and config.status == 1
++        assert config.doc_content is not None and "# Database: synthetic" in config.doc_content
++        assert ("Error reading metadata" in config.doc_content) is partial
++        assert db_config.get_config(session, 1, 12).status_desc == "连接成功"
++        config.status = 0
++        session.commit()
++    adapter.test_connection.side_effect = BusinessError(400, "error.dbConfig.connectionFailed")
++    run_task(12, {"locale": locale})
++    with store() as session:
++        failed = cast(DbConfig, session.get(DbConfig, 12))
++        assert failed.status == 2 and failed.doc_content is None
++        assert failed.verification_error == "BusinessError: " + translate("error.dbConfig.connectionFailed", locale)
++    assert current_locale() == "en"
+--- a/backend/tests/test_trial.py
++++ b/backend/tests/test_trial.py
+@@ -0,0 +1,161 @@
++"""Public trial status and intent guards at HTTP and graph boundaries."""
++
++import json
++import sqlite3
++import threading
++from collections.abc import Iterator
++from types import SimpleNamespace
++from typing import cast
++
++import pytest
++from fastapi.testclient import TestClient
++from sqlalchemy import create_engine, event, select
++from sqlalchemy.orm import Session, sessionmaker
++from test_model_protocol import Provider, frame, model
++
++from app.agent.graph import RunContext, run_graph
++from app.agent.streaming import ModelStream
++from app.agent.tools import RunTools
++from app.agent.types import ChatRequest, Usage
++from app.api.auth import database_session
++from app.core.auth import current_user
++from app.core.config import get_settings
++from app.core.database import Base
++from app.core.errors import BusinessError
++from app.core.security import decrypt
++from app.main import app
++from app.models import DbConfig, User
++from app.services import db_config_init
++
++
++@pytest.fixture
++def trial_mode(monkeypatch: pytest.MonkeyPatch) -> None:
++    monkeypatch.setattr(get_settings(), "trial_enabled", True)
++
++
++@pytest.fixture
++def provider() -> Iterator[Provider]:
++    service = Provider([])
++    thread = threading.Thread(target=service.serve_forever, daemon=True)
++    thread.start()
++    yield service
++    service.shutdown()
++    service.server_close()
++    thread.join(timeout=2)
++
++
++def _response(content: str) -> list[bytes]:
++    return [frame({"choices": [{"delta": {"content": content}}]}), frame("[DONE]")]
++
++
++def test_trial_status_is_public_and_reflects_runtime_setting(monkeypatch: pytest.MonkeyPatch) -> None:
++    client = TestClient(app)
++    monkeypatch.setattr(get_settings(), "trial_enabled", False)
++    assert client.get("/api/trial/status").json() == {
++        "code": 200, "message": "success", "data": {"trialEnabled": False},
++    }
++    monkeypatch.setattr(get_settings(), "trial_enabled", True)
++    assert client.get("/api/trial/status").json()["data"] == {"trialEnabled": True}
++
++
++@pytest.mark.parametrize("intent", ["workflow", "db_compare"])
++def test_confirmed_trial_intent_denied_before_resource_or_model_resolution(
++    trial_mode: None, intent: str,
++) -> None:
++    app.dependency_overrides[current_user] = lambda: SimpleNamespace(id=7)
++    app.dependency_overrides[database_session] = lambda: None
++    try:
++        response = TestClient(app).post("/api/chat", json={"message": "run", "confirmedIntent": intent})
++    finally:
++        app.dependency_overrides.clear()
++    assert response.status_code == 200
++    assert response.json()["code"] == 403
++    assert response.json()["data"] is None
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize("intent", ["workflow", "db_compare"])
++async def test_classified_trial_intent_denied_before_route_and_tools(
++    trial_mode: None, provider: Provider, intent: str,
++) -> None:
++    provider.replies = [_response(json.dumps({
++        "intent": intent, "confidence": 0.99, "reasoning": "requested", "needsClarification": False,
++    }))]
++    events: list[str] = []
++
++    async def emit(kind: str, _content: object, _step: int) -> None:
++        events.append(kind)
++
++    request = ChatRequest.model_validate({
++        "message": "run", "dbConfigIds": [12], "preDbConfigId": 12, "testDbConfigId": 13,
++    })
++    context = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
++                         RunTools(7, request), emit)
++    with pytest.raises(BusinessError) as captured:
++        await run_graph(context)
++    assert captured.value.code == 403
++    assert events == ["classifying", "classified"]
++    assert len(provider.requests) == 1
++
++
++@pytest.mark.asyncio
++async def test_trial_still_allows_general_chat(trial_mode: None, provider: Provider) -> None:
++    provider.replies = [_response("A general answer.")]
++
++    async def emit(_kind: str, _content: object, _step: int) -> None:
++        pass
++
++    request = ChatRequest.model_validate({"message": "hello", "confirmedIntent": "simple_chat"})
++    context = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
++                         RunTools(7, request), emit)
++    result = await run_graph(context)
++    assert result["answer"] == "A general answer."
++
++
++def test_trial_initializer_creates_one_encrypted_builtin(
++    trial_mode: None, monkeypatch: pytest.MonkeyPatch, tmp_path: object,
++) -> None:
++    from pathlib import Path
++
++    directory = Path(str(tmp_path))
++    engine = create_engine(f"sqlite:///{directory / 'main.db'}")
++
++    @event.listens_for(engine, "connect")
++    def attach(dbapi_connection: sqlite3.Connection, _record: object) -> None:
++        dbapi_connection.execute("ATTACH DATABASE ? AS app", (str(directory / "app.db"),))
++
++    Base.metadata.create_all(engine)
++    factory = sessionmaker(engine)
++    settings = get_settings()
++    monkeypatch.setattr(settings, "trial_builtin_host", "127.0.0.1")
++    monkeypatch.setattr(settings, "trial_builtin_username", "reader")
++    monkeypatch.setattr(settings, "trial_builtin_password", "secret")
++    monkeypatch.setattr(settings, "encrypt_key", "0123456789abcdef0123456789abcdef")
++    queued: list[tuple[int, int]] = []
++    monkeypatch.setattr(db_config_init, "_enqueue", lambda _session, db_id, version:
++                        queued.append((db_id, version)))
++    try:
++        with factory() as session:
++            db_config_init.initialize_trial_database(session)
++            assert session.scalars(select(DbConfig)).all() == []
++            session.add(User(username=settings.bootstrap_username, password_hash="unused", status=1))
++            session.commit()
++            db_config_init.initialize_trial_database(session)
++            db_config_init.initialize_trial_database(session)
++            configs = session.scalars(select(DbConfig)).all()
++            assert len(configs) == 1
++            assert configs[0].builtin and configs[0].db_type == "mysql"
++            assert configs[0].host == "127.0.0.1"
++            assert configs[0].password_encrypted != "secret"
++            assert configs[0].password_encrypted is not None
++            assert decrypt(configs[0].password_encrypted) == "secret"
++            assert queued == [(configs[0].id, 1)]
++    finally:
++        engine.dispose()
++
++
++def test_trial_initializer_skips_incomplete_connection(
++    trial_mode: None, monkeypatch: pytest.MonkeyPatch,
++) -> None:
++    monkeypatch.setattr(get_settings(), "trial_builtin_host", "")
++    db_config_init.initialize_trial_database(cast(Session, object()))
+--- a/backend/tests/test_trial_targets.py
++++ b/backend/tests/test_trial_targets.py
+@@ -0,0 +1,61 @@
++"""Trial SQL policy against disposable PostgreSQL and MySQL target databases."""
++
++import os
++from uuid import uuid4
++
++import pytest
++from sqlalchemy import inspect
++
++from app.adapters import DbConnectionConfig, get_adapter
++from app.adapters.relational import RelationalAdapter
++from app.adapters.safety import UnsafeStatement
++
++
++def _target(db_type: str) -> DbConnectionConfig:
++    prefix = "SQLCHAT_TEST_PG" if db_type == "postgresql" else "SQLCHAT_TEST_MYSQL"
++    def required(key: str) -> str:
++        value = os.environ.get(f"{prefix}_{key}")
++        if value is None:
++            pytest.skip(f"{db_type} disposable target credentials are not configured")
++        return value
++
++    fields = {key: required(key) for key in ("HOST", "PORT", "DB", "USER", "PASSWORD")}
++    return DbConnectionConfig(db_type, fields["HOST"], int(fields["PORT"]),
++                              fields["DB"], fields["USER"], fields["PASSWORD"])
++
++
++@pytest.mark.parametrize("db_type", ["postgresql", "mysql"])
++def test_trial_reads_but_never_changes_disposable_target(db_type: str) -> None:
++    config = _target(db_type)
++    adapter = get_adapter(db_type)
++    assert isinstance(adapter, RelationalAdapter)
++    suffix = uuid4().hex[:12]
++    table = f"s13_trial_{suffix}"
++    copy = f"s13_trial_copy_{suffix}"
++    with adapter._connection(config, 30) as connection:
++        qualified = adapter._qualified_name(connection, table)
++        copied = adapter._qualified_name(connection, copy)
++        connection.exec_driver_sql(f"CREATE TABLE {qualified} (id INT PRIMARY KEY, label VARCHAR(20))")
++        connection.exec_driver_sql(f"INSERT INTO {qualified} VALUES (1, 'original')")
++        connection.commit()
++    try:
++        before = adapter.execute(config, f"SELECT id, label FROM {qualified}", trial_mode=True)
++        assert before["data"] == [{"id": 1, "label": "original"}]
++        select_into = (f"SELECT id INTO {copied} FROM {qualified}" if db_type == "postgresql"
++                       else f"SELECT id INTO @s13_trial_value FROM {qualified}")
++        for statement in (
++            f"INSERT INTO {qualified} VALUES (2, 'forbidden')",
++            f"UPDATE {qualified} SET label = 'forbidden' WHERE id = 1",
++            select_into,
++        ):
++            with pytest.raises(UnsafeStatement):
++                adapter.execute(config, statement, trial_mode=True)
++        after = adapter.execute(config, f"SELECT id, label FROM {qualified}", trial_mode=True)
++        assert after["data"] == before["data"]
++        with adapter._connection(config, 30) as connection:
++            assert not inspect(connection).has_table(copy)
++    finally:
++        with adapter._connection(config, 30) as connection:
++            connection.exec_driver_sql(f"DROP TABLE IF EXISTS {copied}")
++            connection.exec_driver_sql(f"DROP TABLE IF EXISTS {qualified}")
++            connection.commit()
+--- a/backend/tests/test_trial_api_matrix.py
++++ b/backend/tests/test_trial_api_matrix.py
+@@ -0,0 +1,111 @@
++"""Original TrialDeny endpoints and built-in restrictions through FastAPI."""
++
++from collections.abc import Iterator
++from unittest.mock import Mock
++
++import pytest
++from fastapi.testclient import TestClient
++from sqlalchemy.orm import Session, sessionmaker
++from test_db_config_partial import metadata
++
++from app.api.auth import database_session
++from app.core.auth import current_user
++from app.core.config import get_settings
++from app.core.localization import translate
++from app.main import app
++from app.models import DbConfig, User
++from app.services import db_config
++
++pytest_plugins = ["test_db_config_partial"]
++
++DB_BODY = {"name": "fixture", "dbType": "mysql", "host": "localhost", "port": 3306,
++           "dbName": "synthetic", "username": "fixture", "password": "synthetic-password"}
++MODEL_BODY = {"providerCode": "test", "providerType": "OPENAI_COMPATIBLE", "displayName": "test",
++              "modelName": "test", "baseUrl": "https://example.invalid", "apiKey": "synthetic"}
++
++
++@pytest.fixture
++def client(store: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
++    monkeypatch.setattr(get_settings(), "trial_enabled", True)
++    with store() as session:
++        owner = session.get(User, 1)
++        assert owner is not None
++        owner.role = "admin"
++        config = session.get(DbConfig, 12)
++        assert config is not None
++        config.builtin = True
++        config.status = 1
++        config.doc_content = "private builtin document"
++        session.commit()
++
++    def session_override() -> Iterator[Session]:
++        with store() as session:
++            yield session
++
++    app.dependency_overrides[database_session] = session_override
++    app.dependency_overrides[current_user] = lambda: owner
++    try:
++        yield TestClient(app)
++    finally:
++        app.dependency_overrides.clear()
++
++
++@pytest.mark.parametrize("method,path,body,key", [
++    ("POST", "/auth/user", {"username": "new", "password": "synthetic", "role": "user"}, "createUser"),
++    ("POST", "/db-config", DB_BODY, "dbConfigCreate"),
++    ("POST", "/model-config/configs", MODEL_BODY, "modelConfigCreate"),
++    ("PUT", "/model-config/configs/999", MODEL_BODY, "modelConfigUpdate"),
++    ("DELETE", "/model-config/configs/999", None, "modelConfigDelete"),
++    ("PUT", "/model-config/configs/999/default", None, "modelConfigSetDefault"),
++    ("POST", "/model-config/context-window/lookup", {"baseUrl": "https://example.invalid",
++        "apiKey": "synthetic", "modelName": "test"}, "contextWindowLookup"),
++    ("GET", "/model-config/configs/999/context-window", None, "contextWindowLookup"),
++    ("PUT", "/db-config/12", DB_BODY, "builtinModify"),
++    ("DELETE", "/db-config/12", None, "builtinModify"),
++    ("POST", "/db-config/12/test", None, "builtinModify"),
++    ("POST", "/db-config/12/generate-doc", None, "builtinModify"),
++    ("POST", "/db-config/12/refresh-doc", None, "builtinModify"),
++])
++def test_original_restricted_apis_fail_before_external_side_effects(
++    client: TestClient, method: str, path: str, body: dict[str, object] | None, key: str,
++) -> None:
++    response = client.request(method, "/api" + path, json=body, headers={"Accept-Language": "fr"})
++    assert response.status_code == 200
++    assert response.json() == {"code": 403, "message": translate("error.trial." + key, "fr"), "data": None}
++
++
++def test_upload_rejected_and_builtin_views_are_masked(client: TestClient) -> None:
++    response = client.post("/api/file/upload", files={"file": ("fixture.csv", b"id\n1\n", "text/csv")})
++    assert response.json()["code"] == 403
++    one = client.get("/api/db-config/12").json()["data"]
++    many = client.get("/api/db-config").json()["data"]
++    assert many == [one]
++    assert all(one[key] == "*" for key in ("dbType", "host", "dbName", "username", "docContent"))
++    assert one["port"] == 0 and "password" not in one
++    assert client.get("/api/db-config/12/doc").json()["data"] == "*"
++
++
++def test_removed_sales_endpoint_is_absent_instead_of_success_shell(client: TestClient) -> None:
++    assert client.post("/api/sales/contact", json={"name": "synthetic"}).status_code == 404
++    paths = client.get("/openapi.json").json()["paths"]
++    assert not any(path.startswith("/api/sales") for path in paths)
++
++
++def test_nonbuiltin_existing_config_is_not_restricted_beyond_original_rules(
++    client: TestClient, store: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch,
++) -> None:
++    with store() as session:
++        config = session.get(DbConfig, 12)
++        assert config is not None
++        config.builtin = False
++        session.commit()
++    adapter = Mock()
++    adapter.test_connection.return_value = True
++    adapter.extract_metadata.return_value = metadata(False)
++    monkeypatch.setattr(db_config, "get_adapter", lambda _type: adapter)
++    monkeypatch.setattr(db_config, "_enqueue", Mock(return_value=True))
++    assert client.put("/api/db-config/12", json=DB_BODY).json()["code"] == 200
++    assert client.post("/api/db-config/12/test").json()["data"] is True
++    assert client.post("/api/db-config/12/generate-doc").json()["code"] == 200
++    assert client.post("/api/db-config/12/refresh-doc").json()["code"] == 200
++    assert client.delete("/api/db-config/12").json()["code"] == 200
+--- a/backend/tests/test_trial_graph_targets.py
++++ b/backend/tests/test_trial_graph_targets.py
+@@ -0,0 +1,96 @@
++"""Real PG/MySQL data effects with a controlled HTTP model and production tools."""
++
++import threading
++from uuid import uuid4
++
++import pytest
++from sqlalchemy import inspect
++from sqlalchemy.orm import Session, sessionmaker
++from test_dsml import _invoke, _parameter, _reply, _wrapper
++from test_model_protocol import Provider, model
++from test_trial_targets import _target
++
++from app.adapters import get_adapter
++from app.adapters.relational import RelationalAdapter
++from app.adapters.safety import UnsafeStatement
++from app.agent.graph import RunContext, run_graph
++from app.agent.streaming import ModelStream
++from app.agent.tools import RunTools
++from app.agent.types import ChatRequest, Usage
++from app.core.config import get_settings
++from app.core.security import encrypt
++from app.models import DbConfig
++from app.services import database_tools
++
++pytest_plugins = ["test_model_protocol", "test_db_config_partial"]
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize("db_type", ["postgresql", "mysql"])
++async def test_trial_graph_reads_rejects_writes_and_normal_graph_commits_allowed_write(
++    store: sessionmaker[Session], provider: Provider, monkeypatch: pytest.MonkeyPatch, db_type: str,
++) -> None:
++    target = _target(db_type)
++    adapter = get_adapter(db_type)
++    assert isinstance(adapter, RelationalAdapter)
++    table = "s13_trial_" + uuid4().hex
++    with adapter._connection(target, 30) as connection:
++        quoted = adapter._qualified_name(connection, table)
++        connection.exec_driver_sql(f"CREATE TABLE {quoted} (id INT PRIMARY KEY, label VARCHAR(20))")
++        connection.exec_driver_sql(f"INSERT INTO {quoted} VALUES (1, 'original')")
++        connection.commit()
++    with store() as session:
++        config = session.get(DbConfig, 12)
++        assert config is not None
++        config.db_type, config.host, config.port = target.db_type, target.host, target.port
++        config.db_name, config.username = target.db_name, target.username
++        config.password_encrypted = encrypt(target.password)
++        config.status, config.builtin = 1, True
++        session.commit()
++
++    async def emit(_kind: str, _value: object, _step: int) -> None:
++        pass
++
++    def context() -> RunContext:
++        request = ChatRequest.model_validate({"message": "synthetic operation", "dbConfigIds": [12],
++                                              "confirmedIntent": "sql_query"})
++        cancellation = threading.Event()
++        return RunContext(request, [], "en", ModelStream(model(provider), emit, Usage(), cancellation),
++                          RunTools(1, request, cancellation), emit, cancellation)
++
++    def dsml(statement: str) -> list[bytes]:
++        return _reply(_wrapper(_invoke("executeSql", _parameter("dbConfigId", "12")
++                                       + _parameter("sql", statement, string=True))))
++
++    try:
++        monkeypatch.setattr(get_settings(), "trial_enabled", True)
++        provider.replies = [dsml(f"SELECT id, label FROM {quoted}"), _reply("One original row.")]
++        read = context()
++        assert (await run_graph(read))["answer"] == "One original row."
++        assert read.tools.last_result == {"success": True, "data": [{"id": 1, "label": "original"}],
++                                          "rowCount": 1, "truncated": False}
++        assert read.tools.completed_write_count == 0
++        masked = database_tools.get_schema(1, 12)
++        assert masked["databaseName"] == "*" and masked["host"] == "*" and masked["port"] == 0
++        provider.replies = [dsml(f"UPDATE {quoted} SET label = 'forbidden' WHERE id = 1")]
++        denied = context()
++        with pytest.raises(UnsafeStatement):
++            await run_graph(denied)
++        assert denied.tools.statements_executed == denied.tools.completed_write_count == 0
++        assert adapter.execute(target, f"SELECT label FROM {quoted}", trial_mode=True)["data"] == [
++            {"label": "original"}]
++        monkeypatch.setattr(get_settings(), "trial_enabled", False)
++        provider.replies = [dsml(f"UPDATE {quoted} SET label = 'committed' WHERE id = 1"), _reply("Updated one row.")]
++        ordinary = context()
++        assert (await run_graph(ordinary))["answer"] == "Updated one row."
++        assert ordinary.tools.completed_write_count == 1 and ordinary.tools.statements_executed == 1
++        assert adapter.execute(target, f"SELECT label FROM {quoted}")["data"] == [{"label": "committed"}]
++        for statement in (f"DROP TABLE {quoted}", f"TRUNCATE TABLE {quoted}"):
++            with pytest.raises(UnsafeStatement):
++                database_tools.execute_statement(1, 12, statement)
++        with adapter._connection(target, 30) as connection:
++            assert inspect(connection).has_table(table)
++    finally:
++        with adapter._connection(target, 30) as connection:
++            connection.exec_driver_sql(f"DROP TABLE IF EXISTS {quoted}")
++            connection.commit()
+--- a/backend/tests/test_locale_concurrent_sse.py
++++ b/backend/tests/test_locale_concurrent_sse.py
+@@ -0,0 +1,71 @@
++"""Concurrent POST SSE sends separate language prompts to a real HTTP provider mock."""
++
++import json
++import threading
++from concurrent.futures import ThreadPoolExecutor
++from http.server import BaseHTTPRequestHandler
++
++from fastapi.testclient import TestClient
++from test_chat_api import parse_events
++from test_model_protocol import Provider, frame
++
++from app.models import DbConfig, User
++
++pytest_plugins = ["test_chat_api"]
++
++
++class LocaleHandler(BaseHTTPRequestHandler):
++    protocol_version = "HTTP/1.1"
++    barrier = threading.Barrier(2)
++
++    def do_POST(self) -> None:
++        server = self.server
++        assert isinstance(server, Provider)
++        request = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
++        server.requests.append(request)
++        messages = request["messages"]
++        systems = "\n".join(message["content"] for message in messages if message["role"] == "system")
++        names = [name for name in ("French", "Japanese") if f"You MUST respond in {name}." in systems]
++        assert len(names) == 1
++        self.barrier.wait(timeout=15)
++        self.send_response(200)
++        self.send_header("Content-Type", "text/event-stream")
++        self.send_header("Connection", "close")
++        self.end_headers()
++        for content in ("synthetic ", names[0]):
++            self.wfile.write(frame({"choices": [{"delta": {"content": content}}]}))
++            self.wfile.flush()
++        self.wfile.write(frame({"usage": {"prompt_tokens": 4, "completion_tokens": 2, "total_tokens": 6}}))
++        self.wfile.write(frame("[DONE]"))
++        self.wfile.flush()
++
++    def log_message(self, format: str, *args: object) -> None:
++        pass
++
++
++def test_concurrent_sse_and_history_do_not_cross_language_or_usage(
++    chat_client: tuple[TestClient, User, User, DbConfig], provider: Provider,
++) -> None:
++    client, _, _, _ = chat_client
++    provider.RequestHandlerClass = LocaleHandler
++    LocaleHandler.barrier = threading.Barrier(2)
++
++    def ask(locale: str) -> tuple[str, int]:
++        response = client.post("/api/chat", headers={"Accept-Language": locale},
++                               json={"message": "hello", "confirmedIntent": "simple_chat"})
++        events = parse_events(response.text)
++        assert not any(event["type"] in {"error", "aborted"} for event in events)
++        text = "".join(str(event["content"]) for event in events if event["type"] == "content")
++        conversation_id = events[0]["content"]
++        assert isinstance(conversation_id, int)
++        history = client.get(f"/api/chat/conversations/{conversation_id}/messages").json()["data"]
++        assert history[-1]["content"] == text
++        usage = next(event["content"] for event in events if event["type"] == "usage")
++        assert isinstance(usage, dict)
++        assert usage["callCount"] == 1 and usage["totalTokens"] == 6
++        return text, conversation_id
++
++    with ThreadPoolExecutor(max_workers=2) as pool:
++        results = list(pool.map(ask, ["fr", "ja"]))
++    assert [value[0] for value in results] == ["synthetic French", "synthetic Japanese"]
++    assert len({value[1] for value in results}) == 2 and len(provider.requests) == 2
+--- a/backend/tests/test_db_config.py
++++ b/backend/tests/test_db_config.py
+@@ -80,7 +80,7 @@
+     factory, owner, outsider = database
+     pending: list[tuple[int, int]] = []
+     monkeypatch.setattr(db_config.verify_config, "apply_async",
+-                        lambda *, args: pending.append((args[0], args[1])))
++                        lambda *, args, headers: pending.append((args[0], args[1])))
+     payload = _payload(db_type)
+     with TestClient(main.app) as client:
+         owner_headers = {"Authorization": _token(factory, owner)}
+@@ -130,7 +130,7 @@
+     factory, owner, _ = database
+     payload = _payload("postgresql")
+     monkeypatch.setattr(db_config.verify_config, "apply_async",
+-                        lambda *, args: (_ for _ in ()).throw(OperationalError("connection refused")))
++                        lambda *, args, headers: (_ for _ in ()).throw(OperationalError("connection refused")))
+     with TestClient(main.app) as client:
+         headers = {"Authorization": _token(factory, owner)}
+         created = client.post("/api/db-config", headers=headers, json=payload).json()
+@@ -172,7 +172,7 @@
+ def test_worker_failure_and_timeout(database: tuple[sessionmaker[Session], User, User],
+                                     monkeypatch: pytest.MonkeyPatch) -> None:
+     factory, owner, _ = database
+-    monkeypatch.setattr(db_config.verify_config, "apply_async", lambda *, args: None)
++    monkeypatch.setattr(db_config.verify_config, "apply_async", lambda *, args, headers: None)
+     payload = _payload("postgresql")
+     with factory() as session:
+         created = db_config.create_config(session, owner.id, DbConfigRequest.model_validate(payload))

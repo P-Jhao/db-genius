@@ -10,6 +10,7 @@ from app.adapters.document import render_document
 from app.core.config import get_settings
 from app.core.errors import BusinessError, deny_trial
 from app.core.ownership import require_owned
+from app.core.request_locale import current_locale
 from app.core.security import encrypt
 from app.models import DbConfig
 from app.schemas.db_config import DbConfigRequest, DbConfigVO
@@ -61,7 +62,7 @@ def get_config(session: Session, user_id: int, config_id: int) -> DbConfigVO:
 
 def _enqueue(session: Session, config_id: int, version: int) -> bool:
     try:
-        verify_config.apply_async(args=(config_id, version))
+        verify_config.apply_async(args=(config_id, version), headers={"locale": current_locale()})
         return True
     except OperationalError as exc:
         session.execute(update(DbConfig).where(
