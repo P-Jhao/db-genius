@@ -4,6 +4,8 @@ export default {
   },
   trial: {
     text: '当前为开源版：不可更改数据库配置，不可执行数据库对比。',
+    statusUnavailable: '无法确认试用模式状态。状态可用前，受限操作保持禁用。',
+    retryStatus: '重试检查',
   },
   markdown: {},
 }

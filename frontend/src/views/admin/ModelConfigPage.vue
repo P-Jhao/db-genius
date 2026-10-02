@@ -21,6 +21,7 @@ import {
 const { t, locale } = useI18n()
 const trialStore = useTrialStore()
 const isTrial = computed(() => trialStore.isTrial)
+const canManageConfigs = computed(() => trialStore.isReady && !isTrial.value)
 
 const configs = ref<UserModelConfigVO[]>([])
 const providers = ref<ModelProviderVO[]>([])
@@ -237,6 +238,7 @@ function formatTime(dateStr: string) {
 
 onMounted(async () => {
   await trialStore.loadTrialStatus()
+  if (!trialStore.isReady) return
   if (trialStore.isTrial) {
     loadActive()
   } else {
@@ -262,7 +264,7 @@ onMounted(async () => {
           </template>
         </p>
       </div>
-      <a-button v-if="!isTrial" type="primary" @click="openCreate">
+      <a-button v-if="canManageConfigs" type="primary" @click="openCreate">
         <template #icon><icon-plus /></template>
         {{ $t('admin.modelConfig.create') }}
       </a-button>
@@ -297,6 +299,10 @@ onMounted(async () => {
     </a-spin>
 
     <!-- 正式版：配置列表 -->
+    <a-card v-else-if="!trialStore.isReady" class="config-card empty-card">
+      <a-empty :description="$t('comps.trial.statusUnavailable')" />
+    </a-card>
+
     <a-spin v-else :loading="loading" style="width: 100%">
       <div class="config-grid">
         <a-card v-for="config in configs" :key="config.id ?? config.displayName" class="config-card" :bordered="false">
@@ -356,7 +362,9 @@ onMounted(async () => {
             <template #image>
               <icon-robot :size="48" :style="{ color: 'var(--color-text-4)' }" />
             </template>
-            <a-button type="primary" @click="openCreate">{{ $t('admin.modelConfig.addConfig') }}</a-button>
+            <a-button v-if="canManageConfigs" type="primary" @click="openCreate">
+              {{ $t('admin.modelConfig.addConfig') }}
+            </a-button>
           </a-empty>
         </a-card>
       </div>

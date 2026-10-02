@@ -23,7 +23,7 @@ export default {
     hint: 'Enter 发送，Shift + Enter 换行',
     filesUploaded: '已上传 {count} 个文件',
     capabilityTooltip:
-      '当前智能体支持以下能力：\n• 简单会话：无需数据库，直接进行通用问答。\n• SQL 查询：选择目标数据库后，用自然语言生成并执行 SQL。\n• 工作流任务：选择数据库并可上传 Excel，完成多步骤复杂任务。\n• 数据库对比：开启“对比模式”选择 Pre/Test 数据库，分析结构差异。',
+      '当前智能体支持以下能力：\n• 简单会话：无需数据库，直接进行通用问答。\n• SQL 查询：选择目标数据库后，用自然语言生成并执行 SQL。\n• 工作流任务：选择数据库并上传支持的文件，完成多步骤复杂任务。\n• 数据库对比：开启“对比模式”选择 Pre/Test 数据库，分析结构差异。',
   },
   conversations: {
     title: '对话记录',
@@ -95,6 +95,11 @@ export default {
     fieldUsername: '用户名',
     fieldPassword: '密码',
     fieldPasswordPlaceholder: '数据库密码',
+    fieldPasswordEditPlaceholder: '留空以保留当前密码',
+    mongoCredentialsHint: 'MongoDB 认证可选。无认证时请将用户名和密码都留空；启用认证时两者都要填写。',
+    mongoCredentialsPairError: 'MongoDB 认证需要同时填写用户名和密码，或将两者都留空。',
+    relationalPasswordRequired: '创建关系型数据库连接时必须填写密码。',
+    unsupportedDatabaseType: '不支持数据库类型：{type}。请选择受支持的类型。',
     docDrawerTitle: '{name} - 数据库文档',
     fillAllFields: '请填写完整信息',
     createSuccess: '创建成功，正在验证连通性...',

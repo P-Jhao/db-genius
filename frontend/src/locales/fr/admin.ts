@@ -23,7 +23,7 @@ export default {
     hint: 'Entrée pour envoyer, Maj + Entrée pour un saut de ligne',
     filesUploaded: '{count} fichier(s) téléversé(s)',
     capabilityTooltip:
-      "L'agent prend en charge les capacités suivantes :\n• Conversation simple : questions-réponses générales sans base de données.\n• Requête SQL : sélectionnez une base de données cible pour générer et exécuter du SQL à partir de langage naturel.\n• Tâches de workflow : sélectionnez une base de données et téléversez un fichier Excel pour des tâches complexes en plusieurs étapes.\n• Comparaison de bases de données : activez le mode Comparer, choisissez les bases Pre/Test et analysez les différences de schéma.",
+      "L'agent prend en charge les capacités suivantes :\n• Conversation simple : questions-réponses générales sans base de données.\n• Requête SQL : sélectionnez une base de données cible pour générer et exécuter du SQL à partir de langage naturel.\n• Tâches de workflow : sélectionnez une base de données et téléversez un fichier pris en charge pour des tâches complexes en plusieurs étapes.\n• Comparaison de bases de données : activez le mode Comparer, choisissez les bases Pre/Test et analysez les différences de schéma.",
   },
   conversations: {
     title: 'Conversations',
@@ -95,6 +95,11 @@ export default {
     fieldUsername: 'Nom d\'utilisateur',
     fieldPassword: 'Mot de passe',
     fieldPasswordPlaceholder: 'Mot de passe de la base de données',
+    fieldPasswordEditPlaceholder: 'Laisser vide pour conserver le mot de passe actuel',
+    mongoCredentialsHint: 'Authentification MongoDB facultative. Saisissez les deux identifiants ou laissez les deux champs vides.',
+      mongoCredentialsPairError: 'Pour une connexion MongoDB, saisissez un identifiant et un mot de passe, ou laissez les deux champs vides.',
+    relationalPasswordRequired: 'Le mot de passe est requis pour créer une connexion à une base de données relationnelle.',
+    unsupportedDatabaseType: 'Type de base de données non pris en charge : {type}. Sélectionnez un type pris en charge.',
     docDrawerTitle: '{name} - Documentation de la base',
     fillAllFields: 'Veuillez remplir tous les champs requis',
     createSuccess: 'Créée. Vérification de la connectivité...',

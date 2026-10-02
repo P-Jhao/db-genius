@@ -27,6 +27,7 @@ const messagesContainer = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLElement | null>(null)
 
 const isTrial = computed(() => trialStore.isTrial)
+const canUseRestrictedFeatures = computed(() => trialStore.isReady && !isTrial.value)
 
 onMounted(() => {
   trialStore.loadTrialStatus()
@@ -191,7 +192,7 @@ const agentCapabilityTooltip = computed(() => t('admin.chat.capabilityTooltip'))
       <ContextUsageBar />
 
       <div class="control-row">
-        <FileUploader @files-changed="handleFilesChanged" />
+        <FileUploader v-if="canUseRestrictedFeatures" @files-changed="handleFilesChanged" />
         <DbSelector
           v-if="!compareMode"
           v-model="selectedDbIds"
@@ -203,7 +204,7 @@ const agentCapabilityTooltip = computed(() => t('admin.chat.capabilityTooltip'))
           v-model:test-id="testDbId"
           variant="compare"
         />
-        <a-tooltip v-if="!isTrial" :content="$t('admin.chat.compareTooltip')" position="top">
+        <a-tooltip v-if="canUseRestrictedFeatures" :content="$t('admin.chat.compareTooltip')" position="top">
           <a-button
             size="small"
             :type="compareMode ? 'primary' : 'text'"

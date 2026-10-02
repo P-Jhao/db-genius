@@ -4,6 +4,8 @@ export default {
   },
   trial: {
     text: '目前為開源版：不可更改資料庫設定，不可執行資料庫對比。',
+    statusUnavailable: '無法確認試用模式狀態。狀態可用前，受限操作會保持停用。',
+    retryStatus: '重試檢查',
   },
   markdown: {},
 }

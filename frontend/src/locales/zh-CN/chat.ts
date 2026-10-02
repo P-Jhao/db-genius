@@ -25,7 +25,6 @@ export default {
     compressFailed: '压缩请求失败，请稍后重试',
   },
   uploader: {
-    excelOnly: '仅支持 Excel 文件（.xlsx / .xls）',
     unsupportedType: '支持的文件格式：{extensions}',
     sizeLimit: '文件大小不能超过 20 MiB',
     success: '上传成功',
@@ -60,7 +59,6 @@ export default {
       afterTokens: '压缩后 Token',
       affectedUnits: '影响项数',
     },
-
   },
   summary: {
     streaming: '正在生成总结…',

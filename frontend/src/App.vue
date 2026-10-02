@@ -17,6 +17,10 @@ const isLanding = computed(
   () => route.name === 'landing' || route.name === 'landing-locale',
 )
 
+function retryTrialStatus(): void {
+  void trialStore.loadTrialStatus(true)
+}
+
 onMounted(() => {
   trialStore.loadTrialStatus()
 })
@@ -39,6 +43,17 @@ watch(
   <a-config-provider :locale="currentArcoLocale">
     <div class="app-root" :style="showBanner ? { '--banner-height': '48px' } : undefined">
       <ComplianceNotice v-if="isLanding" />
+      <div
+        v-if="trialStore.statusUnavailable"
+        class="trial-status-alert"
+        role="alert"
+        aria-live="polite"
+      >
+        <span>{{ $t('comps.trial.statusUnavailable') }}</span>
+        <a-button size="mini" type="text" @click="retryTrialStatus">
+          {{ $t('comps.trial.retryStatus') }}
+        </a-button>
+      </div>
       <TrialBanner v-if="showBanner" />
       <router-view />
     </div>
@@ -48,5 +63,18 @@ watch(
 <style lang="scss">
 .app-root {
   --banner-height: 0px;
+}
+
+.trial-status-alert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #fff2f0;
+  border-bottom: 1px solid #ffccc7;
+  color: #cf1322;
+  font-size: 13px;
+  text-align: center;
 }
 </style>

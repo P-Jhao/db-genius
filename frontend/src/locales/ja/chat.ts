@@ -25,7 +25,6 @@ export default {
     compressFailed: '圧縮リクエストに失敗しました。しばらくしてから再試行してください。',
   },
   uploader: {
-    excelOnly: 'Excel ファイル（.xlsx / .xls）のみ対応しています',
     unsupportedType: '対応形式：{extensions}',
     sizeLimit: 'ファイルサイズは 20 MiB 以下にしてください',
     success: 'アップロードに成功しました',
@@ -60,7 +59,6 @@ export default {
       afterTokens: '圧縮後トークン',
       affectedUnits: '対象数',
     },
-
   },
   summary: {
     streaming: '要約を生成中…',

@@ -14,5 +14,10 @@ export function getTrialStatus() {
     .get<R<TrialStatus>>(`${baseUrl}/trial/status`, {
       headers: { 'Accept-Language': getCurrentLocale() },
     })
-    .then((res) => res.data)
+    .then((response) => {
+      if (typeof response.data?.data?.trialEnabled !== 'boolean') {
+        throw new Error('Invalid trial status response')
+      }
+      return response.data
+    })
 }

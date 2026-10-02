@@ -4,6 +4,8 @@ export default {
   },
   trial: {
     text: 'Versi sumber terbuka: konfigurasi pangkalan data tidak boleh diubah dan perbandingan pangkalan data tidak boleh dilaksanakan.',
+    statusUnavailable: 'Mod percubaan tidak dapat disahkan. Tindakan terhad akan kekal dilumpuhkan sehingga status tersedia.',
+    retryStatus: 'Cuba semak semula',
   },
   markdown: {},
 }

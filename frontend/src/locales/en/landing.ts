@@ -145,7 +145,7 @@ export default {
         a: 'Your connection details are used only for the queries and tasks you initiate; the system verifies connectivity and generates schema documentation when a connection is added. DB-Genius is open source and self-hosted — all data and credentials stay in your own environment, with fully auditable code.',
       },
       contribute: {
-        q: 'How can I contribute or partner with you?',
+        q: 'How can I contribute to the project?',
         a: 'You are welcome to contribute via Issues and Pull Requests in the GitHub repository.',
       },
     },

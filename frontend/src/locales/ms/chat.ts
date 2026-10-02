@@ -25,7 +25,6 @@ export default {
     compressFailed: 'Permintaan pemampatan gagal. Sila cuba lagi nanti.',
   },
   uploader: {
-    excelOnly: 'Hanya fail Excel (.xlsx / .xls) disokong',
     unsupportedType: 'Format yang disokong: {extensions}',
     sizeLimit: 'Saiz fail tidak boleh melebihi 20 MiB',
     success: 'Muat naik berjaya',
@@ -60,7 +59,6 @@ export default {
       afterTokens: 'Token selepas',
       affectedUnits: 'Unit terjejas',
     },
-
   },
   summary: {
     streaming: 'Menjana ringkasan…',

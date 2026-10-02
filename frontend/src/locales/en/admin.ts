@@ -23,7 +23,7 @@ export default {
     hint: 'Enter to send, Shift + Enter for a new line',
     filesUploaded: '{count} file(s) uploaded',
     capabilityTooltip:
-      'The agent supports the following capabilities:\n• Simple chat: general Q&A without a database.\n• SQL query: select a target database and generate & execute SQL from natural language.\n• Workflow tasks: select a database and upload an Excel file to complete multi-step tasks.\n• Database comparison: enable Compare mode, pick Pre/Test databases, and analyze schema differences.',
+      'The agent supports the following capabilities:\n• Simple chat: general Q&A without a database.\n• SQL query: select a target database and generate & execute SQL from natural language.\n• Workflow tasks: select a database and upload a supported file to complete multi-step tasks.\n• Database comparison: enable Compare mode, pick Pre/Test databases, and analyze schema differences.',
   },
   conversations: {
     title: 'Conversations',
@@ -95,6 +95,11 @@ export default {
     fieldUsername: 'Username',
     fieldPassword: 'Password',
     fieldPasswordPlaceholder: 'Database password',
+    fieldPasswordEditPlaceholder: 'Leave empty to keep the current password',
+    mongoCredentialsHint: 'MongoDB authentication is optional. Enter both credentials, or leave both blank.',
+    mongoCredentialsPairError: 'For MongoDB authentication, enter both username and password or leave both blank.',
+    relationalPasswordRequired: 'A password is required when creating a relational database connection.',
+    unsupportedDatabaseType: 'Unsupported database type: {type}. Select a supported type.',
     docDrawerTitle: '{name} - Database Docs',
     fillAllFields: 'Please fill in all required fields',
     createSuccess: 'Created. Verifying connectivity...',

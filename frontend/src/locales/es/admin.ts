@@ -23,7 +23,7 @@ export default {
     hint: 'Enter para enviar, Shift + Enter para nueva línea',
     filesUploaded: '{count} archivo(s) subido(s)',
     capabilityTooltip:
-      'El agente admite las siguientes capacidades:\n• Chat simple: preguntas y respuestas generales sin base de datos.\n• Consulta SQL: selecciona una base de datos y genera y ejecuta SQL a partir de lenguaje natural.\n• Tareas de flujo de trabajo: selecciona una base de datos y sube un archivo Excel para completar tareas de varios pasos.\n• Comparación de bases de datos: activa el modo Comparar, elige las bases de datos Pre/Test y analiza las diferencias de esquema.',
+      'El agente admite las siguientes capacidades:\n• Chat simple: preguntas y respuestas generales sin base de datos.\n• Consulta SQL: selecciona una base de datos y genera y ejecuta SQL a partir de lenguaje natural.\n• Tareas de flujo de trabajo: selecciona una base de datos y sube un archivo compatible para completar tareas de varios pasos.\n• Comparación de bases de datos: activa el modo Comparar, elige las bases de datos Pre/Test y analiza las diferencias de esquema.',
   },
   conversations: {
     title: 'Conversaciones',
@@ -95,6 +95,11 @@ export default {
     fieldUsername: 'Nombre de usuario',
     fieldPassword: 'Contraseña',
     fieldPasswordPlaceholder: 'Contraseña de la base de datos',
+    fieldPasswordEditPlaceholder: 'Déjalo vacío para conservar la contraseña actual',
+    mongoCredentialsHint: 'La autenticación de MongoDB es opcional. Introduce ambos datos o deja ambos vacíos.',
+    mongoCredentialsPairError: 'Para autenticar en MongoDB, introduce el usuario y la contraseña, o deja ambos vacíos.',
+    relationalPasswordRequired: 'Se requiere una contraseña al crear una conexión a una base de datos relacional.',
+    unsupportedDatabaseType: 'Tipo de base de datos no compatible: {type}. Selecciona un tipo compatible.',
     docDrawerTitle: '{name} - Documentación de la base de datos',
     fillAllFields: 'Completa todos los campos obligatorios',
     createSuccess: 'Creado. Verificando la conectividad...',

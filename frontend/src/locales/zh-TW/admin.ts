@@ -23,7 +23,7 @@ export default {
     hint: 'Enter 傳送，Shift + Enter 換行',
     filesUploaded: '已上傳 {count} 個檔案',
     capabilityTooltip:
-      '目前智慧助理支援以下能力：\n• 簡單會話：無需資料庫，直接進行一般問答。\n• SQL 查詢：選擇目標資料庫後，用自然語言產生並執行 SQL。\n• 工作流程任務：選擇資料庫並可上傳 Excel，完成多步驟複雜任務。\n• 資料庫對比：開啟「對比模式」選擇 Pre/Test 資料庫，分析結構差異。',
+      '目前智慧助理支援以下能力：\n• 簡單會話：無需資料庫，直接進行一般問答。\n• SQL 查詢：選擇目標資料庫後，用自然語言產生並執行 SQL。\n• 工作流程任務：選擇資料庫並上傳支援的檔案，完成多步驟複雜任務。\n• 資料庫對比：開啟「對比模式」選擇 Pre/Test 資料庫，分析結構差異。',
   },
   conversations: {
     title: '對話記錄',
@@ -95,6 +95,11 @@ export default {
     fieldUsername: '使用者名稱',
     fieldPassword: '密碼',
     fieldPasswordPlaceholder: '資料庫密碼',
+    fieldPasswordEditPlaceholder: '留白以保留目前密碼',
+    mongoCredentialsHint: 'MongoDB 驗證為選用。未啟用驗證時請將使用者名稱與密碼都留白；啟用時兩者都要填寫。',
+    mongoCredentialsPairError: 'MongoDB 驗證需要同時填寫使用者名稱與密碼，或將兩者都留白。',
+    relationalPasswordRequired: '建立關聯式資料庫連線時必須填寫密碼。',
+    unsupportedDatabaseType: '不支援資料庫類型：{type}。請選擇支援的類型。',
     docDrawerTitle: '{name} - 資料庫文件',
     fillAllFields: '請填寫完整資訊',
     createSuccess: '建立成功，正在驗證連通性...',

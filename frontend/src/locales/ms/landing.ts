@@ -145,7 +145,7 @@ export default {
         a: 'Maklumat sambungan anda hanya digunakan untuk pertanyaan dan tugas yang anda mulakan; sistem mengesahkan kesambungan dan menjana dokumentasi struktur semasa sambungan ditambah. DB-Genius adalah sumber terbuka dan hos sendiri — semua data dan maklumat sambungan disimpan dalam persekitaran anda sendiri, dengan kod yang telus dan boleh diaudit.',
       },
       contribute: {
-        q: 'Bagaimana saya boleh menyumbang atau bekerjasama?',
+        q: 'Bagaimanakah cara menyumbang kepada projek ini?',
         a: 'Anda digalakkan menyumbang melalui Issue dan Pull Request di repositori GitHub.',
       },
     },

@@ -25,7 +25,6 @@ export default {
     compressFailed: 'Compression request failed. Please try again later.',
   },
   uploader: {
-    excelOnly: 'Only Excel files (.xlsx / .xls) are supported',
     unsupportedType: 'Supported formats: {extensions}',
     sizeLimit: 'File size must not exceed 20 MiB',
     success: 'Upload successful',
@@ -60,7 +59,6 @@ export default {
       afterTokens: 'After tokens',
       affectedUnits: 'Affected units',
     },
-
   },
   summary: {
     streaming: 'Generating summary…',

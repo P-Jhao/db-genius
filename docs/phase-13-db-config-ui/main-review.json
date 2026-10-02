@@ -1,0 +1,22 @@
+{
+  "rootBaseCommit": "ed7594bd09b8be3dcdfcde89435fee34e2b55f01",
+  "commitParent": "cfaffd7abb7b55ea2f1009736f9645d293b4e813",
+  "childManifestSha256": "7615421da960cb6990edeee6b46e9b929a972af0935d7b00920509ef3ab5ef34",
+  "verifiedPayloadFiles": 40,
+  "unmodifiedAcceptedFrontendSourceFiles": 70,
+  "stopSourcePreserved": true,
+  "browser": {
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 59.786,
+    "apiMode": "Playwright route mocks, no real database/API/provider"
+  },
+  "typecheckExitCode": 0,
+  "buildExitCode": 0,
+  "newFilesOver300Lines": [],
+  "warnings": [
+    "Existing Vite __dirname warning",
+    "Existing bundle-size warning"
+  ]
+}

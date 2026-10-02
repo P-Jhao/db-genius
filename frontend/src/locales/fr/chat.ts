@@ -25,7 +25,6 @@ export default {
     compressFailed: 'Échec de la requête de compression. Veuillez réessayer plus tard.',
   },
   uploader: {
-    excelOnly: 'Seuls les fichiers Excel (.xlsx / .xls) sont pris en charge',
     unsupportedType: 'Formats pris en charge : {extensions}',
     sizeLimit: 'Le fichier ne doit pas dépasser 20 MiB',
     success: 'Téléversement réussi',
@@ -60,7 +59,6 @@ export default {
       afterTokens: 'Tokens après',
       affectedUnits: 'Unités concernées',
     },
-
   },
   summary: {
     streaming: 'Génération du résumé…',

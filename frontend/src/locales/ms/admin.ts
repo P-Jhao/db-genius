@@ -23,7 +23,7 @@ export default {
     hint: 'Enter untuk hantar, Shift + Enter untuk baris baharu',
     filesUploaded: '{count} fail telah dimuat naik',
     capabilityTooltip:
-      'Ejen ini menyokong keupayaan berikut:\n• Sembang ringkas: soal jawab umum tanpa pangkalan data.\n• Pertanyaan SQL: pilih pangkalan data sasaran dan jana serta laksanakan SQL daripada bahasa semula jadi.\n• Tugas aliran kerja: pilih pangkalan data dan muat naik Excel untuk menyiapkan tugas berbilang langkah.\n• Perbandingan pangkalan data: aktifkan mod Banding, pilih pangkalan data Pre/Test dan analisis perbezaan skema.',
+      'Ejen ini menyokong keupayaan berikut:\n• Sembang ringkas: soal jawab umum tanpa pangkalan data.\n• Pertanyaan SQL: pilih pangkalan data sasaran dan jana serta laksanakan SQL daripada bahasa semula jadi.\n• Tugas aliran kerja: pilih pangkalan data dan muat naik fail yang disokong untuk menyiapkan tugas berbilang langkah.\n• Perbandingan pangkalan data: aktifkan mod Banding, pilih pangkalan data Pre/Test dan analisis perbezaan skema.',
   },
   conversations: {
     title: 'Perbualan',
@@ -95,6 +95,11 @@ export default {
     fieldUsername: 'Nama Pengguna',
     fieldPassword: 'Kata Laluan',
     fieldPasswordPlaceholder: 'Kata laluan pangkalan data',
+    fieldPasswordEditPlaceholder: 'Biarkan kosong untuk mengekalkan kata laluan semasa',
+    mongoCredentialsHint: 'Pengesahan MongoDB adalah pilihan. Masukkan kedua-dua kelayakan atau biarkan kedua-duanya kosong.',
+    mongoCredentialsPairError: 'Untuk pengesahan MongoDB, masukkan nama pengguna dan kata laluan atau biarkan kedua-duanya kosong.',
+    relationalPasswordRequired: 'Kata laluan diperlukan semasa membuat sambungan pangkalan data hubungan.',
+    unsupportedDatabaseType: 'Jenis pangkalan data tidak disokong: {type}. Pilih jenis yang disokong.',
     docDrawerTitle: '{name} - Dokumen Pangkalan Data',
     fillAllFields: 'Sila lengkapkan semua medan wajib',
     createSuccess: 'Berjaya dicipta. Mengesahkan kesambungan...',

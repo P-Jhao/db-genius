@@ -4,6 +4,8 @@ export default {
   },
   trial: {
     text: 'Version open source : la configuration de la base de données ne peut pas être modifiée et la comparaison de bases de données est désactivée.',
+    statusUnavailable: 'Impossible de vérifier le mode d’essai. Les actions restreintes restent désactivées jusqu’à ce que le statut soit disponible.',
+    retryStatus: 'Réessayer la vérification',
   },
   markdown: {},
 }

@@ -25,7 +25,6 @@ export default {
     compressFailed: '壓縮請求失敗，請稍後重試',
   },
   uploader: {
-    excelOnly: '僅支援 Excel 檔案（.xlsx / .xls）',
     unsupportedType: '支援的檔案格式：{extensions}',
     sizeLimit: '檔案大小不能超過 20 MiB',
     success: '上傳成功',
@@ -60,7 +59,6 @@ export default {
       afterTokens: '壓縮後 Token',
       affectedUnits: '影響項目數',
     },
-
   },
   summary: {
     streaming: '正在產生總結…',

@@ -1,0 +1,93 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import { launchS13Browser, startS13Frontend, stopS13Frontend, success } from './fixtures/s13-browser.mjs'
+
+test('unknown trial status fails closed, displays retry, then honors trial read-only UI rules', async () => {
+  const { url, vite } = await startS13Frontend()
+  let browser
+  let statusCalls = 0
+  const apiCalls = []
+  try {
+    browser = await launchS13Browser()
+    const createPage = async () => {
+      const newPage = await browser.newPage()
+      await newPage.addInitScript(() => {
+        localStorage.setItem('app-locale', 'en')
+        localStorage.setItem('token', 's13-trial-token')
+        localStorage.setItem('userInfo', JSON.stringify({
+          token: 's13-trial-token', username: 'trial-user', nickname: 'Trial User', role: 'user',
+        }))
+      })
+      await newPage.route((requestUrl) => new URL(requestUrl).pathname.startsWith('/api/'), async (route) => {
+        const request = route.request()
+        const pathname = new URL(request.url()).pathname
+        if (pathname === '/api/trial/status') {
+          statusCalls += 1
+          if (statusCalls === 1) {
+            await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'Unavailable' }) })
+          } else {
+            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(success({ trialEnabled: true })) })
+          }
+          return
+        }
+        apiCalls.push({ method: request.method(), pathname })
+        let data = null
+        if (pathname === '/api/db-config') {
+          data = [{ id: 1, name: 'Trial database', dbType: 'mysql', host: '127.0.0.1', port: 3306,
+            dbName: 'sample', username: 'reader', status: 1, statusDesc: 'Connected', docContent: '',
+            docGeneratedAt: null, createdAt: '2026-09-30T10:00:00' }]
+        } else if (pathname === '/api/model-config/active') {
+          data = { id: null, providerCode: 'system', providerType: 'openai_compatible', displayName: 'Built-in Model',
+            baseUrl: 'https://model.invalid/v1', modelName: 'trial-model', contextWindow: null,
+            isDefault: true, status: 1, statusDesc: 'Enabled', createdAt: '2026-09-30T10:00:00' }
+        } else if (pathname === '/api/chat/conversations') {
+          data = []
+        }
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(success(data)) })
+      })
+      return newPage
+    }
+
+    const page = await createPage()
+    await page.goto(url)
+    await page.locator('.trial-status-alert').waitFor()
+    assert.match(await page.locator('.trial-status-alert').textContent(), /could not|unavailable/i)
+    const navigate = async (path) => page.evaluate(async (nextPath) => {
+      const { default: router } = await import('/src/router/index.ts')
+      await router.push(nextPath)
+    }, path)
+
+    await navigate('/admin/chat')
+    await page.locator('.chat-page').waitFor()
+    assert.equal(await page.locator('.file-uploader').count(), 0, 'unknown status must not expose upload')
+    assert.equal(await page.getByRole('button', { name: 'Compare', exact: true }).count(), 0,
+      'unknown status must not expose database comparison')
+
+    const retryButton = page.locator('.trial-status-alert button')
+    await retryButton.waitFor()
+    await retryButton.click()
+    await page.locator('.trial-status-alert').waitFor({ state: 'detached' })
+    assert.equal(statusCalls, 2)
+
+    const dbPage = await createPage()
+    await dbPage.goto(`${url}/admin/db-config`)
+    await dbPage.locator('.config-card').filter({ hasText: 'Trial database' }).waitFor()
+    assert.equal(await dbPage.locator('.page-header button').count(), 0, 'trial database page must not offer create')
+    const dbActions = dbPage.locator('.config-card').filter({ hasText: 'Trial database' }).locator('.config-actions button')
+    assert.equal(await dbActions.count(), 1, 'only read-only documentation action remains on a trial DB')
+
+    const modelPage = await createPage()
+    await modelPage.goto(`${url}/admin/model-config`)
+    await modelPage.getByText('Built-in Model', { exact: true }).waitFor()
+    assert.equal(await modelPage.locator('.page-header button').count(), 0, 'trial model page must not offer create')
+
+    assert.equal(await page.locator('.file-uploader').count(), 0, 'trial mode must hide upload')
+    assert.equal(await page.getByRole('button', { name: 'Compare', exact: true }).count(), 0,
+      'trial mode must hide comparison')
+    assert.equal(apiCalls.some(({ method, pathname }) => method !== 'GET' &&
+      /\/(file\/upload|db-config|model-config\/configs|model-config\/context-window\/lookup)(\/|$)/.test(pathname)), false,
+    'read-only UI must not issue restricted mutation or lookup calls')
+  } finally {
+    await stopS13Frontend(vite, browser)
+  }
+})

@@ -145,7 +145,7 @@ export default {
         a: 'Los datos de conexión solo se utilizan para las consultas y tareas que tú inicias; el sistema verifica la conectividad y genera la documentación de la estructura al añadir la conexión. DB-Genius es open source y autoalojado: todos los datos y credenciales permanecen en tu propio entorno, con código transparente y auditable.',
       },
       contribute: {
-        q: '¿Cómo puedo contribuir o colaborar?',
+        q: '¿Cómo puedo contribuir al proyecto?',
         a: 'Te invitamos a contribuir con Issues y Pull Requests en el repositorio de GitHub.',
       },
     },

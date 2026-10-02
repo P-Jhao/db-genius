@@ -4,6 +4,8 @@ export default {
   },
   trial: {
     text: 'オープンソース版：データベース設定の変更とデータベース比較の実行はできません。',
+    statusUnavailable: '試用モードを確認できません。状態が確認できるまで、制限対象の操作は無効になります。',
+    retryStatus: '再確認',
   },
   markdown: {},
 }

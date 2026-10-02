@@ -23,7 +23,7 @@ export default {
     hint: 'Enter で送信、Shift + Enter で改行',
     filesUploaded: '{count} 件のファイルをアップロード済み',
     capabilityTooltip:
-      '現在のエージェントは以下の機能をサポートしています：\n• シンプルチャット：データベース不要で一般的な Q&A を行います。\n• SQL クエリ：対象データベースを選択し、自然言語から SQL を生成・実行します。\n• ワークフロータスク：データベースを選択し、Excel をアップロードして複数ステップの複雑なタスクを実行します。\n• データベース比較：「比較モード」を有効にして Pre/Test データベースを選択し、スキーマの差異を分析します。',
+      '現在のエージェントは以下の機能をサポートしています：\n• シンプルチャット：データベース不要で一般的な Q&A を行います。\n• SQL クエリ：対象データベースを選択し、自然言語から SQL を生成・実行します。\n• ワークフロータスク：データベースを選択し、対応ファイルをアップロードして複数ステップの複雑なタスクを実行します。\n• データベース比較：「比較モード」を有効にして Pre/Test データベースを選択し、スキーマの差異を分析します。',
   },
   conversations: {
     title: '会話履歴',
@@ -95,6 +95,11 @@ export default {
     fieldUsername: 'ユーザー名',
     fieldPassword: 'パスワード',
     fieldPasswordPlaceholder: 'データベースのパスワード',
+    fieldPasswordEditPlaceholder: '空欄のままにすると現在のパスワードを保持します',
+    mongoCredentialsHint: 'MongoDB の認証は任意です。認証なしの場合はユーザー名とパスワードの両方を空欄にし、認証する場合は両方を入力してください。',
+    mongoCredentialsPairError: 'MongoDB 認証ではユーザー名とパスワードの両方を入力するか、両方を空欄にしてください。',
+    relationalPasswordRequired: 'リレーショナルデータベース接続の作成時はパスワードが必要です。',
+    unsupportedDatabaseType: '未対応のデータベース種別です: {type}。対応する種別を選択してください。',
     docDrawerTitle: '{name} - データベースドキュメント',
     fillAllFields: '必須項目をすべて入力してください',
     createSuccess: '作成しました。接続性を検証しています...',

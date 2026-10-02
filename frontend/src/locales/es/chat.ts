@@ -25,7 +25,6 @@ export default {
     compressFailed: 'La solicitud de compresión falló. Inténtalo de nuevo más tarde.',
   },
   uploader: {
-    excelOnly: 'Solo se admiten archivos Excel (.xlsx / .xls)',
     unsupportedType: 'Formatos admitidos: {extensions}',
     sizeLimit: 'El archivo no puede superar los 20 MiB',
     success: 'Subida completada',
@@ -60,7 +59,6 @@ export default {
       afterTokens: 'Tokens posteriores',
       affectedUnits: 'Unidades afectadas',
     },
-
   },
   summary: {
     streaming: 'Generando resumen…',

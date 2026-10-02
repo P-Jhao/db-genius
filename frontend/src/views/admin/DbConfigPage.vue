@@ -12,6 +12,12 @@ import {
   testDbConfig,
   getDoc,
 } from '../../api/dbConfig'
+import {
+  databaseTypeOptions,
+  requireDatabaseType,
+  toDbConfigRequest,
+  validateDbConfigCredentials,
+} from '../../composables/dbConfigForm'
 
 const { t } = useI18n()
 const trialStore = useTrialStore()
@@ -26,6 +32,7 @@ const currentDocName = ref('')
 const docLoading = ref(false)
 
 const isTrial = computed(() => trialStore.isTrial)
+const canManageConfigs = computed(() => trialStore.isReady && !isTrial.value)
 
 const form = reactive<DbConfigRequest>({
   name: '',
@@ -36,6 +43,12 @@ const form = reactive<DbConfigRequest>({
   username: '',
   password: '',
 })
+const isMongoDatabase = computed(() => form.dbType === 'mongodb')
+
+function applyDefaultPortForSelectedType(value: unknown) {
+  if (typeof value !== 'string') throw new Error('Database type selection must be a string')
+  form.port = requireDatabaseType(value).defaultPort
+}
 
 function resetForm() {
   form.name = ''
@@ -66,9 +79,18 @@ function openCreate() {
 }
 
 function openEdit(config: DbConfigVO) {
+  let databaseType: (typeof databaseTypeOptions)[number]
+  try {
+    databaseType = requireDatabaseType(config.dbType)
+  } catch (error: unknown) {
+    if (!(error instanceof Error)) throw error
+    Message.error(t('admin.dbConfig.unsupportedDatabaseType', { type: config.dbType }))
+    return
+  }
+
   editingId.value = config.id
   form.name = config.name
-  form.dbType = config.dbType
+  form.dbType = databaseType.value
   form.host = config.host
   form.port = config.port
   form.dbName = config.dbName
@@ -77,24 +99,55 @@ function openEdit(config: DbConfigVO) {
   modalVisible.value = true
 }
 
-async function handleSubmit() {
-  if (!form.name || !form.host || !form.dbName || !form.username || !form.password) {
-    Message.warning(t('admin.dbConfig.fillAllFields'))
-    return
+async function handleSubmit(): Promise<boolean> {
+  let databaseType: (typeof databaseTypeOptions)[number]
+  try {
+    databaseType = requireDatabaseType(form.dbType)
+  } catch (error: unknown) {
+    if (!(error instanceof Error)) throw error
+    Message.error(t('admin.dbConfig.unsupportedDatabaseType', { type: String(form.dbType) }))
+    return false
   }
+
+  if (!form.name.trim() || !form.host.trim() || !form.dbName.trim()) {
+    Message.warning(t('admin.dbConfig.fillAllFields'))
+    return false
+  }
+
+  const credentialError = validateDbConfigCredentials(
+    databaseType.value,
+    form.username,
+    form.password,
+    editingId.value !== null,
+  )
+  if (credentialError === 'mongoCredentialsPair') {
+    Message.warning(t('admin.dbConfig.mongoCredentialsPairError'))
+    return false
+  }
+  if (credentialError === 'relationalPasswordRequired') {
+    Message.warning(t('admin.dbConfig.relationalPasswordRequired'))
+    return false
+  }
+  if (credentialError === 'requiredFields') {
+    Message.warning(t('admin.dbConfig.fillAllFields'))
+    return false
+  }
+
+  const request = toDbConfigRequest(form, databaseType.value)
   modalLoading.value = true
   try {
-    if (editingId.value) {
-      await updateDbConfig(editingId.value, form)
+    if (editingId.value !== null) {
+      await updateDbConfig(editingId.value, request)
       Message.success(t('admin.dbConfig.updateSuccess'))
     } else {
-      await createDbConfig(form)
+      await createDbConfig(request)
       Message.success(t('admin.dbConfig.createSuccess'))
     }
-    modalVisible.value = false
     await loadConfigs()
+    return true
   } catch (err: unknown) {
     Message.error((err as Error).message || t('admin.dbConfig.operateFailed'))
+    return false
   } finally {
     modalLoading.value = false
   }
@@ -173,7 +226,7 @@ onMounted(() => {
           {{ isTrial ? $t('admin.dbConfig.descTrial') : $t('admin.dbConfig.desc') }}
         </p>
       </div>
-      <a-button v-if="!isTrial" type="primary" @click="openCreate">
+      <a-button v-if="canManageConfigs" type="primary" @click="openCreate">
         <template #icon><icon-plus /></template>
         {{ $t('admin.dbConfig.create') }}
       </a-button>
@@ -211,7 +264,7 @@ onMounted(() => {
             </div>
           </div>
           <div class="config-actions">
-            <a-button v-if="!isTrial" size="small" type="text" @click="handleTest(config)">
+            <a-button v-if="canManageConfigs" size="small" type="text" @click="handleTest(config)">
               <template #icon><icon-sync /></template>
               {{ $t('admin.dbConfig.test') }}
             </a-button>
@@ -219,11 +272,11 @@ onMounted(() => {
               <template #icon><icon-file /></template>
               {{ $t('admin.dbConfig.doc') }}
             </a-button>
-            <a-button v-if="!isTrial" size="small" type="text" @click="openEdit(config)">
+            <a-button v-if="canManageConfigs" size="small" type="text" @click="openEdit(config)">
               <template #icon><icon-edit /></template>
               {{ $t('admin.dbConfig.edit') }}
             </a-button>
-            <a-button v-if="!isTrial" size="small" type="text" status="danger" @click="handleDelete(config)">
+            <a-button v-if="canManageConfigs" size="small" type="text" status="danger" @click="handleDelete(config)">
               <template #icon><icon-delete /></template>
               {{ $t('admin.dbConfig.delete') }}
             </a-button>
@@ -235,7 +288,7 @@ onMounted(() => {
             <template #image>
               <icon-storage :size="48" :style="{ color: 'var(--color-text-4)' }" />
             </template>
-            <a-button v-if="!isTrial" type="primary" @click="openCreate">{{ $t('admin.dbConfig.addConfig') }}</a-button>
+            <a-button v-if="canManageConfigs" type="primary" @click="openCreate">{{ $t('admin.dbConfig.addConfig') }}</a-button>
           </a-empty>
         </a-card>
       </div>
@@ -245,11 +298,18 @@ onMounted(() => {
       v-model:visible="modalVisible"
       :title="editingId ? $t('admin.dbConfig.modalEditTitle') : $t('admin.dbConfig.modalCreateTitle')"
       :ok-loading="modalLoading"
-      @ok="handleSubmit"
+      @before-ok="handleSubmit"
     >
       <a-form :model="form" layout="vertical">
         <a-form-item :label="$t('admin.dbConfig.fieldName')" required>
           <a-input v-model="form.name" :placeholder="$t('admin.dbConfig.fieldNamePlaceholder')" />
+        </a-form-item>
+        <a-form-item :label="$t('admin.dbConfig.labelType')" required>
+          <a-select v-model="form.dbType" @change="applyDefaultPortForSelectedType">
+            <a-option v-for="option in databaseTypeOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </a-option>
+          </a-select>
         </a-form-item>
         <a-row :gutter="16">
           <a-col :span="16">
@@ -268,16 +328,27 @@ onMounted(() => {
         </a-form-item>
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-form-item :label="$t('admin.dbConfig.fieldUsername')" required>
+            <a-form-item :label="$t('admin.dbConfig.fieldUsername')" :required="!isMongoDatabase">
               <a-input v-model="form.username" placeholder="root" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item :label="$t('admin.dbConfig.fieldPassword')" required>
-              <a-input-password v-model="form.password" :placeholder="$t('admin.dbConfig.fieldPasswordPlaceholder')" />
+            <a-form-item
+              :label="$t('admin.dbConfig.fieldPassword')"
+              :required="!isMongoDatabase && editingId === null"
+            >
+              <a-input-password
+                v-model="form.password"
+                :placeholder="editingId !== null && !isMongoDatabase
+                  ? $t('admin.dbConfig.fieldPasswordEditPlaceholder')
+                  : $t('admin.dbConfig.fieldPasswordPlaceholder')"
+              />
             </a-form-item>
           </a-col>
         </a-row>
+        <p v-if="isMongoDatabase" class="field-hint">
+          {{ $t('admin.dbConfig.mongoCredentialsHint') }}
+        </p>
       </a-form>
     </a-modal>
 
@@ -382,6 +453,13 @@ onMounted(() => {
   gap: 4px;
   border-top: 1px solid var(--color-border-1);
   padding-top: 12px;
+}
+
+.field-hint {
+  margin: -8px 0 0;
+  color: var(--color-text-3);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .doc-content {
