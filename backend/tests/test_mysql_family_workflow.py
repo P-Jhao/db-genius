@@ -68,7 +68,6 @@ def test_family_quoted_numeric_workflow_evidence_cannot_accept_wrong_values(
         assert "do not cover the source rows" in str(state.status())
 
 
-@pytest.mark.parametrize("db_type", ("oracle", "sqlserver"))
-def test_other_families_are_not_implicitly_registered(db_type: str) -> None:
+def test_unknown_workflow_database_type_is_rejected() -> None:
     with pytest.raises(ValueError, match="unsupported database type"):
-        WorkflowSchema().register(12, metadata(db_type))
+        WorkflowSchema().register(12, metadata("unsupported-test-database"))

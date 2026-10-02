@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-02",
+  "candidate": {
+    "path": "health-window-20261002-7f0f699e/c-final-1628cf735dc5",
+    "candidateManifestSha256": "2998353e3d693224a3758bfcaa4ce31b8f310bcb9a5f78470159e336957b06d6",
+    "testPath": "backend/tests/test_mysql_family_workflow.py",
+    "testSha256": "8256e3ddb72481ee6cff50351110a4137bdca3d90a04e1ac4586a37dc125e9b8",
+    "workflowSchemaPath": "backend/app/agent/workflow_schema.py",
+    "workflowSchemaSha256": "e850cb24fc6be81288e893ae0c412a0a8ede8c4363027723042c3ede4425a854",
+    "adapterRegistryPath": "backend/app/adapters/registry.py",
+    "adapterRegistrySha256": "440990e66d30c521ec7ee8d5a40ac6a385236a2f2964d9bef4d4f15e6aa91a62",
+    "nativeWorkflowBridgeTestPath": "backend/tests/test_native_workflow_bridge.py",
+    "nativeWorkflowBridgeTestSha256": "dc575921f647f63722ef45ebb38005ef56b382bde0d9c51bd65f8d8420f30141",
+    "s12ReadmePath": "docs/phase-12-native-adapters/README.md",
+    "s12ReadmeSha256": "c4503287197f9d5468c13b53bb9bf1b943cb4775742e8d556b60cb907dca5bb3"
+  },
+  "acceptedCombinedSnapshot": {
+    "path": ".git/acceptance/main-s14-combined-1790948846302",
+    "workflowSchemaSha256": "e850cb24fc6be81288e893ae0c412a0a8ede8c4363027723042c3ede4425a854",
+    "adapterRegistrySha256": "440990e66d30c521ec7ee8d5a40ac6a385236a2f2964d9bef4d4f15e6aa91a62",
+    "nativeWorkflowBridgeTestSha256": "dc575921f647f63722ef45ebb38005ef56b382bde0d9c51bd65f8d8420f30141"
+  },
+  "productSpec": {
+    "path": "C:/Users/22126/Desktop/web/text2sql/spec/02-原项目功能对照与迁移边界.md",
+    "sha256": "94f3a21ff98a15161b102c56bdecbfc44b172d336b4fb8829a0afec275b2ca96",
+    "evidence": "Lists ten preserved database adapters including oracle and sqlserver."
+  },
+  "baselineAssertion": "test_other_families_are_not_implicitly_registered[oracle/sqlserver] rejected supported S12 types."
+}

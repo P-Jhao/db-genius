@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-02",
+  "revision": "test-registration-revision",
+  "reviewStatus": "candidate payload awaiting root review",
+  "candidateBinding": {
+    "candidatePath": "health-window-20261002-7f0f699e/c-final-1628cf735dc5",
+    "candidateManifestSha256": "2998353e3d693224a3758bfcaa4ce31b8f310bcb9a5f78470159e336957b06d6"
+  },
+  "reviewReason": "The prior negative workflow registration cases treated S12-supported oracle and sqlserver types as unsupported. Restrict explicit rejection coverage to a genuinely unknown WorkflowSchema dbType; retain all MySQL family coverage and all existing S12 positive registration coverage.",
+  "codePayload": {
+    "path": "payload/backend/tests/test_mysql_family_workflow.py",
+    "sourcePath": "backend/tests/test_mysql_family_workflow.py",
+    "baselineSha256": "8256e3ddb72481ee6cff50351110a4137bdca3d90a04e1ac4586a37dc125e9b8",
+    "payloadSha256": "935ef22a9972b153369bbfea45b1f4e93b942a23a6507bbc0cb31f61c79228e4",
+    "lines": 73,
+    "onlyCodePathChanged": "backend/tests/test_mysql_family_workflow.py"
+  },
+  "verifiedBaselines": {
+    "hashesDocumentPath": "docs/phase-15-backend-final-audit/test-registration-revision/baseline-hashes.json",
+    "hashesDocumentSha256": "45a1c075ac8d3d110d3fc5838f8fae452ebcab4af1c96fbdbe1ce43dc39e227b",
+    "matchedAcceptedSnapshotFiles": [
+      "workflow_schema.py",
+      "registry.py",
+      "test_native_workflow_bridge.py"
+    ],
+    "productSpecification": "C:/Users/22126/Desktop/web/text2sql/spec/02-原项目功能对照与迁移边界.md"
+  },
+  "targetedValidation": {
+    "metadataPath": "docs/phase-15-backend-final-audit/test-registration-revision/targeted-pytest.json",
+    "metadataSha256": "a73fdee6a3e81e9a5c2dc25195bda9f3e5ec2d621379f7a87788156a942ea220",
+    "logPath": "docs/phase-15-backend-final-audit/test-registration-revision/targeted-pytest.log",
+    "logSha256": "cd9177248c69e98469fe84367f18e8f8014aa5d32bef214dacd1990e2d9f33c1",
+    "summary": "42 passed, exit code 0"
+  },
+  "bundleFiles": [
+    {
+      "path": "payload/backend/tests/test_mysql_family_workflow.py",
+      "role": "code payload",
+      "sha256": "935ef22a9972b153369bbfea45b1f4e93b942a23a6507bbc0cb31f61c79228e4",
+      "bytes": 3577
+    },
+    {
+      "path": "docs/phase-15-backend-final-audit/test-registration-revision/README.md",
+      "role": "review rationale and scope",
+      "sha256": "629069e8b208148e3948c204e3ad5d6db81435f3159473562e5541dca9cc3b9a",
+      "bytes": 2799
+    },
+    {
+      "path": "docs/phase-15-backend-final-audit/test-registration-revision/baseline-hashes.json",
+      "role": "baseline hashes",
+      "sha256": "45a1c075ac8d3d110d3fc5838f8fae452ebcab4af1c96fbdbe1ce43dc39e227b",
+      "bytes": 1897
+    },
+    {
+      "path": "docs/phase-15-backend-final-audit/test-registration-revision/test-registration-revision.diff",
+      "role": "review diff",
+      "sha256": "89e630ce2bd5c319c43d2846ebc8f471c69a8b6d619cb8e3fb9e798d1daa60e4",
+      "bytes": 515
+    },
+    {
+      "path": "docs/phase-15-backend-final-audit/test-registration-revision/targeted-pytest.json",
+      "role": "test metadata",
+      "sha256": "a73fdee6a3e81e9a5c2dc25195bda9f3e5ec2d621379f7a87788156a942ea220",
+      "bytes": 1977
+    },
+    {
+      "path": "docs/phase-15-backend-final-audit/test-registration-revision/targeted-pytest.log",
+      "role": "test output",
+      "sha256": "cd9177248c69e98469fe84367f18e8f8014aa5d32bef214dacd1990e2d9f33c1",
+      "bytes": 101
+    }
+  ],
+  "limits": [
+    "No production source change",
+    "No candidate or shared-worktree modification",
+    "No Git, Docker lifecycle, credentials, full-suite, or real-model execution"
+  ]
+}
