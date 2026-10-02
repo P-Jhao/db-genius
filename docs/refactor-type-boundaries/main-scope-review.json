@@ -1,0 +1,12 @@
+{
+  "accepted_base": "8dacbf33cb624b3e8d6588a317c73a639a9d9779",
+  "manifest_sha256": "c3e5c16340902e710edcfb00177255cb782c6add7ef9bfa8178959ff13ebc5e2",
+  "payload_count": 12,
+  "unowned_app_files_preserved": 94,
+  "ast_execution": {
+    "backend/app/storage/ocr.py": "identical after removing only typing imports, build_graph annotation and casts",
+    "backend/app/agent/graph.py": "identical after removing only typing imports, build_graph annotation and casts"
+  },
+  "source": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\type-boundaries-delivery-abe2320eccf04547b728e5a48ef737fb",
+  "delivery_business_same_as_initial_review": true
+}

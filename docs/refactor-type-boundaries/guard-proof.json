@@ -1,0 +1,14 @@
+{
+  "base": "4c5a38d0d9bf26acb99dc265ecc428aba124cd77",
+  "accepted_files": 701,
+  "preserved_files": 699,
+  "runtime_ast_equal_after_removing_type_only_changes": [
+    "backend/app/storage/ocr.py",
+    "backend/app/agent/graph.py"
+  ],
+  "unchanged_AGENTS": [
+    "AGENTS.md"
+  ],
+  "new_business_helpers": [],
+  "new_tests": []
+}

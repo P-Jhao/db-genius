@@ -2,10 +2,11 @@
 
 import threading
 from dataclasses import dataclass
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, cast
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 
 from app.agent.cancellation import check_cancelled
@@ -61,7 +62,7 @@ def _max_steps(intent: Intent) -> int:
             "db_compare": settings.compare_agent_max_steps}[intent]
 
 
-def build_graph(context: RunContext):
+def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunState, RunState]:
     """Compile real conditional StateGraph nodes for one authorized request."""
     sql_nodes = SQLNodes(context, _max_steps("sql_query"))
 
@@ -161,6 +162,6 @@ async def run_graph(context: RunContext) -> RunState:
     try:
         recursion_limit = 2 * max(_max_steps(intent) for intent in
                                   ("sql_query", "workflow", "db_compare")) + 10
-        return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
+        return cast(RunState, await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit}))
     finally:
         context.tools.close()

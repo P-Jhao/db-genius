@@ -3,7 +3,7 @@
 import io
 import json
 from collections.abc import Callable
-from typing import Protocol
+from typing import Protocol, cast
 
 from app.core.config import get_settings
 
@@ -33,8 +33,8 @@ def _client() -> _OcrClient:
         from alibabacloud_tea_openapi.models import Config  # type: ignore[import-untyped]
     except ImportError as error:
         raise RuntimeError("Aliyun OCR SDK is unavailable") from error
-    return Client(Config(access_key_id=access_key_id, access_key_secret=access_key_secret,
-                         endpoint=settings.ocr_endpoint))
+    return cast(_OcrClient, Client(Config(access_key_id=access_key_id, access_key_secret=access_key_secret,
+                                          endpoint=settings.ocr_endpoint)))
 
 
 def recognize(image_bytes: bytes, *, client_factory: Callable[[], _OcrClient] | None = None) -> str:
