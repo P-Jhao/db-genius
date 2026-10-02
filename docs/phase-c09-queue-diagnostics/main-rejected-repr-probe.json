@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "probe": "repr dictionary password with both quote types and backslash; synthetic only",
+  "configuredBootstrapPassword": true,
+  "residualSecretFragmentsPresent": true,
+  "expected": "No synthetic credential segment remains; diagnostic prefix preserved",
+  "handoff": "Returned to original owner; original immutable candidate retained"
+}

@@ -1,0 +1,57 @@
+{
+  "checks": [
+    {
+      "command": [
+        "-m",
+        "ruff",
+        "check",
+        "app",
+        "tests"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.36,
+      "log": "main-ruff.log"
+    },
+    {
+      "command": [
+        "-m",
+        "mypy",
+        "app"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 32.797,
+      "log": "main-mypy.log"
+    },
+    {
+      "command": [
+        "-m",
+        "mypy",
+        "--strict",
+        "--follow-imports=silent",
+        "app/core/diagnostics.py",
+        "app/services/db_config.py",
+        "tests/test_queue_diagnostics.py"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 21.531,
+      "log": "main-owned-strict.log"
+    },
+    {
+      "command": [
+        "-m",
+        "pytest",
+        "tests/test_queue_diagnostics.py",
+        "tests/test_db_config_partial.py",
+        "tests/test_queue_locale.py",
+        "-q",
+        "--tb=short"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 11.312,
+      "log": "main-pytest.log"
+    }
+  ],
+  "scope": "mock publish / synthetic credentials / SQLite; no live worker or provider",
+  "sensitiveScan": "passed: actual runtime values/raw/URL variants and key patterns",
+  "serviceAST": "unchanged after one diagnostic-expression mask"
+}

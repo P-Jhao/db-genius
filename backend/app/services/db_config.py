@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.adapters import get_adapter
 from app.adapters.document import render_document
 from app.core.config import get_settings
+from app.core.diagnostics import safe_exception_diagnostic
 from app.core.errors import BusinessError, deny_trial
 from app.core.ownership import require_owned
 from app.core.request_locale import current_locale
@@ -67,7 +68,7 @@ def _enqueue(session: Session, config_id: int, version: int) -> bool:
     except OperationalError as exc:
         session.execute(update(DbConfig).where(
             DbConfig.id == config_id, DbConfig.verification_version == version, DbConfig.status == 0,
-        ).values(status=2, verification_error=f"Verification queue unavailable: {diagnostic(exc)}"))
+        ).values(status=2, verification_error="Verification queue unavailable: " + safe_exception_diagnostic(exc, get_settings())))
         session.commit()
         return False
 

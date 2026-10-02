@@ -1,0 +1,7 @@
+{
+  "escapedCredentialFragmentsPresent": false,
+  "truncatedCredentialPrefixPresent": false,
+  "typePrefixPreserved": true,
+  "originalCapPreserved": true,
+  "serviceFunctionBodiesPreservedAfterSingleExpressionMask": true
+}

@@ -1,0 +1,76 @@
+{
+  "complete": true,
+  "kind": "deterministic mocks/SQLite only; no target database/broker/model",
+  "sourceSha256": {
+    "backend/app/core/diagnostics.py": "e00a6f2aa34818c5f88a4388f013f0e1dcf6f64f596ad38c3e828eac9d39eb4b",
+    "backend/app/services/db_config.py": "8713af500dfb3c32e4b3bcead280f840a616a285c8b41509777ca7ba3f38aa8b",
+    "backend/tests/test_queue_diagnostics.py": "593c85e0bfc4af024e057aafaa3db5218bcf9fc7bb4f3244bb4352b52c701277"
+  },
+  "checks": [
+    {
+      "command": [
+        "C:/Users/22126/Desktop/web/text2sql/sqlchat/backend/.venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "tests/test_queue_diagnostics.py",
+        "tests/test_db_config_partial.py",
+        "tests/test_queue_locale.py",
+        "-q",
+        "--tb=short"
+      ],
+      "exitCode": 0,
+      "summary": [
+        "92 passed in 7.96s"
+      ],
+      "evidence": "Completed unified exec session 8352; recorded without repeating the completed unchanged pytest gate"
+    },
+    {
+      "command": [
+        "C:/Users/22126/Desktop/web/text2sql/sqlchat/backend/.venv/Scripts/python.exe",
+        "-m",
+        "ruff",
+        "check",
+        "app",
+        "tests"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 1.453,
+      "summary": [
+        "All checks passed!"
+      ],
+      "outputSha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "command": [
+        "C:/Users/22126/Desktop/web/text2sql/sqlchat/backend/.venv/Scripts/python.exe",
+        "-m",
+        "mypy",
+        "app"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 31.906,
+      "summary": [
+        "Success: no issues found in 96 source files"
+      ],
+      "outputSha256": "6831fc6cc3fadc3ffb75f82f00a6f72a83dc9b745693986c191a5c8f9ff31bd6"
+    },
+    {
+      "command": [
+        "C:/Users/22126/Desktop/web/text2sql/sqlchat/backend/.venv/Scripts/python.exe",
+        "-m",
+        "mypy",
+        "--strict",
+        "--follow-imports=silent",
+        "app/core/diagnostics.py",
+        "app/services/db_config.py",
+        "tests/test_queue_diagnostics.py"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 22.125,
+      "summary": [
+        "Success: no issues found in 3 source files"
+      ],
+      "outputSha256": "8228fcc5ce46d42d01caf3cd941f4e9c5f2bcc372bb5b147a2f0572d2dd675a8"
+    }
+  ]
+}

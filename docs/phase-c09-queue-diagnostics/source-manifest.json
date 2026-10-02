@@ -1,0 +1,62 @@
+{
+  "base": "a4b36a64132f1c40f0610fb1697069d0b2e62eb1",
+  "priorRejectedImmutableManifestSha256": "fb26b06887297b0726643a3ec2a433ae6aeb70b305f92ca6a54a9d23667abea4",
+  "kind": "independent queue diagnostics revision; immutable candidate",
+  "codeFiles": [
+    "backend/app/core/diagnostics.py",
+    "backend/app/services/db_config.py",
+    "backend/tests/test_queue_diagnostics.py"
+  ],
+  "files": [
+    {
+      "path": "backend/app/core/diagnostics.py",
+      "bytes": 2816,
+      "sha256": "e00a6f2aa34818c5f88a4388f013f0e1dcf6f64f596ad38c3e828eac9d39eb4b"
+    },
+    {
+      "path": "backend/app/services/db_config.py",
+      "bytes": 8394,
+      "sha256": "8713af500dfb3c32e4b3bcead280f840a616a285c8b41509777ca7ba3f38aa8b"
+    },
+    {
+      "path": "backend/tests/test_queue_diagnostics.py",
+      "bytes": 10146,
+      "sha256": "593c85e0bfc4af024e057aafaa3db5218bcf9fc7bb4f3244bb4352b52c701277"
+    },
+    {
+      "path": "docs/phase-c09-queue-diagnostics/BASELINE.txt",
+      "bytes": 41,
+      "sha256": "9453745277653bd01b5eff385f5a9980163f799011dbe5d84878714b419dd43e"
+    },
+    {
+      "path": "docs/phase-c09-queue-diagnostics/checks.json",
+      "bytes": 2421,
+      "sha256": "bbc06179d4b0207b521777de21ddce894e6036c4e6428b8afad074eff09b45f1"
+    },
+    {
+      "path": "docs/phase-c09-queue-diagnostics/guard.json",
+      "bytes": 277954,
+      "sha256": "7ad9881addcc109cc58ad238a2f652727f26db4803deb1441436536e6b030bd6"
+    },
+    {
+      "path": "docs/phase-c09-queue-diagnostics/public-minimal.diff",
+      "bytes": 17411,
+      "sha256": "487d776a51737e17468a6bedb634a0ffdd572895eb8291cf274964a0150f19d1"
+    },
+    {
+      "path": "docs/phase-c09-queue-diagnostics/README.md",
+      "bytes": 3881,
+      "sha256": "a6bdeb333c1230574ec1a2b68ce57aba6a9cb90e0ec820f6516139938f7a9896"
+    },
+    {
+      "path": "docs/phase-c09-queue-diagnostics/rejected-probes.json",
+      "bytes": 602,
+      "sha256": "b1baadadca051df0dac6481f075744607a60ea4e12e63825378498f65c6d46ee"
+    },
+    {
+      "path": "docs/phase-c09-queue-diagnostics/revision.diff",
+      "bytes": 10168,
+      "sha256": "1127eb3762044bf56a4e51bf25b395a8f6533f7349394a2a12a3beaa9fded9f7"
+    }
+  ]
+}

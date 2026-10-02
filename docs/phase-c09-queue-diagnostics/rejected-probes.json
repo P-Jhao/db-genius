@@ -1,0 +1,16 @@
+{
+  "syntheticOnly": true,
+  "priorImmutableManifestSha256": "fb26b06887297b0726643a3ec2a433ae6aeb70b305f92ca6a54a9d23667abea4",
+  "escapedRepr": {
+    "priorRemainingSuffix": true,
+    "revisedRemainingSuffix": false,
+    "priorOutputSha256": "12d359fabb7e2a9f690d8bcd7e357ee29a7c477dc97042bd2d58576584003a72",
+    "revisedOutputSha256": "9584b4c81758188acf8c4af92469b938e13a58f96f81a567a59d9bf79ee5346b"
+  },
+  "truncation": {
+    "priorRemainingCredentialPrefix": true,
+    "revisedRemainingCredentialPrefix": false,
+    "revisedLength": 1000,
+    "classPrefixPreserved": true
+  }
+}
