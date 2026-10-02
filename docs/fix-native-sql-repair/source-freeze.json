@@ -1,0 +1,128 @@
+{
+  "base": "a0f17fe5f90f2cf78a72bb43b82e168aafe71ab4",
+  "snapshot": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s12-native-repair-final-9b58809aada7410bbcba8e588517b97f",
+  "files": [
+    {
+      "path": "backend/app/agent/sql_errors.py",
+      "sha256": "4dc243c3887229f41e79c06fb436d35c3b9dcde8819629546ef2c6be37b79630",
+      "size": 3912
+    },
+    {
+      "path": "backend/tests/test_native_sql_repair_graph.py",
+      "sha256": "781080708f428bee4b3405eaebc1f1114ec943a6c4b9d76e3ab0b6463dae7426",
+      "size": 5082
+    },
+    {
+      "path": "backend/tests/test_native_sql_repair_policy.py",
+      "sha256": "bbce4748a045fb13f955c8bba07bb7792e5976d49feaeb822db353ccb788b48d",
+      "size": 5938
+    },
+    {
+      "path": "backend/tests/test_native_sql_repair_real.py",
+      "sha256": "e0461a7b35b215d29d188a2e945f5a6d985026e8f21d9d3f3e113e92506fc8c1",
+      "size": 12797
+    },
+    {
+      "path": "docs/fix-native-sql-repair/README.md",
+      "sha256": "2874615c03f08433e151560fd611b18914039459a78b3509167bd9ace3c9dc35",
+      "size": 8428
+    },
+    {
+      "path": "docs/fix-native-sql-repair/mock.log",
+      "sha256": "53f89768dbe0150bf37553e96324667e8a1d0e935fea31a7176fb65188711c04",
+      "size": 102
+    },
+    {
+      "path": "docs/fix-native-sql-repair/mypy-app-verified.log",
+      "sha256": "e1933d29513c905ba6bf6828838a39f7d132a341e1fb63954bb71e0b3341fcff",
+      "size": 45
+    },
+    {
+      "path": "docs/fix-native-sql-repair/mypy-owned-strict-verified.log",
+      "sha256": "8e63ae22e8213e327a5e9cbd584067681681bd8ef7f25c869877887ccdcfc4ff",
+      "size": 43
+    },
+    {
+      "path": "docs/fix-native-sql-repair/policy-real.log",
+      "sha256": "ef05e8e326f4d7b66a1b378abbc0614126f61e743e75384ce18896fcf29957c9",
+      "size": 55352
+    },
+    {
+      "path": "docs/fix-native-sql-repair/real-final-local.log",
+      "sha256": "ef07d025a3ec4e55a8c2bf5938d1b752f324ebc3d82a108fd425f9a9a38a07e9",
+      "size": 17209
+    },
+    {
+      "path": "docs/fix-native-sql-repair/real-final-revision.log",
+      "sha256": "9811fa003b477bb207d99e721a06e3a100084455aae7bdfd6581abc6d8b133ed",
+      "size": 24501
+    },
+    {
+      "path": "docs/fix-native-sql-repair/real-last-local.log",
+      "sha256": "3ef9c4a94ff1a198442b07ffb9efb62742423bd9e74baf0a7b6ee9ae7888ed89",
+      "size": 186
+    },
+    {
+      "path": "docs/fix-native-sql-repair/real-revision.log",
+      "sha256": "d075135e93033fa7a4bc1c3bec12f471433007dfc388a1910e05f86455aed0a6",
+      "size": 17635
+    },
+    {
+      "path": "docs/fix-native-sql-repair/ruff-final.log",
+      "sha256": "653d52f431e087aa8bbbdcb64ddc9cd9c158334b129f4daab40612e252fcfc66",
+      "size": 741
+    },
+    {
+      "path": "docs/fix-native-sql-repair/ruff-verified.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0",
+      "size": 20
+    },
+    {
+      "path": "docs/fix-native-sql-repair/ruff.log",
+      "sha256": "581f6989fabaca1caabe2f51bd860ba4a5286ef658ac75d29520a84f0811229f",
+      "size": 740
+    },
+    {
+      "path": "docs/fix-native-sql-repair/run-mock-checks.py",
+      "sha256": "204942a67501d330deba20865140377f7486c07f35f6a0dd2194d774fb16c528",
+      "size": 1267
+    },
+    {
+      "path": "docs/fix-native-sql-repair/run-native-checks.py",
+      "sha256": "11775995ff3a8cb42dd5928671cabff8a0453eaf82a362ddbaa638ced2c5258f",
+      "size": 3047
+    }
+  ],
+  "changes": [
+    {
+      "path": "backend/app/agent/sql_errors.py",
+      "before": "df1f62c65f658a74c39a7f54dc51674c41ff0165e1ab2fd488261dc1acd3989d",
+      "after": "4dc243c3887229f41e79c06fb436d35c3b9dcde8819629546ef2c6be37b79630"
+    }
+  ],
+  "owned_sources": [
+    "backend/app/agent/sql_errors.py",
+    "backend/tests/test_native_sql_repair_graph.py",
+    "backend/tests/test_native_sql_repair_policy.py",
+    "backend/tests/test_native_sql_repair_real.py"
+  ],
+  "preserved_count": 647,
+  "source_lines": 89,
+  "tests": {
+    "mock_candidate": "69 passed",
+    "final_policy": "59 passed",
+    "actual_native": "14 final cases passed across recorded revisions",
+    "ruff": "app/tests passed",
+    "mypy_app": "ordinary app95 passed",
+    "mypy_owned": "--strict sql_errors 1 source passed"
+  },
+  "sensitive_scan": "ignored native passwords and encoded variants: passed",
+  "guards": {
+    "BASE.txt": "c818aa8538b54b47743a88fe5f3428860c0c73d8f3b72db801fe2a539ab0f612",
+    "baseline-files.json": "056cdb02d4ff24111ecb42d1f1c1f3d1efc72f8ffcddb2e2e9ca0cedf286c1ec",
+    "owned-paths.json": "bc0f9c08ee1e3dfd04c427b4fbe17789a834021ca0992b4aee3459cc1acc8cae",
+    "files.tsv": "1d6ce6a5ddd7c6af6c5fd97e21c2842765138932d9736c37ca305f9e7a0cdeb5",
+    "preserved.tsv": "36e3d3054ab1285ec3e9be06464c2bba1d0d8a518ece5a091a1edc8e9d170a6d",
+    "repair.diff": "4009add574a121671cf7fafa90c087af2c02cf046bdeaa2926f889b52b4a1c20"
+  }
+}

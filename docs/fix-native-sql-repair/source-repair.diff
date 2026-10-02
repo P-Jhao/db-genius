@@ -1,0 +1,94 @@
+--- accepted/backend/app/agent/sql_errors.py
++++ repair/backend/app/agent/sql_errors.py
+@@ -1,26 +1,69 @@
+ """Only known, rolled-back SQL diagnostics may be returned for model correction."""
+ 
+ import re
+-import sqlite3
+-
+-from sqlalchemy.exc import DBAPIError
+-
+-from app.adapters.types import QueryResult
++import sqlite3
++
++import oracledb
++import pymssql
++import sqlglot
++from sqlalchemy.exc import DBAPIError
++from sqlglot import exp
++
++from app.adapters.native_reads import sequence_read
++from app.adapters.safety import check_statement
++from app.adapters.types import QueryResult
+ 
+ _SQLSTATES = frozenset({"42601", "42P01", "42703", "42702", "42803", "42883"})
+-_MYSQL_CODES = frozenset({1052, 1054, 1064, 1146})
++_MYSQL_CODES = frozenset({1052, 1054, 1064, 1146})
++_ORACLE_CODES = frozenset({904, 907, 923, 933, 936, 942, 3047})
++_SQLSERVER_CODES = frozenset({102, 207, 208})
+ _SQLITE_MESSAGE = re.compile(
+     r"^(?:no such (?:table|column|function):|ambiguous column name:|near .+: syntax error$)",
+     re.IGNORECASE,
+-)
+-
+-
+-def repairable(error: DBAPIError, statement: str) -> bool:
++)
++
++
++def _native_query(statement: str, dialect: str) -> bool:
++    """Native DML/DDL errors cannot prove trigger/sequence outcomes from a code alone."""
++    try:
++        policy = check_statement(statement, dialect, trial_mode=True)
++        root = sqlglot.parse_one(statement, read=dialect)
++        return (policy.read_only and isinstance(root, (exp.Select, exp.SetOperation))
++                and not sequence_read(statement, dialect)
++                and not any(isinstance(node, exp.Lock) for node in root.walk())
++                and not any(isinstance(node, exp.Var) and node.name.upper() in {"UPDLOCK", "XLOCK"}
++                            for hint in root.find_all(exp.WithTableHint) for node in hint.walk()))
++    except ValueError:
++        return False
++
++
++def _oracle_code(original: object) -> int | None:
++    if not isinstance(original, oracledb.DatabaseError) or not original.args:
++        return None
++    detail = original.args[0]
++    code = getattr(detail, "code", None)
++    if (isinstance(code, int) and not isinstance(code, bool)
++            and getattr(detail, "full_code", None) == f"ORA-{code:05d}"):
++        return code
++    return None
++
++
++def repairable(error: DBAPIError, statement: str) -> bool:
+     if (error.statement is None or error.statement.strip() != statement.strip() or
+             error.connection_invalidated or any(
+                 "Rollback also failed" in note for note in getattr(error, "__notes__", []))):
+         return False
+-    original = error.orig
++    original = error.orig
++    if isinstance(original, oracledb.Error):
++        code = _oracle_code(original)
++        offset = getattr(original.args[0], "offset", None) if original.args else None
++        return (code in _ORACLE_CODES and isinstance(offset, int) and not isinstance(offset, bool)
++                and offset > 0 and "ORA-06512:" not in str(original) and "ORA-04088:" not in str(original)
++                and _native_query(statement, "oracle"))
++    if isinstance(original, pymssql.Error):
++        return (isinstance(original, pymssql.ProgrammingError) and bool(original.args)
++                and type(original.args[0]) is int and original.args[0] in _SQLSERVER_CODES
++                and _native_query(statement, "tsql"))
+     if getattr(original, "sqlstate", None) in _SQLSTATES:
+         return True
+     arguments = getattr(original, "args", ())
+@@ -35,7 +78,9 @@
+     state = getattr(original, "sqlstate", None)
+     if isinstance(state, str):
+         result["sqlState"] = state
+-    code = getattr(original, "sqlite_errorcode", None)
++    code = _oracle_code(original)
++    if code is None:
++        code = getattr(original, "sqlite_errorcode", None)
+     arguments = getattr(original, "args", ())
+     if code is None and arguments and isinstance(arguments[0], int):
+         code = arguments[0]

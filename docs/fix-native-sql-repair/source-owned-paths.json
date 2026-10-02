@@ -1,0 +1,6 @@
+[
+  "backend/app/agent/sql_errors.py",
+  "backend/tests/test_native_sql_repair_graph.py",
+  "backend/tests/test_native_sql_repair_policy.py",
+  "backend/tests/test_native_sql_repair_real.py"
+]

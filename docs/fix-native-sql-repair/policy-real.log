@@ -1,0 +1,941 @@
+.........................................................FFFFFFFFF
+================================== FAILURES ===================================
+_ test_actual_native_select_error_is_rolled_back_and_model_corrected[oracle-column-904] _
+
+db_type = 'oracle', error_kind = 'column', code = 904
+request = <FixtureRequest for <Coroutine test_actual_native_select_error_is_rolled_back_and_model_corrected[oracle-column-904]>>
+provider = <test_model_protocol.Provider object at 0x00000193E9E61AF0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000193EA1439E0>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type,error_kind,code", [
+        ("oracle", "column", 904), ("oracle", "table", 942), ("oracle", "syntax", 933),
+        ("sqlserver", "column", 207), ("sqlserver", "table", 208), ("sqlserver", "syntax", 102),
+    ])
+    async def test_actual_native_select_error_is_rolled_back_and_model_corrected(
+        db_type: str, error_kind: str, code: int, request: pytest.FixtureRequest,
+        provider: Provider, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        table = "repair_" + uuid4().hex[:12]
+        fixed = f'SELECT name AS "value" FROM {table} WHERE id=1'
+        bad = (f"SELECT missing FROM {table}" if error_kind == "column" else
+               f"SELECT name FROM absent_{table}" if error_kind == "table" else
+               f"SELECT name FROM {table} LIMIT 1")
+        executed: list[str] = []
+        bad_connections: list[Connection] = []
+        rollbacks: set[Connection] = set()
+        observed: list[dict[str, object]] = []
+        original_execute = database_tools.execute_statement
+        def before(connection, _cursor, statement, _parameters, _context, _many):
+            if statement == bad:
+                bad_connections.append(connection)
+        def rolled_back(connection: Connection) -> None:
+            rollbacks.add(connection)
+        def execute(user: int, db: int, statement: str, cancel_event: threading.Event | None = None) -> QueryResult:
+            executed.append(statement)
+            try:
+                return original_execute(user, db, statement, cancel_event)
+            except DBAPIError as error:
+                assert error.statement == bad and not error.connection_invalidated
+                assert not getattr(error, "__notes__", [])
+                assert len(bad_connections) == 1 and bad_connections[0] in rollbacks
+                detail = error.orig.args[0]
+                actual_code = getattr(detail, "code", None) if db_type == "oracle" else detail
+                assert actual_code == code
+                observed.append({"driver_type": type(error.orig).__module__ + "." + type(error.orig).__name__,
+                                 "code": actual_code, "offset": getattr(detail, "offset", None),
+                                 "full_code": getattr(detail, "full_code", None), "rollback_event": True})
+                raise
+        event.listen(Engine, "before_cursor_execute", before)
+        event.listen(Engine, "rollback", rolled_back)
+        created = False
+        try:
+            text_type = "VARCHAR2(20)" if db_type == "oracle" else "VARCHAR(20)"
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY,name {text_type})")
+                created = True
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (1,'Ada')")
+            if db_type == "oracle":
+                wait_oracle_ddl(engine, [table.upper()])
+            install_target(monkeypatch, config)
+            monkeypatch.setattr(database_tools, "execute_statement", execute)
+            provider.replies = [call(bad, "bad"), call(fixed, "fixed"), answer("Ada is present.")]
+>           result, tools, _events = await run(provider)
+                                     ^^^^^^^^^^^^^^^^^^^
+
+tests\test_native_sql_repair_real.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_sql_repair.py:86: in run
+    result = await run_graph(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph.py:164: in run_graph
+    return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:4090: in ainvoke
+    async for chunk in self.astream(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:3440: in astream
+    async for _ in runner.atick(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_runner.py:396: in atick
+    await arun_with_retry(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph_sql.py:41: in prepare
+    schema = await context.tools.schema(db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\tools.py:92: in schema
+    result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\asyncio\threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py:58: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\database_tools.py:29: in get_schema
+    config = _ready_config(user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+user_id = 7, db_id = 12
+
+    def _ready_config(user_id: int, db_id: int) -> DbConfig:
+        with SessionLocal() as session:
+            config = session.get(DbConfig, db_id)
+            if config is None or config.user_id != user_id:
+>               raise BusinessError(404, "error.dbConfig.notFound")
+E               app.core.errors.BusinessError: error.dbConfig.notFound
+E               During task with name 'prepare_sql' and id '74592fa6-011e-0e03-12a9-33ad70a74af4'
+
+app\services\database_tools.py:17: BusinessError
+_ test_actual_native_select_error_is_rolled_back_and_model_corrected[oracle-table-942] _
+
+db_type = 'oracle', error_kind = 'table', code = 942
+request = <FixtureRequest for <Coroutine test_actual_native_select_error_is_rolled_back_and_model_corrected[oracle-table-942]>>
+provider = <test_model_protocol.Provider object at 0x00000193EA143B30>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000193EA12AF60>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type,error_kind,code", [
+        ("oracle", "column", 904), ("oracle", "table", 942), ("oracle", "syntax", 933),
+        ("sqlserver", "column", 207), ("sqlserver", "table", 208), ("sqlserver", "syntax", 102),
+    ])
+    async def test_actual_native_select_error_is_rolled_back_and_model_corrected(
+        db_type: str, error_kind: str, code: int, request: pytest.FixtureRequest,
+        provider: Provider, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        table = "repair_" + uuid4().hex[:12]
+        fixed = f'SELECT name AS "value" FROM {table} WHERE id=1'
+        bad = (f"SELECT missing FROM {table}" if error_kind == "column" else
+               f"SELECT name FROM absent_{table}" if error_kind == "table" else
+               f"SELECT name FROM {table} LIMIT 1")
+        executed: list[str] = []
+        bad_connections: list[Connection] = []
+        rollbacks: set[Connection] = set()
+        observed: list[dict[str, object]] = []
+        original_execute = database_tools.execute_statement
+        def before(connection, _cursor, statement, _parameters, _context, _many):
+            if statement == bad:
+                bad_connections.append(connection)
+        def rolled_back(connection: Connection) -> None:
+            rollbacks.add(connection)
+        def execute(user: int, db: int, statement: str, cancel_event: threading.Event | None = None) -> QueryResult:
+            executed.append(statement)
+            try:
+                return original_execute(user, db, statement, cancel_event)
+            except DBAPIError as error:
+                assert error.statement == bad and not error.connection_invalidated
+                assert not getattr(error, "__notes__", [])
+                assert len(bad_connections) == 1 and bad_connections[0] in rollbacks
+                detail = error.orig.args[0]
+                actual_code = getattr(detail, "code", None) if db_type == "oracle" else detail
+                assert actual_code == code
+                observed.append({"driver_type": type(error.orig).__module__ + "." + type(error.orig).__name__,
+                                 "code": actual_code, "offset": getattr(detail, "offset", None),
+                                 "full_code": getattr(detail, "full_code", None), "rollback_event": True})
+                raise
+        event.listen(Engine, "before_cursor_execute", before)
+        event.listen(Engine, "rollback", rolled_back)
+        created = False
+        try:
+            text_type = "VARCHAR2(20)" if db_type == "oracle" else "VARCHAR(20)"
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY,name {text_type})")
+                created = True
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (1,'Ada')")
+            if db_type == "oracle":
+                wait_oracle_ddl(engine, [table.upper()])
+            install_target(monkeypatch, config)
+            monkeypatch.setattr(database_tools, "execute_statement", execute)
+            provider.replies = [call(bad, "bad"), call(fixed, "fixed"), answer("Ada is present.")]
+>           result, tools, _events = await run(provider)
+                                     ^^^^^^^^^^^^^^^^^^^
+
+tests\test_native_sql_repair_real.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_sql_repair.py:86: in run
+    result = await run_graph(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph.py:164: in run_graph
+    return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:4090: in ainvoke
+    async for chunk in self.astream(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:3440: in astream
+    async for _ in runner.atick(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_runner.py:396: in atick
+    await arun_with_retry(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph_sql.py:41: in prepare
+    schema = await context.tools.schema(db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\tools.py:92: in schema
+    result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\asyncio\threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py:58: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\database_tools.py:29: in get_schema
+    config = _ready_config(user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+user_id = 7, db_id = 12
+
+    def _ready_config(user_id: int, db_id: int) -> DbConfig:
+        with SessionLocal() as session:
+            config = session.get(DbConfig, db_id)
+            if config is None or config.user_id != user_id:
+>               raise BusinessError(404, "error.dbConfig.notFound")
+E               app.core.errors.BusinessError: error.dbConfig.notFound
+E               During task with name 'prepare_sql' and id '1036ff4e-d5af-8fc1-82c2-d43cbb142f35'
+
+app\services\database_tools.py:17: BusinessError
+_ test_actual_native_select_error_is_rolled_back_and_model_corrected[oracle-syntax-933] _
+
+db_type = 'oracle', error_kind = 'syntax', code = 933
+request = <FixtureRequest for <Coroutine test_actual_native_select_error_is_rolled_back_and_model_corrected[oracle-syntax-933]>>
+provider = <test_model_protocol.Provider object at 0x00000193EA6176B0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000193EA72B4A0>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type,error_kind,code", [
+        ("oracle", "column", 904), ("oracle", "table", 942), ("oracle", "syntax", 933),
+        ("sqlserver", "column", 207), ("sqlserver", "table", 208), ("sqlserver", "syntax", 102),
+    ])
+    async def test_actual_native_select_error_is_rolled_back_and_model_corrected(
+        db_type: str, error_kind: str, code: int, request: pytest.FixtureRequest,
+        provider: Provider, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        table = "repair_" + uuid4().hex[:12]
+        fixed = f'SELECT name AS "value" FROM {table} WHERE id=1'
+        bad = (f"SELECT missing FROM {table}" if error_kind == "column" else
+               f"SELECT name FROM absent_{table}" if error_kind == "table" else
+               f"SELECT name FROM {table} LIMIT 1")
+        executed: list[str] = []
+        bad_connections: list[Connection] = []
+        rollbacks: set[Connection] = set()
+        observed: list[dict[str, object]] = []
+        original_execute = database_tools.execute_statement
+        def before(connection, _cursor, statement, _parameters, _context, _many):
+            if statement == bad:
+                bad_connections.append(connection)
+        def rolled_back(connection: Connection) -> None:
+            rollbacks.add(connection)
+        def execute(user: int, db: int, statement: str, cancel_event: threading.Event | None = None) -> QueryResult:
+            executed.append(statement)
+            try:
+                return original_execute(user, db, statement, cancel_event)
+            except DBAPIError as error:
+                assert error.statement == bad and not error.connection_invalidated
+                assert not getattr(error, "__notes__", [])
+                assert len(bad_connections) == 1 and bad_connections[0] in rollbacks
+                detail = error.orig.args[0]
+                actual_code = getattr(detail, "code", None) if db_type == "oracle" else detail
+                assert actual_code == code
+                observed.append({"driver_type": type(error.orig).__module__ + "." + type(error.orig).__name__,
+                                 "code": actual_code, "offset": getattr(detail, "offset", None),
+                                 "full_code": getattr(detail, "full_code", None), "rollback_event": True})
+                raise
+        event.listen(Engine, "before_cursor_execute", before)
+        event.listen(Engine, "rollback", rolled_back)
+        created = False
+        try:
+            text_type = "VARCHAR2(20)" if db_type == "oracle" else "VARCHAR(20)"
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY,name {text_type})")
+                created = True
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (1,'Ada')")
+            if db_type == "oracle":
+                wait_oracle_ddl(engine, [table.upper()])
+            install_target(monkeypatch, config)
+            monkeypatch.setattr(database_tools, "execute_statement", execute)
+            provider.replies = [call(bad, "bad"), call(fixed, "fixed"), answer("Ada is present.")]
+>           result, tools, _events = await run(provider)
+                                     ^^^^^^^^^^^^^^^^^^^
+
+tests\test_native_sql_repair_real.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_sql_repair.py:86: in run
+    result = await run_graph(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph.py:164: in run_graph
+    return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:4090: in ainvoke
+    async for chunk in self.astream(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:3440: in astream
+    async for _ in runner.atick(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_runner.py:396: in atick
+    await arun_with_retry(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph_sql.py:41: in prepare
+    schema = await context.tools.schema(db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\tools.py:92: in schema
+    result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\asyncio\threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py:58: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\database_tools.py:29: in get_schema
+    config = _ready_config(user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+user_id = 7, db_id = 12
+
+    def _ready_config(user_id: int, db_id: int) -> DbConfig:
+        with SessionLocal() as session:
+            config = session.get(DbConfig, db_id)
+            if config is None or config.user_id != user_id:
+>               raise BusinessError(404, "error.dbConfig.notFound")
+E               app.core.errors.BusinessError: error.dbConfig.notFound
+E               During task with name 'prepare_sql' and id '09b47963-51d2-0c63-234e-a9847e5c6904'
+
+app\services\database_tools.py:17: BusinessError
+_ test_actual_native_select_error_is_rolled_back_and_model_corrected[sqlserver-column-207] _
+
+db_type = 'sqlserver', error_kind = 'column', code = 207
+request = <FixtureRequest for <Coroutine test_actual_native_select_error_is_rolled_back_and_model_corrected[sqlserver-column-207]>>
+provider = <test_model_protocol.Provider object at 0x00000193EA72B680>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000193EA8C3440>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type,error_kind,code", [
+        ("oracle", "column", 904), ("oracle", "table", 942), ("oracle", "syntax", 933),
+        ("sqlserver", "column", 207), ("sqlserver", "table", 208), ("sqlserver", "syntax", 102),
+    ])
+    async def test_actual_native_select_error_is_rolled_back_and_model_corrected(
+        db_type: str, error_kind: str, code: int, request: pytest.FixtureRequest,
+        provider: Provider, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        table = "repair_" + uuid4().hex[:12]
+        fixed = f'SELECT name AS "value" FROM {table} WHERE id=1'
+        bad = (f"SELECT missing FROM {table}" if error_kind == "column" else
+               f"SELECT name FROM absent_{table}" if error_kind == "table" else
+               f"SELECT name FROM {table} LIMIT 1")
+        executed: list[str] = []
+        bad_connections: list[Connection] = []
+        rollbacks: set[Connection] = set()
+        observed: list[dict[str, object]] = []
+        original_execute = database_tools.execute_statement
+        def before(connection, _cursor, statement, _parameters, _context, _many):
+            if statement == bad:
+                bad_connections.append(connection)
+        def rolled_back(connection: Connection) -> None:
+            rollbacks.add(connection)
+        def execute(user: int, db: int, statement: str, cancel_event: threading.Event | None = None) -> QueryResult:
+            executed.append(statement)
+            try:
+                return original_execute(user, db, statement, cancel_event)
+            except DBAPIError as error:
+                assert error.statement == bad and not error.connection_invalidated
+                assert not getattr(error, "__notes__", [])
+                assert len(bad_connections) == 1 and bad_connections[0] in rollbacks
+                detail = error.orig.args[0]
+                actual_code = getattr(detail, "code", None) if db_type == "oracle" else detail
+                assert actual_code == code
+                observed.append({"driver_type": type(error.orig).__module__ + "." + type(error.orig).__name__,
+                                 "code": actual_code, "offset": getattr(detail, "offset", None),
+                                 "full_code": getattr(detail, "full_code", None), "rollback_event": True})
+                raise
+        event.listen(Engine, "before_cursor_execute", before)
+        event.listen(Engine, "rollback", rolled_back)
+        created = False
+        try:
+            text_type = "VARCHAR2(20)" if db_type == "oracle" else "VARCHAR(20)"
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY,name {text_type})")
+                created = True
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (1,'Ada')")
+            if db_type == "oracle":
+                wait_oracle_ddl(engine, [table.upper()])
+            install_target(monkeypatch, config)
+            monkeypatch.setattr(database_tools, "execute_statement", execute)
+            provider.replies = [call(bad, "bad"), call(fixed, "fixed"), answer("Ada is present.")]
+>           result, tools, _events = await run(provider)
+                                     ^^^^^^^^^^^^^^^^^^^
+
+tests\test_native_sql_repair_real.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_sql_repair.py:86: in run
+    result = await run_graph(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph.py:164: in run_graph
+    return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:4090: in ainvoke
+    async for chunk in self.astream(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:3440: in astream
+    async for _ in runner.atick(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_runner.py:396: in atick
+    await arun_with_retry(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph_sql.py:41: in prepare
+    schema = await context.tools.schema(db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\tools.py:92: in schema
+    result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\asyncio\threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py:58: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\database_tools.py:29: in get_schema
+    config = _ready_config(user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+user_id = 7, db_id = 12
+
+    def _ready_config(user_id: int, db_id: int) -> DbConfig:
+        with SessionLocal() as session:
+            config = session.get(DbConfig, db_id)
+            if config is None or config.user_id != user_id:
+>               raise BusinessError(404, "error.dbConfig.notFound")
+E               app.core.errors.BusinessError: error.dbConfig.notFound
+E               During task with name 'prepare_sql' and id '4b697013-bf71-7a50-f710-f99950437193'
+
+app\services\database_tools.py:17: BusinessError
+_ test_actual_native_select_error_is_rolled_back_and_model_corrected[sqlserver-table-208] _
+
+db_type = 'sqlserver', error_kind = 'table', code = 208
+request = <FixtureRequest for <Coroutine test_actual_native_select_error_is_rolled_back_and_model_corrected[sqlserver-table-208]>>
+provider = <test_model_protocol.Provider object at 0x00000193EA8C30E0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000193EA747770>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type,error_kind,code", [
+        ("oracle", "column", 904), ("oracle", "table", 942), ("oracle", "syntax", 933),
+        ("sqlserver", "column", 207), ("sqlserver", "table", 208), ("sqlserver", "syntax", 102),
+    ])
+    async def test_actual_native_select_error_is_rolled_back_and_model_corrected(
+        db_type: str, error_kind: str, code: int, request: pytest.FixtureRequest,
+        provider: Provider, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        table = "repair_" + uuid4().hex[:12]
+        fixed = f'SELECT name AS "value" FROM {table} WHERE id=1'
+        bad = (f"SELECT missing FROM {table}" if error_kind == "column" else
+               f"SELECT name FROM absent_{table}" if error_kind == "table" else
+               f"SELECT name FROM {table} LIMIT 1")
+        executed: list[str] = []
+        bad_connections: list[Connection] = []
+        rollbacks: set[Connection] = set()
+        observed: list[dict[str, object]] = []
+        original_execute = database_tools.execute_statement
+        def before(connection, _cursor, statement, _parameters, _context, _many):
+            if statement == bad:
+                bad_connections.append(connection)
+        def rolled_back(connection: Connection) -> None:
+            rollbacks.add(connection)
+        def execute(user: int, db: int, statement: str, cancel_event: threading.Event | None = None) -> QueryResult:
+            executed.append(statement)
+            try:
+                return original_execute(user, db, statement, cancel_event)
+            except DBAPIError as error:
+                assert error.statement == bad and not error.connection_invalidated
+                assert not getattr(error, "__notes__", [])
+                assert len(bad_connections) == 1 and bad_connections[0] in rollbacks
+                detail = error.orig.args[0]
+                actual_code = getattr(detail, "code", None) if db_type == "oracle" else detail
+                assert actual_code == code
+                observed.append({"driver_type": type(error.orig).__module__ + "." + type(error.orig).__name__,
+                                 "code": actual_code, "offset": getattr(detail, "offset", None),
+                                 "full_code": getattr(detail, "full_code", None), "rollback_event": True})
+                raise
+        event.listen(Engine, "before_cursor_execute", before)
+        event.listen(Engine, "rollback", rolled_back)
+        created = False
+        try:
+            text_type = "VARCHAR2(20)" if db_type == "oracle" else "VARCHAR(20)"
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY,name {text_type})")
+                created = True
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (1,'Ada')")
+            if db_type == "oracle":
+                wait_oracle_ddl(engine, [table.upper()])
+            install_target(monkeypatch, config)
+            monkeypatch.setattr(database_tools, "execute_statement", execute)
+            provider.replies = [call(bad, "bad"), call(fixed, "fixed"), answer("Ada is present.")]
+>           result, tools, _events = await run(provider)
+                                     ^^^^^^^^^^^^^^^^^^^
+
+tests\test_native_sql_repair_real.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_sql_repair.py:86: in run
+    result = await run_graph(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph.py:164: in run_graph
+    return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:4090: in ainvoke
+    async for chunk in self.astream(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:3440: in astream
+    async for _ in runner.atick(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_runner.py:396: in atick
+    await arun_with_retry(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph_sql.py:41: in prepare
+    schema = await context.tools.schema(db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\tools.py:92: in schema
+    result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\asyncio\threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py:58: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\database_tools.py:29: in get_schema
+    config = _ready_config(user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+user_id = 7, db_id = 12
+
+    def _ready_config(user_id: int, db_id: int) -> DbConfig:
+        with SessionLocal() as session:
+            config = session.get(DbConfig, db_id)
+            if config is None or config.user_id != user_id:
+>               raise BusinessError(404, "error.dbConfig.notFound")
+E               app.core.errors.BusinessError: error.dbConfig.notFound
+E               During task with name 'prepare_sql' and id '6ffa1c5c-2f3e-17a6-9af7-c7d35d6f789f'
+
+app\services\database_tools.py:17: BusinessError
+_ test_actual_native_select_error_is_rolled_back_and_model_corrected[sqlserver-syntax-102] _
+
+db_type = 'sqlserver', error_kind = 'syntax', code = 102
+request = <FixtureRequest for <Coroutine test_actual_native_select_error_is_rolled_back_and_model_corrected[sqlserver-syntax-102]>>
+provider = <test_model_protocol.Provider object at 0x00000193EA747B60>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000193EA7669F0>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type,error_kind,code", [
+        ("oracle", "column", 904), ("oracle", "table", 942), ("oracle", "syntax", 933),
+        ("sqlserver", "column", 207), ("sqlserver", "table", 208), ("sqlserver", "syntax", 102),
+    ])
+    async def test_actual_native_select_error_is_rolled_back_and_model_corrected(
+        db_type: str, error_kind: str, code: int, request: pytest.FixtureRequest,
+        provider: Provider, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        table = "repair_" + uuid4().hex[:12]
+        fixed = f'SELECT name AS "value" FROM {table} WHERE id=1'
+        bad = (f"SELECT missing FROM {table}" if error_kind == "column" else
+               f"SELECT name FROM absent_{table}" if error_kind == "table" else
+               f"SELECT name FROM {table} LIMIT 1")
+        executed: list[str] = []
+        bad_connections: list[Connection] = []
+        rollbacks: set[Connection] = set()
+        observed: list[dict[str, object]] = []
+        original_execute = database_tools.execute_statement
+        def before(connection, _cursor, statement, _parameters, _context, _many):
+            if statement == bad:
+                bad_connections.append(connection)
+        def rolled_back(connection: Connection) -> None:
+            rollbacks.add(connection)
+        def execute(user: int, db: int, statement: str, cancel_event: threading.Event | None = None) -> QueryResult:
+            executed.append(statement)
+            try:
+                return original_execute(user, db, statement, cancel_event)
+            except DBAPIError as error:
+                assert error.statement == bad and not error.connection_invalidated
+                assert not getattr(error, "__notes__", [])
+                assert len(bad_connections) == 1 and bad_connections[0] in rollbacks
+                detail = error.orig.args[0]
+                actual_code = getattr(detail, "code", None) if db_type == "oracle" else detail
+                assert actual_code == code
+                observed.append({"driver_type": type(error.orig).__module__ + "." + type(error.orig).__name__,
+                                 "code": actual_code, "offset": getattr(detail, "offset", None),
+                                 "full_code": getattr(detail, "full_code", None), "rollback_event": True})
+                raise
+        event.listen(Engine, "before_cursor_execute", before)
+        event.listen(Engine, "rollback", rolled_back)
+        created = False
+        try:
+            text_type = "VARCHAR2(20)" if db_type == "oracle" else "VARCHAR(20)"
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY,name {text_type})")
+                created = True
+                connection.exec_driver_sql(f"INSERT INTO {table} VALUES (1,'Ada')")
+            if db_type == "oracle":
+                wait_oracle_ddl(engine, [table.upper()])
+            install_target(monkeypatch, config)
+            monkeypatch.setattr(database_tools, "execute_statement", execute)
+            provider.replies = [call(bad, "bad"), call(fixed, "fixed"), answer("Ada is present.")]
+>           result, tools, _events = await run(provider)
+                                     ^^^^^^^^^^^^^^^^^^^
+
+tests\test_native_sql_repair_real.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_sql_repair.py:86: in run
+    result = await run_graph(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph.py:164: in run_graph
+    return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:4090: in ainvoke
+    async for chunk in self.astream(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:3440: in astream
+    async for _ in runner.atick(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_runner.py:396: in atick
+    await arun_with_retry(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph_sql.py:41: in prepare
+    schema = await context.tools.schema(db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\tools.py:92: in schema
+    result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\asyncio\threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py:58: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\database_tools.py:29: in get_schema
+    config = _ready_config(user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+user_id = 7, db_id = 12
+
+    def _ready_config(user_id: int, db_id: int) -> DbConfig:
+        with SessionLocal() as session:
+            config = session.get(DbConfig, db_id)
+            if config is None or config.user_id != user_id:
+>               raise BusinessError(404, "error.dbConfig.notFound")
+E               app.core.errors.BusinessError: error.dbConfig.notFound
+E               During task with name 'prepare_sql' and id 'cce45e0e-c895-be93-33bd-64e96e87cf0a'
+
+app\services\database_tools.py:17: BusinessError
+_ test_actual_committed_write_with_injected_lost_result_is_not_replayed[oracle] _
+
+db_type = 'oracle'
+request = <FixtureRequest for <Coroutine test_actual_committed_write_with_injected_lost_result_is_not_replayed[oracle]>>
+provider = <test_model_protocol.Provider object at 0x00000193EA767530>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000193EA7F3890>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type", ["oracle", "sqlserver"])
+    async def test_actual_committed_write_with_injected_lost_result_is_not_replayed(
+        db_type: str, request: pytest.FixtureRequest, provider: Provider, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        table = "unknown_" + uuid4().hex[:12]
+        statement = f"INSERT INTO {table} VALUES (1)"
+        executions: list[str] = []
+        original_execute = database_tools.execute_statement
+        def execute(user: int, db: int, sql: str, cancel_event: threading.Event | None = None) -> QueryResult:
+            executions.append(sql)
+            assert original_execute(user, db, sql, cancel_event)["success"] is True
+            raise DatabaseWriteOutcomeUnknown("Injected result loss after the actual committed write")
+        created = False
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY)")
+            created = True
+            install_target(monkeypatch, config)
+            monkeypatch.setattr(database_tools, "execute_statement", execute)
+            provider.replies = [call(statement, "write"), call(statement, "must_not_repeat")]
+            with pytest.raises(RunAborted, match="write_outcome_unknown"):
+>               await run(provider)
+
+tests\test_native_sql_repair_real.py:129: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_sql_repair.py:86: in run
+    result = await run_graph(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph.py:164: in run_graph
+    return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:4090: in ainvoke
+    async for chunk in self.astream(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:3440: in astream
+    async for _ in runner.atick(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_runner.py:396: in atick
+    await arun_with_retry(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph_sql.py:41: in prepare
+    schema = await context.tools.schema(db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\tools.py:92: in schema
+    result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\asyncio\threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py:58: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\database_tools.py:29: in get_schema
+    config = _ready_config(user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+user_id = 7, db_id = 12
+
+    def _ready_config(user_id: int, db_id: int) -> DbConfig:
+        with SessionLocal() as session:
+            config = session.get(DbConfig, db_id)
+            if config is None or config.user_id != user_id:
+>               raise BusinessError(404, "error.dbConfig.notFound")
+E               app.core.errors.BusinessError: error.dbConfig.notFound
+E               During task with name 'prepare_sql' and id 'ff04a779-5bbd-bcef-5ad3-cbc5d360bf25'
+
+app\services\database_tools.py:17: BusinessError
+_ test_actual_committed_write_with_injected_lost_result_is_not_replayed[sqlserver] _
+
+db_type = 'sqlserver'
+request = <FixtureRequest for <Coroutine test_actual_committed_write_with_injected_lost_result_is_not_replayed[sqlserver]>>
+provider = <test_model_protocol.Provider object at 0x00000193EA7F1640>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000193EA7F02C0>
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("db_type", ["oracle", "sqlserver"])
+    async def test_actual_committed_write_with_injected_lost_result_is_not_replayed(
+        db_type: str, request: pytest.FixtureRequest, provider: Provider, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = fixture_target(request, db_type)
+        table = "unknown_" + uuid4().hex[:12]
+        statement = f"INSERT INTO {table} VALUES (1)"
+        executions: list[str] = []
+        original_execute = database_tools.execute_statement
+        def execute(user: int, db: int, sql: str, cancel_event: threading.Event | None = None) -> QueryResult:
+            executions.append(sql)
+            assert original_execute(user, db, sql, cancel_event)["success"] is True
+            raise DatabaseWriteOutcomeUnknown("Injected result loss after the actual committed write")
+        created = False
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY)")
+            created = True
+            install_target(monkeypatch, config)
+            monkeypatch.setattr(database_tools, "execute_statement", execute)
+            provider.replies = [call(statement, "write"), call(statement, "must_not_repeat")]
+            with pytest.raises(RunAborted, match="write_outcome_unknown"):
+>               await run(provider)
+
+tests\test_native_sql_repair_real.py:129: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_sql_repair.py:86: in run
+    result = await run_graph(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph.py:164: in run_graph
+    return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:4090: in ainvoke
+    async for chunk in self.astream(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:3440: in astream
+    async for _ in runner.atick(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_runner.py:396: in atick
+    await arun_with_retry(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph_sql.py:41: in prepare
+    schema = await context.tools.schema(db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\tools.py:92: in schema
+    result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\asyncio\threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py:58: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\database_tools.py:29: in get_schema
+    config = _ready_config(user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+user_id = 7, db_id = 12
+
+    def _ready_config(user_id: int, db_id: int) -> DbConfig:
+        with SessionLocal() as session:
+            config = session.get(DbConfig, db_id)
+            if config is None or config.user_id != user_id:
+>               raise BusinessError(404, "error.dbConfig.notFound")
+E               app.core.errors.BusinessError: error.dbConfig.notFound
+E               During task with name 'prepare_sql' and id '83cc51cf-51ee-1c67-f7ec-284e5bd076d3'
+
+app\services\database_tools.py:17: BusinessError
+__ test_actual_oracle_sequence_advance_then_known_error_cannot_reach_repair ___
+
+oracle_target = NativeTarget(config=<credentials redacted>, engine=<isolated target>)
+provider = <test_model_protocol.Provider object at 0x00000193EA7F00E0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000193EA7665D0>
+
+    @pytest.mark.asyncio
+    async def test_actual_oracle_sequence_advance_then_known_error_cannot_reach_repair(
+        oracle_target, provider: Provider, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        config, engine = oracle_target
+        sequence = "unknown_seq_" + uuid4().hex[:12]
+        statement = f'SELECT {sequence}."NEXTVAL" FROM DUAL'
+        adapter = get_adapter("oracle")
+        original_json = adapter._json_value
+        converted: list[object] = []
+        def fail_after_read(value: object) -> object:
+            converted.append(value)
+            raise native_error("oracle", 942, statement)
+        created = False
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(f"CREATE SEQUENCE {sequence} NOCACHE")
+            created = True
+            install_target(monkeypatch, config)
+            monkeypatch.setattr(adapter, "_json_value", fail_after_read)
+            provider.replies = [call(statement, "advance"), call(statement, "must_not_repeat")]
+            with pytest.raises(RunAborted, match="write_outcome_unknown"):
+>               await run(provider)
+
+tests\test_native_sql_repair_real.py:161: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_sql_repair.py:86: in run
+    result = await run_graph(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph.py:164: in run_graph
+    return await build_graph(context).ainvoke(initial, {"recursion_limit": recursion_limit})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:4090: in ainvoke
+    async for chunk in self.astream(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\main.py:3440: in astream
+    async for _ in runner.atick(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_runner.py:396: in atick
+    await arun_with_retry(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\pregel\_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+..\..\..\..\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\graph_sql.py:41: in prepare
+    schema = await context.tools.schema(db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\agent\tools.py:92: in schema
+    result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\asyncio\threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\22126\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py:58: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services\database_tools.py:29: in get_schema
+    config = _ready_config(user_id, db_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+user_id = 7, db_id = 12
+
+    def _ready_config(user_id: int, db_id: int) -> DbConfig:
+        with SessionLocal() as session:
+            config = session.get(DbConfig, db_id)
+            if config is None or config.user_id != user_id:
+>               raise BusinessError(404, "error.dbConfig.notFound")
+E               app.core.errors.BusinessError: error.dbConfig.notFound
+E               During task with name 'prepare_sql' and id 'f03caa4d-82f5-a61e-b725-b195c4384ee7'
+
+app\services\database_tools.py:17: BusinessError
+=========================== short test summary info ===========================
+FAILED tests/test_native_sql_repair_real.py::test_actual_native_select_error_is_rolled_back_and_model_corrected[oracle-column-904]
+FAILED tests/test_native_sql_repair_real.py::test_actual_native_select_error_is_rolled_back_and_model_corrected[oracle-table-942]
+FAILED tests/test_native_sql_repair_real.py::test_actual_native_select_error_is_rolled_back_and_model_corrected[oracle-syntax-933]
+FAILED tests/test_native_sql_repair_real.py::test_actual_native_select_error_is_rolled_back_and_model_corrected[sqlserver-column-207]
+FAILED tests/test_native_sql_repair_real.py::test_actual_native_select_error_is_rolled_back_and_model_corrected[sqlserver-table-208]
+FAILED tests/test_native_sql_repair_real.py::test_actual_native_select_error_is_rolled_back_and_model_corrected[sqlserver-syntax-102]
+FAILED tests/test_native_sql_repair_real.py::test_actual_committed_write_with_injected_lost_result_is_not_replayed[oracle]
+FAILED tests/test_native_sql_repair_real.py::test_actual_committed_write_with_injected_lost_result_is_not_replayed[sqlserver]
+FAILED tests/test_native_sql_repair_real.py::test_actual_oracle_sequence_advance_then_known_error_cannot_reach_repair
+9 failed, 57 passed in 30.48s

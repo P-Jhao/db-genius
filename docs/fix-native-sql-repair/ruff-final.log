@@ -1,0 +1,27 @@
+I001 [*] Import block is un-sorted or un-formatted
+  --> tests\test_native_sql_repair_policy.py:3:1
+   |
+ 1 |   """Native parse diagnostics are a small whitelist; uncertain operations stay fatal."""
+ 2 |
+ 3 | / from dataclasses import dataclass
+ 4 | |
+ 5 | | import oracledb
+ 6 | | import psycopg
+ 7 | | import pymysql
+ 8 | | import pymssql
+ 9 | | import pytest
+10 | | from sqlalchemy.exc import DBAPIError
+11 | |
+12 | | from app.agent.sql_errors import failure, repairable
+   | |____________________________________________________^
+help: Organize imports
+  |
+6 | import psycopg
+7 + import pymssql
+8 | import pymysql
+  - import pymssql
+9 | import pytest
+  |
+
+Found 1 error.
+[*] 1 fixable with the `--fix` option.
