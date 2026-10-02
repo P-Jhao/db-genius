@@ -1,0 +1,10 @@
+{
+  "installedVersion": "0.26.0",
+  "lockedVersion": "0.26.0",
+  "mergeSignature": "(files, accumulate=True)",
+  "mergeSourceSha256": "9114faeb79deedbbdd266180187f9effbe3dcac627e4c95a68f1b2eeec696da7",
+  "valuesSourceSha256": "947b3a2d0d8062cc7bf43441b847dc27b3d31f295f80296729b6007e701aac3b",
+  "officialDocumentation": "https://prometheus.github.io/client_python/multiprocess/",
+  "primarySource": "https://github.com/prometheus/client_python/blob/v0.26.0/prometheus_client/multiprocess.py",
+  "review": "Installed locked source merge(files, accumulate=True) reads explicit full mmap paths and accumulates histograms once. Service directories remain separate; one fresh CollectorRegistry per exposition; no scrape-time write-back."
+}

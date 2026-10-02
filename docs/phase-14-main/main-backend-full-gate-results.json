@@ -1,0 +1,17 @@
+{
+  "accepted_base": "cbe4815f1aa7ac7c266040f69f9231f8487bafbd",
+  "candidate_manifest_sha256": "8f49dff0680400dc084da8aaa2da5596377b3b4db2c0b71d537a520ca50f1709",
+  "exit_codes": {
+    "pytest-complete": 0,
+    "broker-unavailable": 0,
+    "ruff": 0,
+    "mypy-strict": 0
+  },
+  "passed": true,
+  "stopped": null,
+  "source_guards_preserved": true,
+  "no_container_lifecycle_actions": true,
+  "logs_redacted_before_write": true,
+  "cloud_and_real_model_effects": "separate acceptance; not executed here",
+  "deployment_persistence_browser": "separate operator profiles; not automatically enabled"
+}

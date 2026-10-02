@@ -1,0 +1,70 @@
+{
+  "allPriorFreezesReverifiedUnchanged": true,
+  "priorFreezes": [
+    {
+      "manifest": "docs/phase-14-runtime-tests/manifest.json",
+      "name": "s14-runtime-tests-b92826587f2e4b6aaa9251278ab41f1e",
+      "sha": "e18de588f10ab06bcf936f1e4c5230124b8d7ccb3ab8d9a96acdd036f7251a47",
+      "count": 13
+    },
+    {
+      "manifest": "docs/phase-14-trace-diagnostics/manifest.json",
+      "name": "s14-trace-diagnostics-8dfc6d0d50454f1c8bc118e3d16c4e93",
+      "sha": "1c79be1ef595053c826d7cedb4800995ba7cc729f8a3f2ce3a4308fe0b219b97",
+      "count": 6
+    },
+    {
+      "manifest": "docs/phase-14-backend/manifest.json",
+      "name": "s14-backend-final-c386f2aa9f31467592a281b4fc3db4f2",
+      "sha": "ea32f9291d03490ef26face14e2cd7f709aee9983e037fce59f089b07b788a57",
+      "count": 49
+    },
+    {
+      "manifest": "docs/phase-14-backend/manifest.json",
+      "name": "s14-backend-docs-revision-f2facd4c92134ab4aeb06617ba1140b1",
+      "sha": "16673e154819bfe18bccb270e868eafd175dd01bbee00a5292c12aacd93f3558",
+      "count": 2
+    }
+  ],
+  "unchangedReferenceFilesExcludedFromOverlay": [
+    {
+      "path": "backend/tests/test_s14_runtime_support.py",
+      "bytes": 14177,
+      "sha256": "cbda0a11782a801986666782b40b387966757d9b3485cdf4b530c69806792ada",
+      "overlayPayload": false
+    },
+    {
+      "path": "backend/tests/test_s14_runtime_metrics.py",
+      "bytes": 4531,
+      "sha256": "3e5822ca478cec7f9faf109752cf5dd9a3ef3340cbf87cdcbf237e6ba70232f3",
+      "overlayPayload": false
+    },
+    {
+      "path": "backend/tests/real_model_database.py",
+      "bytes": 10645,
+      "sha256": "251702c4d1c054ff8e99ec0a56d48a299922fa761d2d28c91c9ad22c24ac9ba8",
+      "overlayPayload": false
+    },
+    {
+      "path": "backend/tests/real_model_relay.py",
+      "bytes": 12616,
+      "sha256": "406f3c54a382156e6de5d714506f6e51bb965f21c4ecaaa1a7a38c83eb981f1f",
+      "overlayPayload": false
+    },
+    {
+      "path": "backend/tests/real_model_cases.py",
+      "bytes": 6837,
+      "sha256": "adbb9979573e42eecec686691ac2f8fb5184267cc0d1323aed9f4225d0a35275",
+      "overlayPayload": false
+    },
+    {
+      "path": "backend/tests/real_model_relay_body.py",
+      "bytes": 2058,
+      "sha256": "07bd63c4d930c7ca6c942cf416a26c994bc6b841aed06e0f7be7d880a5445923",
+      "overlayPayload": false
+    }
+  ],
+  "rootFailureEvidenceReverified": true,
+  "businessComposeDependencyDeployHelperEdits": false,
+  "agentsCheckedUnchanged": true
+}

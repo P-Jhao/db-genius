@@ -1,0 +1,169 @@
+{
+  "status": "plan only; not executed; no shared writes",
+  "candidateAccepted": false,
+  "candidateBase": "93175f927beb517beb8992b3ade3486d0a7abf53",
+  "beforeAnySharedSynthesis": [
+    "Root confirms accepted backend and Luna deployment payload plus all owner write completion.",
+    "Read every explicitly named shared target internally; save byte-for-byte backup and path/bytes/SHA manifest under a new ignored acceptance backup; do not enumerate or copy dotenv/secret files.",
+    "Compare latest accepted base; if new accepted changes overlap an owned file, integrate a minimal patch and rerun the specific affected gate; never restore old full public files."
+  ],
+  "ownedCandidateFiles": [
+    {
+      "path": "backend/app/main.py",
+      "bytes": 3157,
+      "sha256": "9c2ae7d2b509fb5127843d69fe362f3212935b0a2d78ff1282643b43bdd5e977"
+    },
+    {
+      "path": "backend/app/api/system.py",
+      "bytes": 1154,
+      "sha256": "8e680d6dff9bcfeae0b50756557979aff0ecb466bf5c17c5af6410debdb0e94e"
+    },
+    {
+      "path": "backend/app/core/config.py",
+      "bytes": 6248,
+      "sha256": "f1aeb53ed3adffe6aa678fb2d38c091dea909bfae71cab000dce4117676dc64b"
+    },
+    {
+      "path": "backend/app/api/chat.py",
+      "bytes": 13152,
+      "sha256": "78837eaebf0b395357448392d50e15b634951a9fc8a0d26b4bb30cb2faabd22a"
+    },
+    {
+      "path": "backend/app/agent/tools.py",
+      "bytes": 10242,
+      "sha256": "5227b808aef6201c99aa8e93227eff44260fb3e11e7f65b6457e24eb33005019"
+    },
+    {
+      "path": "backend/app/tasks/db_config.py",
+      "bytes": 1532,
+      "sha256": "da35fa95a122e7332b82a769a6e7c942268db3f5245fcdbb00ba942a468d0809"
+    },
+    {
+      "path": "backend/app/tasks/celery_app.py",
+      "bytes": 2148,
+      "sha256": "77c3fbd9ca78a8b72211a4c01708bef3777bb053b4ccfa3f50aaaad8c2488b3d"
+    },
+    {
+      "path": "backend/app/services/db_config.py",
+      "bytes": 8670,
+      "sha256": "6ce5617bba3b4188231ab07e6eadc0e15fe85a8e70b2f482e097bb18418e1186"
+    },
+    {
+      "path": "backend/app/services/db_config_worker.py",
+      "bytes": 2542,
+      "sha256": "ab0e1a938e16934b309addc46f0d43d625beae7f850ba6953279f5a53815dccf"
+    },
+    {
+      "path": "backend/app/services/database_tools.py",
+      "bytes": 3401,
+      "sha256": "d9ce95a1ecd52edc0bff37c9033ec63847af06722f805d0e9b7523474756dc4e"
+    },
+    {
+      "path": "backend/app/core/observability_health.py",
+      "bytes": 2861,
+      "sha256": "cb9372e260069bc97e071d0c001e5dffcc02a6fe2d27805510ecfe54ac3d8cfa"
+    },
+    {
+      "path": "backend/app/core/observability_logging.py",
+      "bytes": 4626,
+      "sha256": "a6062c2ec90d616ec967d3493a4ade34dda3c28507504a77206b1f526d289cf3"
+    },
+    {
+      "path": "backend/app/core/observability_metrics.py",
+      "bytes": 4587,
+      "sha256": "6121403b04baa258e729a96d451780d1ee9b3b8aba2eb3feb271a281a5db9991"
+    },
+    {
+      "path": "backend/app/core/observability_metrics_lock.py",
+      "bytes": 1976,
+      "sha256": "19fbab5a03a846a059ea0d529e9c26e41fe16779d3c1b53778c125f0b8fc7f23"
+    },
+    {
+      "path": "backend/app/core/observability_multiprocess.py",
+      "bytes": 2577,
+      "sha256": "484717a8c0788b4e6075c2ff8d5b45a851b90a9f0929260c74f7901c5f8cf20c"
+    },
+    {
+      "path": "backend/app/core/observability_runtime.py",
+      "bytes": 6548,
+      "sha256": "a6aea551b7bae47db0da3588b7818bec641dcf245b2f47bfc3e8993a7829c018"
+    },
+    {
+      "path": "backend/app/core/observability_tracing.py",
+      "bytes": 4861,
+      "sha256": "e3b415047a93688c0bb9d2f8ae1b9da0e9d57141c042aa1599c1d06e39214af4"
+    },
+    {
+      "path": "backend/tests/test_observability.py",
+      "bytes": 12979,
+      "sha256": "6be7d6e4f864a9699c1fda9038aa2d8384c7ed47b88c9c4b235939298deea936"
+    },
+    {
+      "path": "backend/tests/test_observability_database.py",
+      "bytes": 3037,
+      "sha256": "6233cdf1d425caecd558cdba0c064bcb9f26babf89f388584b8cbcca9d7e91a9"
+    },
+    {
+      "path": "backend/tests/test_observability_faults.py",
+      "bytes": 3437,
+      "sha256": "c83e500dbd9c6947eab99237d7514daba388aed95b9280b6459b0b91e25c7eb0"
+    },
+    {
+      "path": "backend/tests/test_observability_integration.py",
+      "bytes": 2895,
+      "sha256": "5f0db2dd2428456bc5897e01e7a81f11cf2271759032ae9478d1b66d83d42a72"
+    },
+    {
+      "path": "backend/tests/test_observability_lifecycle.py",
+      "bytes": 11891,
+      "sha256": "40fd6750deaa788c7abc2f656c1419e00b1971de6122c94f12cdbe96d08b7be4"
+    },
+    {
+      "path": "backend/tests/test_observability_metrics_lock.py",
+      "bytes": 4141,
+      "sha256": "c32cb0594052dd5e7134f51433ad5426dd466446a69eba1fad6148b5f2107df5"
+    },
+    {
+      "path": "backend/tests/test_observability_multiprocess.py",
+      "bytes": 6879,
+      "sha256": "58b72956f6ccabddc6f729bfef751ec318a4191424ec3464379c4b19b20c5349"
+    },
+    {
+      "path": "backend/tests/test_observability_results.py",
+      "bytes": 4042,
+      "sha256": "c5d00244fd04250298f914b093e42e01fdbd12c7bd47d39191fe23d2c56940f3"
+    },
+    {
+      "path": "backend/tests/test_observability_security.py",
+      "bytes": 4961,
+      "sha256": "90c78bc36d02db8d46e37523a295acde3e31158ef2b0faaa8b4848aecdf677a0"
+    },
+    {
+      "path": "backend/tests/test_observability_tracing.py",
+      "bytes": 5687,
+      "sha256": "fcc4ce9580f29b717166e870ec3c43acdd18dacf958eb77b95c043ad9af118d7"
+    },
+    {
+      "path": "backend/tests/test_celery_queue_policy.py",
+      "bytes": 1221,
+      "sha256": "bef66887dbac58773b350380b37c0e9adc111ce3a0c3bc4958d648dfbc9f25e9"
+    },
+    {
+      "path": "backend/pyproject.toml",
+      "bytes": 1296,
+      "sha256": "48c98d2016af3ede8e4498ef25bf08c3623253b38925fb02b9c89d99b8ccb57d"
+    },
+    {
+      "path": "backend/uv.lock",
+      "bytes": 817796,
+      "sha256": "25902a7237fb7a790542265e045d953ab6b40ff088ac1ee146c7e9904578ea43"
+    }
+  ],
+  "assemblyRule": "Only root-authorized exact file list can be synchronized after acceptance, combining this backend payload with latest accepted unowned files and independently accepted Luna payload. AGENTS/Java/S10 snapshots/native/adapter/diagnostics/Workflow/graph stay latest accepted.",
+  "dependencyRuntime": "Build locked candidate image using pyproject/uv.lock; shared old image not source evidence.",
+  "verificationAfterAssembly": [
+    "Exact candidate file SHA/bytes or explicitly reviewed latest minimal refresh.",
+    "Backend import/health and full product compile check against the merged tree.",
+    "Root-coordinated actual Compose/T31-34 and separate S15 real provider benchmark."
+  ]
+}

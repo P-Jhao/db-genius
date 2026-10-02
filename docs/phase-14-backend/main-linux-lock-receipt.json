@@ -1,0 +1,13 @@
+{
+  "kind": "root actual Linux standard-library fork lifecycle probe; old image is runtime only, not final S14 application evidence",
+  "source_sha256": "19fbab5a03a846a059ea0d529e9c26e41fe16779d3c1b53778c125f0b8fc7f23",
+  "runtime_image": "sha256:c4c27461191736f3cc04e3890322e4d0d2c8cebb3c761cf9dd7239f65a43b576",
+  "command_scope": "one readonly lock module; network none; temporary Linux directory; no existing volume or container mutation",
+  "result": {
+    "platform": "posix",
+    "fork_child_close_preserves_parent": true,
+    "parent_exit_preserves_child_own_lease": true,
+    "live_init_refused": true,
+    "final_close_allows_new_epoch": true
+  }
+}

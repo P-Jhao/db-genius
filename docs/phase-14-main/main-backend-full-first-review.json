@@ -1,0 +1,58 @@
+{
+  "status": "failed",
+  "candidateManifestSha256": "2998353e3d693224a3758bfcaa4ce31b8f310bcb9a5f78470159e336957b06d6",
+  "pytest": {
+    "passed": 1178,
+    "failed": 2,
+    "skipped": 5,
+    "failures": [
+      "test_mysql_family_workflow.py::test_other_families_are_not_implicitly_registered[oracle]",
+      "test_mysql_family_workflow.py::test_other_families_are_not_implicitly_registered[sqlserver]"
+    ],
+    "failureReview": "Earlier workflow tests still reject databases now explicitly supported by S12. Require a reviewed test-only correction; retain all production adapters."
+  },
+  "independentChecks": {
+    "brokerUnavailable": 1,
+    "ruff": "passed",
+    "mypyStrict": {
+      "status": "passed",
+      "sourceFiles": 103
+    },
+    "healthNode": {
+      "passed": 4,
+      "skipped": 0
+    }
+  },
+  "sourceGuardsPreserved": true,
+  "gateEvidence": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s15-backend-final-audit-aed4e0402ef04aae97ca8e5396b8a7ac\\health-window-20261002-7f0f699e\\run-aca23265460c",
+  "artifacts": [
+    {
+      "path": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s15-backend-final-audit-aed4e0402ef04aae97ca8e5396b8a7ac\\health-window-20261002-7f0f699e\\run-aca23265460c\\results.json",
+      "sha256": "0130572ca008ad4f47aca361a5280053ea77872d8c2b75a81121d1ecb834d4a4"
+    },
+    {
+      "path": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s15-backend-final-audit-aed4e0402ef04aae97ca8e5396b8a7ac\\health-window-20261002-7f0f699e\\run-aca23265460c\\scope.json",
+      "sha256": "4220f3831eeb40406c0d2fa343e1ac2129959b2f2f7dc0db136f838a4ce362af"
+    },
+    {
+      "path": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s15-backend-final-audit-aed4e0402ef04aae97ca8e5396b8a7ac\\health-window-20261002-7f0f699e\\run-aca23265460c\\pytest-complete.log",
+      "sha256": "0b6c4af572763f5b90634da56f19aa1bcc3856f5b03474f31fd2a76651b2115d"
+    },
+    {
+      "path": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s15-backend-final-audit-aed4e0402ef04aae97ca8e5396b8a7ac\\health-window-20261002-7f0f699e\\run-aca23265460c\\broker-unavailable.log",
+      "sha256": "2fd564be0d87ea1d40676940d2813bea1e7b7c36c5146340137d34884a901a82"
+    },
+    {
+      "path": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s15-backend-final-audit-aed4e0402ef04aae97ca8e5396b8a7ac\\health-window-20261002-7f0f699e\\run-aca23265460c\\ruff.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "path": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s15-backend-final-audit-aed4e0402ef04aae97ca8e5396b8a7ac\\health-window-20261002-7f0f699e\\run-aca23265460c\\mypy-strict.log",
+      "sha256": "7f45d1f4ec96345bd0088c4c1aceb83d297fe6146c02c8957ab7458b94447d45"
+    },
+    {
+      "path": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s15-backend-final-audit-aed4e0402ef04aae97ca8e5396b8a7ac\\health-window-20261002-7f0f699e\\run-aca23265460c\\health-contract-results.json",
+      "sha256": "5c9af7087beb8ad7c92c92fd3fb103e0169292a95c2118fd7b9da6e0792cafba"
+    }
+  ]
+}

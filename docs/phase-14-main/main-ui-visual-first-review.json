@@ -1,0 +1,28 @@
+{
+  "status": "failed visual acceptance; scenario assertions passed",
+  "sourceFingerprint": "e4a2782b8a6c148083ba68c54bd0f9d8c02e9825ea7f4cefbb7eff61a9f69d6b",
+  "source": "C:/Users/22126/AppData/Local/Temp/sqlchat-s15-ui-shadow-53d89e1e027b48b19e3fecee41082d03/candidate",
+  "report": {
+    "path": "C:\\Users\\22126\\AppData\\Local\\Temp\\sqlchat-s15-ui-shadow-53d89e1e027b48b19e3fecee41082d03\\candidate\\.git\\acceptance\\s15-ui-0f34b8a4-e411-4029-9d04-b195c7e4b58d\\report.json",
+    "sha256": "450649bbc5a33ef580cc40c77ef9226f84c21b80b45ef9bd63799d31c5c7fe2b"
+  },
+  "scenarioTest": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "screenshots": 36
+  },
+  "manualFinding": {
+    "scenario": "conversation-history-drawer",
+    "changedPercent": 44.44,
+    "observation": "Original displays the right drawer content; candidate screenshot shows only the page-wide gray mask. The existing DOM assertion does not establish actual content being in the viewport.",
+    "disposition": "Return to UI subagent for time-sequence geometry investigation. Do not ignore high diff or relax thresholds."
+  },
+  "otherTransientReview": [
+    "conversation-list",
+    "chat-history-replay"
+  ],
+  "productionSourceChanged": false,
+  "sourcePreflightRetry": "Initial root command lacked original-source environment binding; failed before entering browser scenarios, then retried with the report-bound original source path.",
+  "completeUiAcceptance": false
+}

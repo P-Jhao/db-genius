@@ -11,22 +11,35 @@ from app.api.chat import router as chat_router
 from app.api.db_config import router as db_config_router
 from app.api.file import router as file_router
 from app.api.model_config import router as model_config_router
+from app.api.system import metrics
 from app.api.system import router as system_router
 from app.api.trial import router as trial_router
 from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.errors import BusinessError
 from app.core.localization import translate
+from app.core.observability_logging import configure_logging
+from app.core.observability_multiprocess import close_metrics, start_metrics
+from app.core.observability_tracing import ObservabilityMiddleware, configure_tracing, flush_tracing
 from app.services.db_config_init import initialize_trial_database
 from app.services.model_config import initialize_providers
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    with SessionLocal() as session:
-        initialize_providers(session)
-        initialize_trial_database(session)
-    yield
+    start_metrics(get_settings(), service="api")
+    try:
+        configure_logging(get_settings())
+        configure_tracing(get_settings(), service_name="sqlchat-api")
+        with SessionLocal() as session:
+            initialize_providers(session)
+            initialize_trial_database(session)
+        yield
+    finally:
+        try:
+            flush_tracing()
+        finally:
+            close_metrics()
 
 
 app = FastAPI(title="SQLChat", version="0.1.0", lifespan=lifespan)
@@ -37,6 +50,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.add_middleware(ObservabilityMiddleware)
 
 
 @app.exception_handler(BusinessError)
@@ -64,3 +80,5 @@ app.include_router(model_config_router, prefix="/api")
 
 app.include_router(file_router, prefix="/api")
 app.include_router(trial_router, prefix="/api")
+
+app.add_api_route("/metrics", metrics, methods=["GET"], include_in_schema=False)

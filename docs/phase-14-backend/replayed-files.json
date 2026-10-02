@@ -1,0 +1,40 @@
+{
+  "acceptedBase": "8dacbf33cb624b3e8d6588a317c73a639a9d9779",
+  "previousPreparationBase": "81aedbe245d5040f4ad94cc38c104e5ece3ff8e6",
+  "previousPreparationDirectory": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s14-backend-final-0bccd33755a24654a88484ad052373d7",
+  "method": "fresh latest accepted export; public files exact minimal-context replay; native sql_errors repair retained from accepted; all owned source bytes identical to preceding tested preparation except newly added worker metadata span hook and lifecycle test",
+  "publicFiles": [
+    "backend/app/main.py",
+    "backend/app/api/system.py",
+    "backend/app/core/config.py",
+    "backend/app/api/chat.py",
+    "backend/app/agent/tools.py",
+    "backend/app/tasks/db_config.py",
+    "backend/app/tasks/celery_app.py",
+    "backend/app/services/db_config.py",
+    "backend/app/services/db_config_worker.py",
+    "backend/app/services/database_tools.py",
+    "backend/pyproject.toml",
+    "backend/uv.lock"
+  ],
+  "newOwnedFiles": [
+    "backend/app/core/observability_health.py",
+    "backend/app/core/observability_logging.py",
+    "backend/app/core/observability_metrics.py",
+    "backend/app/core/observability_metrics_lock.py",
+    "backend/app/core/observability_multiprocess.py",
+    "backend/app/core/observability_runtime.py",
+    "backend/app/core/observability_tracing.py",
+    "backend/tests/test_observability.py",
+    "backend/tests/test_observability_database.py",
+    "backend/tests/test_observability_faults.py",
+    "backend/tests/test_observability_integration.py",
+    "backend/tests/test_observability_lifecycle.py",
+    "backend/tests/test_observability_metrics_lock.py",
+    "backend/tests/test_observability_multiprocess.py",
+    "backend/tests/test_observability_results.py",
+    "backend/tests/test_observability_security.py",
+    "backend/tests/test_observability_tracing.py",
+    "backend/tests/test_celery_queue_policy.py"
+  ]
+}

@@ -6,6 +6,7 @@ from app.adapters.types import QueryResult, SchemaMetadata
 from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.errors import BusinessError
+from app.core.observability_runtime import observe_database
 from app.models import DbConfig
 from app.services.db_config_common import connection_for
 
@@ -25,6 +26,7 @@ def _ready_config(user_id: int, db_id: int) -> DbConfig:
         return config
 
 
+@observe_database("schema")
 def get_schema(user_id: int, db_id: int) -> SchemaMetadata:
     config = _ready_config(user_id, db_id)
     connection = connection_for(config)
@@ -49,6 +51,7 @@ def execute_comparison_read(user_id: int, db_id: int, statement: str,
     return _execute(user_id, db_id, statement, cancel_event, read_only=True)
 
 
+@observe_database("execute")
 def _execute(user_id: int, db_id: int, statement: str,
              cancel_event: threading.Event | None, *, read_only: bool) -> QueryResult:
     config = _ready_config(user_id, db_id)

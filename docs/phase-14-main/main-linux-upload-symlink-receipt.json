@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "parentImage": "sha256:540b843ff11314c6bb5f27eb7e4b1803d402f2f8b821a2714fc08350632f07f1",
+  "derivedGateImage": "sha256:dab4379f64c737b650ef93929f5835c63c6c5dd5e866b6938582c12209f715d9",
+  "productionImageUnchanged": true,
+  "buildLogSha256": "24a77a1a031d31bfcd70e603137a05ef89e35692d4808ad3aa67979cdb27624e",
+  "pytestLogSha256": "32374dbd98e7a23177ef33f0b0fbf7ec3af086d91af19a29d1fdc06c42711491",
+  "testFileSha256": "06f23933089a1834b920b941914e5610d8d5a275c7382311cdcde71d4e8fc245",
+  "passed": 14,
+  "skipped": 0,
+  "durationSeconds": 14.58,
+  "network": "none",
+  "rootFilesystem": "read-only",
+  "testMount": "read-only",
+  "tmpFiles": "/tmp tmpfs only",
+  "supportHashes": [
+    {
+      "path": "README.md",
+      "match": true
+    },
+    {
+      "path": "Dockerfile.gate",
+      "match": true
+    },
+    {
+      "path": "compose.fresh-volumes.override.yml",
+      "match": true
+    },
+    {
+      "path": "metrics-lifecycle-probe.ps1",
+      "match": true
+    }
+  ],
+  "timestamp": "2026-10-02T15:19:19.613Z"
+}

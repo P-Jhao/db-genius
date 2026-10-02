@@ -1,0 +1,12 @@
+{
+  "status": "frozen docs-only revision for root review",
+  "sourceSnapshot": "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s14-backend-final-c386f2aa9f31467592a281b4fc3db4f2",
+  "sourceManifestSha256": "ea32f9291d03490ef26face14e2cd7f709aee9983e037fce59f089b07b788a57",
+  "sourceReadmeSha256": "1e1654ef4ebf15d9cecd6311f76bf1dd29b491d6e688c404e56dcea5bbaae6f1",
+  "source49PayloadFilesVerifiedUnchanged": true,
+  "specReference": "spec/07-测试与验收规范.md:50-53",
+  "change": "Replace the incorrect T-31 deployment row with the actual seven-language/Accept-Language/async locale chain; retain the identical deployment content as T-32 and retain the existing T-32 worker/restart row.",
+  "allOtherReadmeContentUnchanged": true,
+  "validation": "Exact single-row replacement and inverse text equality; all source manifest payload SHA/bytes checked; no business test rerun.",
+  "sharedOrBusinessChanges": false
+}

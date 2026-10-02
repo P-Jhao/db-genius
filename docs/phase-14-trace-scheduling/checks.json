@@ -1,0 +1,91 @@
+{
+  "kind": "owned trace-only static / opt-in off / synthetic controls; no live operations",
+  "complete": true,
+  "commands": [
+    {
+      "command": [
+        "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\backend\\.venv\\Scripts\\python.exe",
+        "-m",
+        "ruff",
+        "check",
+        "backend/tests/test_s14_runtime_tracing.py",
+        "backend/tests/test_s14_runtime_trace_schedule.py",
+        "backend/tests/s14_runtime_trace_diagnostics.py"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.328,
+      "output": "All checks passed!",
+      "outputSha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "command": [
+        "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\backend\\.venv\\Scripts\\python.exe",
+        "-m",
+        "mypy",
+        "--strict",
+        "--follow-imports=silent",
+        "backend/tests/test_s14_runtime_tracing.py",
+        "backend/tests/test_s14_runtime_trace_schedule.py",
+        "backend/tests/s14_runtime_trace_diagnostics.py"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 1.453,
+      "output": "Success: no issues found in 3 source files",
+      "outputSha256": "8228fcc5ce46d42d01caf3cd941f4e9c5f2bcc372bb5b147a2f0572d2dd675a8"
+    },
+    {
+      "command": [
+        "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\backend\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "--collect-only",
+        "-q",
+        "backend/tests/test_s14_runtime_tracing.py::test_real_http_worker_parent_chain_and_locale_reset"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 2.719,
+      "output": "backend/tests/test_s14_runtime_tracing.py::test_real_http_worker_parent_chain_and_locale_reset\n\n1 test collected in 1.53s",
+      "outputSha256": "cf5108dce9f9fe35dc1d252156811ffdaf8c8b3f98fdce6939e71755425ce9de"
+    },
+    {
+      "command": [
+        "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\backend\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-q",
+        "--tb=short",
+        "backend/tests/test_s14_runtime_tracing.py::test_real_http_worker_parent_chain_and_locale_reset"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 2.672,
+      "output": "s                                                                        [100%]\n1 skipped in 1.32s",
+      "outputSha256": "e9bc0b078c1c165f1946c7adb558a1f0ad52b839be4f939acb165f4f8090acbb"
+    },
+    {
+      "command": [
+        "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\backend\\.venv\\Scripts\\python.exe",
+        "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s14-trace-schedule-smoke-f59f6c8aa4f3434aa0cd863db957f136-receipt\\offline_schedule_smoke.py",
+        "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s14-trace-scheduling-f59f6c8aa4f3434aa0cd863db957f136",
+        "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\.git\\acceptance\\s14-trace-schedule-smoke-f59f6c8aa4f3434aa0cd863db957f136-receipt"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 4.797,
+      "output": "{\"allEightSchedulingCasesPassed\": true, \"cases\": [{\"bounded\": true, \"case\": \"second_wave_covers\", \"errorType\": \"None\", \"passed\": true, \"protectedProgress\": true, \"publishedCallbacks\": 8, \"publishedWaves\": 2}, {\"bounded\": true, \"case\": \"unfair_all_waves\", \"errorType\": \"TimeoutError\", \"passed\": false, \"protectedProgress\": true, \"publishedCallbacks\": 16, \"publishedWaves\": 4}, {\"bounded\": true, \"case\": \"unrelated_channel\", \"errorType\": \"TimeoutError\", \"passed\": false, \"protectedProgress\": true, \"publishedCallbacks\": 16, \"publishedWaves\": 4}, {\"bounded\": true, \"case\": \"early_default\", \"errorType\": \"TimeoutError\", \"passed\": false, \"protectedProgress\": true, \"publishedCallbacks\": 16, \"publishedWaves\": 4}, {\"bounded\": true, \"case\": \"bad_locale\", \"errorType\": \"AssertionError\", \"passed\": false, \"protectedProgress\": true, \"publishedCallbacks\": 4, \"publishedWaves\": 1}, {\"bounded\": true, \"case\": \"foreign_counter\", \"errorType\": \"RuntimeError\", \"passed\": false, \"protectedProgress\": true, \"publishedCallbacks\": 4, \"publishedWaves\": 1}, {\"bounded\": true, \"case\": \"missing_export\", \"errorType\": \"TimeoutError\", \"passed\": false, \"protectedProgress\": true, \"publishedCallbacks\": 4, \"publishedWaves\": 1}, {\"bounded\": true, \"case\": \"headers_exhaust_budget\", \"errorType\": \"TimeoutError\", \"passed\": false, \"protectedProgress\": true, \"publishedCallbacks\": 0, \"publishedWaves\": 0}], \"noDockerApiDatabaseReceiverCalls\": true, \"syntheticOnly\": true, \"withUnwindStageRegressionPassed\": true}",
+      "outputSha256": "f022f53964ce6c75e0204011a01679f434fd1bb5dbbbdf4ab24782bc686c4540"
+    }
+  ],
+  "sourceSha256": {
+    "backend/tests/test_s14_runtime_tracing.py": "4aa4ac9f0086fded3d827ac1e45603f06662abc51b6a9feaaf94e2f741f14eeb",
+    "backend/tests/test_s14_runtime_trace_schedule.py": "15ee5efe0f361c4495d02bdbfd38398621c8ba38e6f2d89137140f333f624349",
+    "backend/tests/s14_runtime_trace_diagnostics.py": "c3c550b217065933099223620da30751b4d5e090afe243d8c192d304aa7bdfe3"
+  },
+  "sourceLines": {
+    "backend/tests/test_s14_runtime_tracing.py": 253,
+    "backend/tests/test_s14_runtime_trace_schedule.py": 136,
+    "backend/tests/s14_runtime_trace_diagnostics.py": 243
+  },
+  "traceCollectOptoutReusedWithIdenticalTraceSha": true,
+  "finalReceiptSemanticsAndBoundedScheduleSmokeVerified": true
+}

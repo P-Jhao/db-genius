@@ -1,7 +1,9 @@
 import json
 import re
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Literal
+from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -65,6 +67,41 @@ class Settings(BaseSettings):
     tool_output_per_tool_max_characters: Annotated[dict[str, int], NoDecode] = Field(default_factory=dict)
     tool_artifact_ttl_seconds: int = Field(default=1800, gt=0)
     tool_artifact_max_per_task: int = Field(default=20, gt=0)
+
+    metrics_multiprocess_root: str = ""
+    otlp_endpoint: str = ""
+    otlp_sample_rate: float = Field(default=0.1, ge=0, le=1)
+    observe_content: bool = False
+    ready_broker_timeout_seconds: float = Field(default=2, gt=0, le=10)
+    ready_database_timeout_seconds: int = Field(default=3, ge=1, le=10)
+    sse_keepalive_seconds: float = Field(default=15, gt=0, le=120)
+
+    @field_validator("metrics_multiprocess_root")
+    @classmethod
+    def absolute_metric_root(cls, value: str) -> str:
+        if value and not Path(value).is_absolute():
+            raise ValueError("Shared metric root must be an absolute path")
+        return value
+
+    @field_validator("otlp_endpoint")
+    @classmethod
+    def safe_otlp_endpoint(cls, value: str) -> str:
+        if not value:
+            return ""
+        parsed = urlsplit(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or \
+                parsed.password or parsed.query or parsed.fragment or parsed.path not in {"", "/"}:
+            raise ValueError("OTLP endpoint must be an HTTP(S) base URL without credentials or query")
+        if parsed.port is not None and not 0 < parsed.port <= 65535:
+            raise ValueError("OTLP endpoint port is invalid")
+        return value.rstrip("/")
+
+    @field_validator("observe_content")
+    @classmethod
+    def content_collection_disabled(cls, value: bool) -> bool:
+        if value:
+            raise ValueError("Content collection is not supported; SQLCHAT_OBSERVE_CONTENT must be false")
+        return value
 
     @field_validator("tool_output_per_tool_max_characters", mode="before")
     @classmethod

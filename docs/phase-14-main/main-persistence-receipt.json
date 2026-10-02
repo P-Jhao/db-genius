@@ -1,0 +1,22 @@
+{
+  "prepare": {
+    "passed": 1,
+    "deselected": 1,
+    "seconds": 13.62,
+    "log": "main-persistence-prepare-01.log"
+  },
+  "verify": {
+    "passed": 1,
+    "deselected": 1,
+    "seconds": 17.22,
+    "log": "main-persistence-verify-01.log"
+  },
+  "stateFile": ".git/acceptance/persistence-01-state.json",
+  "statePhase": "verified",
+  "servicesRestarted": [
+    "api",
+    "worker",
+    "postgres"
+  ],
+  "scope": "actual files/messages/auth session/token usage persisted with volumes; test user exact cleanup executed"
+}

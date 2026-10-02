@@ -10,6 +10,8 @@ from app.adapters.document import render_document
 from app.core.config import get_settings
 from app.core.diagnostics import safe_exception_diagnostic
 from app.core.errors import BusinessError, deny_trial
+from app.core.observability_metrics import queue_call
+from app.core.observability_tracing import span
 from app.core.ownership import require_owned
 from app.core.request_locale import current_locale
 from app.core.security import encrypt
@@ -62,8 +64,11 @@ def get_config(session: Session, user_id: int, config_id: int) -> DbConfigVO:
 
 
 def _enqueue(session: Session, config_id: int, version: int) -> bool:
+    outcome = "error"
     try:
-        verify_config.apply_async(args=(config_id, version), headers={"locale": current_locale()})
+        with span("queue.publish", attributes={"chat.locale": current_locale()}):
+            verify_config.apply_async(args=(config_id, version), headers={"locale": current_locale()})
+        outcome = "done"
         return True
     except OperationalError as exc:
         session.execute(update(DbConfig).where(
@@ -71,6 +76,8 @@ def _enqueue(session: Session, config_id: int, version: int) -> bool:
         ).values(status=2, verification_error="Verification queue unavailable: " + safe_exception_diagnostic(exc, get_settings())))
         session.commit()
         return False
+    finally:
+        queue_call(outcome)
 
 
 def create_config(session: Session, user_id: int, request: DbConfigRequest) -> DbConfigVO:

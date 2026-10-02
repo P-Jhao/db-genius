@@ -1,0 +1,36 @@
+........................................................................ [  6%]
+........................................................................ [ 12%]
+......................................................s................. [ 18%]
+......ss..s............................................................. [ 24%]
+........s............................................................... [ 30%]
+........................................................................ [ 36%]
+........................................................................ [ 42%]
+........................................................................ [ 48%]
+........................................................................ [ 54%]
+........................................................................ [ 60%]
+........................................................................ [ 66%]
+........................................................................ [ 72%]
+........................................................................ [ 79%]
+........................................................................ [ 85%]
+........................................................................ [ 91%]
+........................................................................ [ 97%]
+................................                                         [100%]
+============================== warnings summary ===============================
+tests/test_observability.py::test_migration_requires_current_alembic_head
+tests/test_observability.py::test_migration_requires_current_alembic_head
+tests/test_observability.py::test_migration_requires_current_alembic_head
+tests/test_observability_faults.py::test_engine_is_disposed_after_failed_connection
+tests/test_observability_integration.py::test_migrated_system_database_and_broker_are_ready
+tests/test_observability_integration.py::test_migrated_system_database_and_broker_are_ready
+tests/test_observability_integration.py::test_migrated_system_database_and_broker_are_ready
+  C:\Users\22126\Desktop\web\text2sql\sqlchat\.git\acceptance\main-s14-combined-1790948846302\backend\.venv\Lib\site-packages\alembic\config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_db_config.py:232: Run with SQLCHAT_BROKER_URL pointing to an unused local port
+SKIPPED [1] tests\test_deploy_persistence.py:81: Run prepare before the operator restarts API, worker and PostgreSQL
+SKIPPED [1] tests\test_deploy_persistence.py:129: Run verify only after the operator restarts API, worker and PostgreSQL
+SKIPPED [1] tests\test_deploy_proxy.py:113: Set SQLCHAT_TEST_DEPLOY_BROWSER=1 with the frontend Playwright browser installed
+SKIPPED [1] tests\test_file_upload.py:194: Directory symlinks are unavailable for this test process: [WinError 1314] 客户端没有所需的特权。: 'C:\\Users\\22126\\AppData\\Local\\Temp\\pytest-of-22126\\pytest-649\\test_local_storage_rejects_cro0\\root\\uploads\\2' -> 'C:\\Users\\22126\\AppData\\Local\\Temp\\pytest-of-22126\\pytest-649\\test_local_storage_rejects_cro0\\root\\uploads\\1'
+1179 passed, 5 skipped, 7 warnings in 757.47s (0:12:37)

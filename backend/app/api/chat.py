@@ -6,7 +6,6 @@ import logging
 import threading
 from collections.abc import AsyncIterator
 from time import monotonic, time_ns
-from uuid import uuid4
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -18,12 +17,21 @@ from app.agent.cancellation import RunAborted, check_cancelled
 from app.agent.graph import RunContext, run_graph
 from app.agent.model import CompatibleChatModel
 from app.agent.product_locale import stream_error
-from app.agent.streaming import ModelStream
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Usage
 from app.api.auth import CurrentUser, DatabaseSession
+from app.core.config import get_settings
 from app.core.errors import BusinessError, success
 from app.core.localization import translate
+from app.core.observability_metrics import interrupted, loop_stopped
+from app.core.observability_runtime import (
+    ObservedModelStream,
+    accounting,
+    observe_chat,
+    persist,
+    visible_chunk,
+)
+from app.core.observability_tracing import span
 from app.models import DbConfig, UploadedFile
 from app.schemas.context_compress import CompressOptions
 from app.services import chat_store, context_compress, model_config
@@ -32,7 +40,6 @@ from app.services.trial import require_intent_available
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat")
 CHAT_REQUEST_TIMEOUT_SECONDS = 300
-SSE_KEEPALIVE_SECONDS = 15
 _active_producers: set[asyncio.Task[None]] = set()
 
 
@@ -63,10 +70,11 @@ def _frame(task_id: str, kind: str, content: object, step: int) -> bytes:
     return f"data: {json.dumps(event, ensure_ascii=False, default=str)}\n\n".encode()
 
 
+@observe_chat
 async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatRequest,
                    history: list[BaseMessage], locale: str, model: CompatibleChatModel,
                    context_window: int | None, cancel_event: threading.Event) -> None:
-    task_id = uuid4().hex
+    task_id = accounting().task_id
     usage = Usage(contextWindow=context_window)
     conversation_id: int | None = None
     partial_content = ""
@@ -87,6 +95,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
     async def emit(kind: str, content: object, step: int = 0) -> None:
         nonlocal partial_content, partial_summary, complete_summary
         check_cancelled(cancel_event)
+        visible_chunk(kind, content)
         if kind == "content" and isinstance(content, str):
             partial_content += content
         elif kind == "summary_delta" and isinstance(content, str):
@@ -94,12 +103,12 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
         elif kind == "summary" and isinstance(content, str):
             complete_summary = content
         if kind == "step" and conversation_id is not None:
-            await asyncio.to_thread(chat_store.save, conversation_id, "tool", str(content), "step", step)
+            await persist(task_id, "save", chat_store.save, conversation_id, "tool", str(content), "step", step)
         await queue.put(_frame(task_id, kind, content, step))
 
     try:
-        conversation_id = await asyncio.to_thread(chat_store.prepare, user_id, body)
-        stream = ModelStream(model, emit, usage, cancel_event)
+        conversation_id = await persist(task_id, "prepare", chat_store.prepare, user_id, body)
+        stream = ObservedModelStream(model, emit, usage, cancel_event, task_id=task_id)
         compression_message: str | None = None
         if body.conversation_id is not None:
             compression = await context_compress.compress_if_needed(
@@ -109,16 +118,17 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
                 compression_message = compression.message
                 history = await asyncio.to_thread(chat_store.history, user_id, conversation_id)
         check_cancelled(cancel_event)
-        await asyncio.to_thread(chat_store.save, conversation_id, "user", body.message, "user")
+        await persist(task_id, "save", chat_store.save, conversation_id, "user", body.message, "user")
         user_saved = True
         await emit("conversation", conversation_id)
         if compression_message is not None:
             await emit("step", compression_message)
         context = RunContext(body, history, locale, stream, tools, emit, cancel_event)
-        result = await run_graph(context)
+        with span("chat.graph", task_id=task_id):
+            result = await run_graph(context)
         check_cancelled(cancel_event)
         if result["intent"] is not None:
-            await asyncio.to_thread(chat_store.set_intent, user_id, conversation_id, result["intent"])
+            await persist(task_id, "set_intent", chat_store.set_intent, user_id, conversation_id, result["intent"])
         if result["clarification"] is not None:
             kind = "clarify"
             content = json.dumps(result["clarification"], ensure_ascii=False)
@@ -126,13 +136,16 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
             kind = "content" if result["intent"] == "simple_chat" else "summary"
             content = result["answer"]
         check_cancelled(cancel_event)
-        await asyncio.to_thread(chat_store.finalize_run, user_id, conversation_id, task_id,
+        await persist(task_id, "finalize", chat_store.finalize_run, user_id, conversation_id, task_id,
                                 usage, "done", content, kind,
                                 {"completedWriteCount": tools.completed_write_count})
         await queue.put(_frame(task_id, "usage", usage.model_dump(), 0))
         await queue.put(_frame(task_id, "done", None, 0))
+        accounting().outcome = "done"
     except RunAborted as error:
         reason = "timeout" if timeout_fired else error.reason
+        interrupted(reason)
+        accounting().outcome = reason if reason in {"timeout", "write_outcome_unknown"} else "aborted"
         logger.info("Chat run aborted taskId=%s reason=%s", task_id, reason)
         if conversation_id is not None:
             content = complete_summary if complete_summary is not None else partial_summary or partial_content
@@ -142,8 +155,8 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
                 details["databaseInterruption"] = tools.interruption
             try:
                 if not user_saved:
-                    await asyncio.to_thread(chat_store.save, conversation_id, "user", body.message, "user")
-                await asyncio.to_thread(chat_store.finalize_run, user_id, conversation_id, task_id,
+                    await persist(task_id, "save", chat_store.save, conversation_id, "user", body.message, "user")
+                await persist(task_id, "finalize", chat_store.finalize_run, user_id, conversation_id, task_id,
                                         usage, "aborted", content, kind, details)
                 await queue.put(_frame(task_id, "usage", usage.model_dump(), 0))
             except Exception as persistence_error:  # noqa: BLE001 - terminal SSE must still be sent
@@ -165,7 +178,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
             public_error = stream_error(False, locale, task_id)
         if conversation_id is not None:
             try:
-                await asyncio.to_thread(chat_store.finalize_run, user_id, conversation_id, task_id,
+                await persist(task_id, "finalize", chat_store.finalize_run, user_id, conversation_id, task_id,
                                         usage, "error", public_error, "error",
                                         {"completedWriteCount": tools.completed_write_count})
                 await queue.put(_frame(task_id, "usage", usage.model_dump(), 0))
@@ -176,6 +189,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
         await queue.put(_frame(task_id, "done", None, 0))
     finally:
         timer.cancel()
+        loop_stopped(tools.loop_stop_reason)
         tools.close()
         await queue.put(None)
 
@@ -209,7 +223,7 @@ async def chat(body: ChatRequest, request: Request, user: CurrentUser,
                 except TimeoutError:
                     if await request.is_disconnected():
                         break
-                    if monotonic() - last_sent >= SSE_KEEPALIVE_SECONDS:
+                    if monotonic() - last_sent >= get_settings().sse_keepalive_seconds:
                         yield b": keepalive\n\n"
                         last_sent = monotonic()
                     continue

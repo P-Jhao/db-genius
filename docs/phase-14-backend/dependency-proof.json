@@ -1,0 +1,28 @@
+{
+  "acceptedBase": "93175f927beb517beb8992b3ade3486d0a7abf53",
+  "acceptedPackages": 134,
+  "candidatePackages": 145,
+  "removedPackages": [],
+  "changedExistingPackageVersions": {},
+  "addedPackages": {
+    "googleapis-common-protos": "1.75.5",
+    "opentelemetry-api": "1.45.0",
+    "opentelemetry-exporter-http-transport": "0.66b0",
+    "opentelemetry-exporter-otlp-common": "0.66b0",
+    "opentelemetry-exporter-otlp-proto-common": "1.45.0",
+    "opentelemetry-exporter-otlp-proto-http": "1.45.0",
+    "opentelemetry-proto": "1.45.0",
+    "opentelemetry-sdk": "1.45.0",
+    "opentelemetry-semantic-conventions": "0.66b0",
+    "prometheus-client": "0.26.0",
+    "protobuf": "7.36.2"
+  },
+  "addedDirectDependencies": [
+    "opentelemetry-api>=1.36,<2",
+    "opentelemetry-exporter-otlp-proto-http>=1.36,<2",
+    "opentelemetry-sdk>=1.36,<2",
+    "prometheus-client>=0.23,<1"
+  ],
+  "sharedEnvironmentInstalled": false,
+  "lockFileSha256": "25902a7237fb7a790542265e045d953ab6b40ff088ac1ee146c7e9904578ea43"
+}

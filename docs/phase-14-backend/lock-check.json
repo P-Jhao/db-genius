@@ -1,0 +1,12 @@
+{
+  "command": [
+    "C:\\Users\\22126\\.local\\bin\\uv.exe",
+    "lock",
+    "--check",
+    "--python",
+    "C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\backend\\.venv\\Scripts\\python.exe"
+  ],
+  "exitCode": 0,
+  "output": "Using CPython 3.12.7 interpreter at: C:\\Users\\22126\\Desktop\\web\\text2sql\\sqlchat\\backend\\.venv\\Scripts\\python.exe\nResolved 145 packages in 71ms",
+  "sourceLockSha256": "25902a7237fb7a790542265e045d953ab6b40ff088ac1ee146c7e9904578ea43"
+}

@@ -1,0 +1,47 @@
+{
+  "acceptedBase": "93175f927beb517beb8992b3ade3486d0a7abf53",
+  "databaseTools": {
+    "oneImport": "app.core.observability_runtime.observe_database",
+    "decorators": [
+      {
+        "function": "get_schema",
+        "decorator": "observe_database('schema')"
+      },
+      {
+        "function": "_execute",
+        "decorator": "observe_database('execute')"
+      }
+    ],
+    "allFunctionBodiesAndOtherModuleNodesAstUnchanged": true,
+    "nativeSameConfigOracleBridgeRetained": true
+  },
+  "dbConfig": {
+    "onlyChangedFunction": "_enqueue",
+    "allOtherFunctionAstsUnchanged": [
+      "owned_config",
+      "mutable_config",
+      "_expire_stalled",
+      "list_configs",
+      "get_config",
+      "create_config",
+      "update_config",
+      "delete_config",
+      "_start_sync",
+      "_finish_sync",
+      "test_connection",
+      "generate_doc",
+      "refresh_doc",
+      "get_doc"
+    ],
+    "acceptedSafeDiagnosticHelperInherited": true,
+    "queueBusinessArgs": "(config.id, config.verification_version)",
+    "canonicalLocaleHeaderRetained": "locale"
+  },
+  "guardCount": 711,
+  "sourceShaMatchesCompletedGates": true,
+  "newCodeAndTestMaximumLines": 282,
+  "agenciesCheckedAndUnchanged": [
+    "AGENTS.md",
+    "../AGENTS.md"
+  ]
+}

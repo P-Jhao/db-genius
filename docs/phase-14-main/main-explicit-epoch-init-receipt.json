@@ -1,0 +1,80 @@
+{
+  "status": "passed",
+  "initBefore": {
+    "id": "b1f97c2c28ceffa0bab6490477401b72ad4159f443b0e47fe72d5f883067803d",
+    "startedAt": "2026-10-02T15:29:11.959278779Z",
+    "image": "sha256:e50419b77c257e1bd29b967d0031867aae223b270a7b5fc172737060c2887e01"
+  },
+  "initAfter": {
+    "id": "e9cfaa00aee8ee82201b7c12efa5f6291fc7493e248ddb2e1a84aa0de5cf11f6",
+    "startedAt": "2026-10-02T17:31:30.783841887Z",
+    "image": "sha256:e50419b77c257e1bd29b967d0031867aae223b270a7b5fc172737060c2887e01",
+    "exitCode": 0,
+    "running": false
+  },
+  "metricsBeforeInit": {
+    "api": [
+      {
+        "name": "counter_1.db",
+        "sha256": "1ecad6848f0e3986deb6321847f205900a856b37679c9a9755891ca51cca92fb"
+      },
+      {
+        "name": "histogram_1.db",
+        "sha256": "0c129c220eb58b68700ea5aa95d8d1700c82d95ccd7a4ab11389617612b2828b"
+      },
+      {
+        "name": "histogram_1094.db",
+        "sha256": "0c129c220eb58b68700ea5aa95d8d1700c82d95ccd7a4ab11389617612b2828b"
+      },
+      {
+        "name": "s14-main-preserve-marker.txt",
+        "sha256": "8001f4b893f021d0a9e449938d711e5d802a81fa557e8316cde0142ddd454591"
+      }
+    ],
+    "worker": [
+      {
+        "name": "counter_27.db",
+        "sha256": "f163b1b22a36c9e484777e88433c460b4e036b7f602173a2be91699b2337d3a7"
+      },
+      {
+        "name": "counter_29.db",
+        "sha256": "055e8fce765bba63ad6ad83323deb7957ad3a32d26f981e0dd85a20bea896f91"
+      },
+      {
+        "name": "histogram_1.db",
+        "sha256": "0c129c220eb58b68700ea5aa95d8d1700c82d95ccd7a4ab11389617612b2828b"
+      },
+      {
+        "name": "histogram_27.db",
+        "sha256": "0c129c220eb58b68700ea5aa95d8d1700c82d95ccd7a4ab11389617612b2828b"
+      },
+      {
+        "name": "histogram_29.db",
+        "sha256": "0c129c220eb58b68700ea5aa95d8d1700c82d95ccd7a4ab11389617612b2828b"
+      },
+      {
+        "name": "s14-main-preserve-marker.txt",
+        "sha256": "8001f4b893f021d0a9e449938d711e5d802a81fa557e8316cde0142ddd454591"
+      }
+    ]
+  },
+  "metricsAfterInit": {
+    "api": [
+      {
+        "name": "s14-main-preserve-marker.txt",
+        "sha256": "8001f4b893f021d0a9e449938d711e5d802a81fa557e8316cde0142ddd454591"
+      }
+    ],
+    "worker": [
+      {
+        "name": "s14-main-preserve-marker.txt",
+        "sha256": "8001f4b893f021d0a9e449938d711e5d802a81fa557e8316cde0142ddd454591"
+      }
+    ]
+  },
+  "recognizedFilesRemoved": {
+    "api": 3,
+    "worker": 5
+  },
+  "unknownMarkerPreserved": true
+}

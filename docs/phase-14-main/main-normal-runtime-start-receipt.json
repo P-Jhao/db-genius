@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "composeExitCode": 0,
+  "composeSession": 95730,
+  "healthManifestSha256": "faa13ce6af7297effe8c189b9b80c230a6e3710da82d551a739d3d1aa7f93170",
+  "composeSha256": "651e8484ec82b035ba3d999591d2bbe0d3df3a28d9555d135c37afd74da82cb3",
+  "projectDirectory": "C:/Users/22126/Desktop/web/text2sql/sqlchat/.git/acceptance/main-s14-combined-1790948846302",
+  "runtimeOptionsPath": "C:/Users/22126/Desktop/web/text2sql/sqlchat/.git/acceptance/main-s14-runtime-1790951108308/root-runtime-final-options.json",
+  "runtimeOptionsSha256": "30b8830a36c2a02631b9e659eb987b8ab821facf2b1f8bf94d01d34c8b0c7977",
+  "states": {
+    "api": {
+      "id": "bb6db8dd25a7b13945344555b43219d1dec906ef474744736c2b912b757fe0af",
+      "image": "sha256:540b843ff11314c6bb5f27eb7e4b1803d402f2f8b821a2714fc08350632f07f1",
+      "running": true,
+      "exitCode": 0,
+      "health": "healthy",
+      "temporaryTraceExportDisabled": true,
+      "storageBackend": "local"
+    },
+    "worker": {
+      "id": "91fc5aeadc5dc2961c413b7067b7626a9bdff0245bb511a862a33e4002ec8deb",
+      "image": "sha256:28352e127579583cd879f5f044962798d29b240131301e414b9a8fe8a31af1f2",
+      "running": true,
+      "exitCode": 0,
+      "health": "healthy",
+      "temporaryTraceExportDisabled": true,
+      "storageBackend": "local"
+    },
+    "frontend": {
+      "id": "235cde26e073aba8f48ae31258f41bc02e027dd1a3fecf289f3188c09f2981c3",
+      "image": "sha256:8e2b80509446c9e0adf71083f4ee75b054681328b9883bf6051d1e73ce85bc0c",
+      "running": true,
+      "exitCode": 0,
+      "health": "healthy"
+    },
+    "postgres": {
+      "id": "a929e16bfbfc1a4a772494a1915854290cb535233ab737824b73da1ce367ba5b",
+      "image": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+      "running": true,
+      "exitCode": 0,
+      "health": "healthy"
+    },
+    "rabbitmq": {
+      "id": "22f0909acd01329441aa5e89821d03fdfee51b90d629faa79c5d3903dec65141",
+      "image": "sha256:9a5494b32def2c288a755c933ea2ffd7f4a28647f7648776ad8b15507493f702",
+      "running": true,
+      "exitCode": 0,
+      "health": "healthy"
+    },
+    "migrate": {
+      "id": "a03541179aa154c10ee49031a77ead2e1c195e55e9513d33b9ad5e71821ee938",
+      "image": "sha256:219bdbd34a5fde85fb144cb69db9f629af902f002694727c0b25002bbff031ab",
+      "running": false,
+      "exitCode": 0,
+      "health": null
+    },
+    "metrics-init": {
+      "id": "e9cfaa00aee8ee82201b7c12efa5f6291fc7493e248ddb2e1a84aa0de5cf11f6",
+      "image": "sha256:e50419b77c257e1bd29b967d0031867aae223b270a7b5fc172737060c2887e01",
+      "running": false,
+      "exitCode": 0,
+      "health": null
+    }
+  },
+  "exactMetricTestMarkersRemoved": 2,
+  "temporaryTraceExportDisabled": true,
+  "realModelFileScope": "Python local storage only; original OSS unavailable"
+}

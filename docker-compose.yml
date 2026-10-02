@@ -1,0 +1,223 @@
+x-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend-environment: &backend-environment
+  POSTGRES_DB: ${POSTGRES_DB:-sqlchat}
+  POSTGRES_USER: ${POSTGRES_USER:-sqlchat}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set_POSTGRES_PASSWORD_in_env_file}
+  RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-sqlchat}
+  RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Set_RABBITMQ_DEFAULT_PASS_in_env_file}
+  SQLCHAT_ENCRYPT_KEY: ${SQLCHAT_ENCRYPT_KEY:?Set_SQLCHAT_ENCRYPT_KEY_in_env_file}
+  SQLCHAT_BOOTSTRAP_USERNAME: ${SQLCHAT_BOOTSTRAP_USERNAME:-admin}
+  SQLCHAT_BOOTSTRAP_PASSWORD: ${SQLCHAT_BOOTSTRAP_PASSWORD:?Set_SQLCHAT_BOOTSTRAP_PASSWORD_in_env_file}
+  SQLCHAT_DEFAULT_MODEL_API_KEY: ${SQLCHAT_DEFAULT_MODEL_API_KEY:-}
+  SQLCHAT_DEFAULT_MODEL_BASE_URL: ${SQLCHAT_DEFAULT_MODEL_BASE_URL:-https://api.deepseek.com}
+  SQLCHAT_DEFAULT_MODEL_NAME: ${SQLCHAT_DEFAULT_MODEL_NAME:-deepseek-flash}
+  SQLCHAT_STORAGE_BACKEND: ${SQLCHAT_STORAGE_BACKEND:-oss}
+  SQLCHAT_STORAGE_ROOT: ${SQLCHAT_STORAGE_ROOT:-/app/uploads}
+  SQLCHAT_OSS_ENDPOINT: ${SQLCHAT_OSS_ENDPOINT:-}
+  SQLCHAT_OSS_BUCKET: ${SQLCHAT_OSS_BUCKET:-}
+  SQLCHAT_OSS_ACCESS_KEY_ID: ${SQLCHAT_OSS_ACCESS_KEY_ID:-}
+  SQLCHAT_OSS_ACCESS_KEY_SECRET: ${SQLCHAT_OSS_ACCESS_KEY_SECRET:-}
+  SQLCHAT_OCR_ENABLED: ${SQLCHAT_OCR_ENABLED:-false}
+  SQLCHAT_OCR_ENDPOINT: ${SQLCHAT_OCR_ENDPOINT:-ocr-api.cn-hangzhou.aliyuncs.com}
+  SQLCHAT_OCR_ACCESS_KEY_ID: ${SQLCHAT_OCR_ACCESS_KEY_ID:-}
+  SQLCHAT_OCR_ACCESS_KEY_SECRET: ${SQLCHAT_OCR_ACCESS_KEY_SECRET:-}
+  SQLCHAT_TRIAL_ENABLED: ${SQLCHAT_TRIAL_ENABLED:-false}
+  SQLCHAT_TRIAL_BUILTIN_DB_NAME: ${SQLCHAT_TRIAL_BUILTIN_DB_NAME:-db-genius}
+  SQLCHAT_TRIAL_BUILTIN_HOST: ${SQLCHAT_TRIAL_BUILTIN_HOST:-}
+  SQLCHAT_TRIAL_BUILTIN_PORT: ${SQLCHAT_TRIAL_BUILTIN_PORT:-3306}
+  SQLCHAT_TRIAL_BUILTIN_USERNAME: ${SQLCHAT_TRIAL_BUILTIN_USERNAME:-}
+  SQLCHAT_TRIAL_BUILTIN_PASSWORD: ${SQLCHAT_TRIAL_BUILTIN_PASSWORD:-}
+  SQLCHAT_SESSION_LIFETIME_SECONDS: ${SQLCHAT_SESSION_LIFETIME_SECONDS:-86400}
+  SQLCHAT_SESSION_IDLE_SECONDS: ${SQLCHAT_SESSION_IDLE_SECONDS:-3600}
+  SQLCHAT_QUERY_TIMEOUT_SECONDS: ${SQLCHAT_QUERY_TIMEOUT_SECONDS:-30}
+  SQLCHAT_QUERY_MAX_ROWS: ${SQLCHAT_QUERY_MAX_ROWS:-100}
+  SQLCHAT_VERIFICATION_TIMEOUT_SECONDS: ${SQLCHAT_VERIFICATION_TIMEOUT_SECONDS:-180}
+  SQLCHAT_SQL_AGENT_MAX_STEPS: ${SQLCHAT_SQL_AGENT_MAX_STEPS:-10}
+  SQLCHAT_WORKFLOW_AGENT_MAX_STEPS: ${SQLCHAT_WORKFLOW_AGENT_MAX_STEPS:-20}
+  SQLCHAT_COMPARE_AGENT_MAX_STEPS: ${SQLCHAT_COMPARE_AGENT_MAX_STEPS:-15}
+  SQLCHAT_CONTEXT_AUTO_COMPRESS_ENABLED: ${SQLCHAT_CONTEXT_AUTO_COMPRESS_ENABLED:-false}
+  SQLCHAT_CONTEXT_AUTO_COMPRESS_THRESHOLD: ${SQLCHAT_CONTEXT_AUTO_COMPRESS_THRESHOLD:-0.8}
+  SQLCHAT_CONTEXT_KEEP_LAST_MESSAGES: ${SQLCHAT_CONTEXT_KEEP_LAST_MESSAGES:-6}
+  SQLCHAT_OBSERVATION_ELISION_ENABLED: ${SQLCHAT_OBSERVATION_ELISION_ENABLED:-true}
+  SQLCHAT_OBSERVATION_ELISION_THRESHOLD: ${SQLCHAT_OBSERVATION_ELISION_THRESHOLD:-0.6}
+  SQLCHAT_OBSERVATION_ELISION_KEEP_LAST_STEPS: ${SQLCHAT_OBSERVATION_ELISION_KEEP_LAST_STEPS:-3}
+  SQLCHAT_STEP_SUMMARY_ENABLED: ${SQLCHAT_STEP_SUMMARY_ENABLED:-true}
+  SQLCHAT_STEP_SUMMARY_THRESHOLD: ${SQLCHAT_STEP_SUMMARY_THRESHOLD:-0.8}
+  SQLCHAT_STEP_SUMMARY_KEEP_LAST_STEPS: ${SQLCHAT_STEP_SUMMARY_KEEP_LAST_STEPS:-4}
+  SQLCHAT_STALE_REASONING_DISCARD_ENABLED: ${SQLCHAT_STALE_REASONING_DISCARD_ENABLED:-false}
+  SQLCHAT_REPEATED_TOOL_CALL_WARNING_COUNT: ${SQLCHAT_REPEATED_TOOL_CALL_WARNING_COUNT:-3}
+  SQLCHAT_REPEATED_TOOL_CALL_STOP_COUNT: ${SQLCHAT_REPEATED_TOOL_CALL_STOP_COUNT:-5}
+  SQLCHAT_TOOL_OUTPUT_MAX_CHARACTERS: ${SQLCHAT_TOOL_OUTPUT_MAX_CHARACTERS:-4000}
+  SQLCHAT_TOOL_OUTPUT_MAX_ROWS: ${SQLCHAT_TOOL_OUTPUT_MAX_ROWS:-50}
+  SQLCHAT_TOOL_OUTPUT_PER_TOOL_MAX_CHARACTERS: ${SQLCHAT_TOOL_OUTPUT_PER_TOOL_MAX_CHARACTERS:-}
+  SQLCHAT_TOOL_ARTIFACT_TTL_SECONDS: ${SQLCHAT_TOOL_ARTIFACT_TTL_SECONDS:-1800}
+  SQLCHAT_TOOL_ARTIFACT_MAX_PER_TASK: ${SQLCHAT_TOOL_ARTIFACT_MAX_PER_TASK:-20}
+  SQLCHAT_READY_BROKER_TIMEOUT_SECONDS: ${SQLCHAT_READY_BROKER_TIMEOUT_SECONDS:-2}
+  SQLCHAT_READY_DATABASE_TIMEOUT_SECONDS: ${SQLCHAT_READY_DATABASE_TIMEOUT_SECONDS:-3}
+  SQLCHAT_SSE_KEEPALIVE_SECONDS: ${SQLCHAT_SSE_KEEPALIVE_SECONDS:-15}
+  SQLCHAT_OBSERVE_CONTENT: "false"
+  SQLCHAT_OTLP_ENDPOINT: ${SQLCHAT_OTLP_ENDPOINT:-}
+  SQLCHAT_OTLP_SAMPLE_RATE: ${SQLCHAT_OTLP_SAMPLE_RATE:-0.1}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sqlchat}
+      POSTGRES_USER: ${POSTGRES_USER:-sqlchat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set_POSTGRES_PASSWORD_in_env_file}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    logging: *bounded-logging
+    networks: [backend]
+
+  rabbitmq:
+    image: rabbitmq:4.3.6-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-sqlchat}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Set_RABBITMQ_DEFAULT_PASS_in_env_file}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+    logging: *bounded-logging
+    networks: [backend]
+
+  migrate:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    environment: *backend-environment
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    logging: *bounded-logging
+    networks: [backend]
+
+  metrics-init:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    entrypoint: ["python"]
+    command: ["deploy/init_metrics.py"]
+    environment:
+      SQLCHAT_METRICS_MULTIPROCESS_ROOT: /var/lib/sqlchat/prometheus
+    volumes:
+      - metrics_multiprocess_data:/var/lib/sqlchat/prometheus
+    network_mode: "none"
+    restart: "no"
+    logging: *bounded-logging
+
+  api:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-environment
+      SQLCHAT_METRICS_MULTIPROCESS_ROOT: /var/lib/sqlchat/prometheus
+      PROMETHEUS_MULTIPROC_DIR: /var/lib/sqlchat/prometheus/api
+    expose: ["8109"]
+    volumes:
+      - uploads_data:/app/uploads
+      - metrics_multiprocess_data:/var/lib/sqlchat/prometheus
+    depends_on:
+      metrics-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8109/api/health/ready', timeout=10)"]
+      interval: 15s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    logging: *bounded-logging
+    networks: [web, backend]
+
+  worker:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-environment
+      SQLCHAT_METRICS_MULTIPROCESS_ROOT: /var/lib/sqlchat/prometheus
+      PROMETHEUS_MULTIPROC_DIR: /var/lib/sqlchat/prometheus/worker
+    command: ["python", "deploy/run_worker.py"]
+    volumes:
+      - uploads_data:/app/uploads
+      - metrics_multiprocess_data:/var/lib/sqlchat/prometheus
+    depends_on:
+      metrics-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      # URL construction mirrors deploy/connection_env.py in one interpreter to avoid a second Python startup.
+      test: ["CMD", "python", "-c", "from deploy.connection_env import build_connection_urls; import os, sys; database_url, broker_url = build_connection_urls(os.environ); os.environ['SQLCHAT_DATABASE_URL'] = database_url; os.environ['SQLCHAT_BROKER_URL'] = broker_url; from app.tasks.celery_app import celery_app; sys.exit(0 if celery_app.control.ping(timeout=3) else 1)"]
+      interval: 30s
+      timeout: 12s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging: *bounded-logging
+    networks: [backend]
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_GITHUB_REPO: ${VITE_GITHUB_REPO:-https://github.com/spcodhu/db-genius}
+    ports:
+      - "127.0.0.1:${SQLCHAT_HTTP_PORT:-8109}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    logging: *bounded-logging
+    networks: [web]
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  uploads_data:
+  metrics_multiprocess_data:
+
+networks:
+  web:
+  backend:

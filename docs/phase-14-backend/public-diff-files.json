@@ -1,0 +1,62 @@
+[
+  {
+    "path": "backend/app/main.py",
+    "acceptedNormalizedSha256": "7be9cd0da8bacaa76ce89b732fa9dc88b910d76f9da0bb0f9f5b2fd0bbf40d3b",
+    "candidateSha256": "9c2ae7d2b509fb5127843d69fe362f3212935b0a2d78ff1282643b43bdd5e977"
+  },
+  {
+    "path": "backend/app/api/system.py",
+    "acceptedNormalizedSha256": "5d92b74fcf3573bedad1470de19d3efea31bd4568f8258feabdaf78863bfdff1",
+    "candidateSha256": "8e680d6dff9bcfeae0b50756557979aff0ecb466bf5c17c5af6410debdb0e94e"
+  },
+  {
+    "path": "backend/app/core/config.py",
+    "acceptedNormalizedSha256": "a95a4f9dc422e40c3e91949a83ef8b6022309583f5e9086e0270885fe7561259",
+    "candidateSha256": "f1aeb53ed3adffe6aa678fb2d38c091dea909bfae71cab000dce4117676dc64b"
+  },
+  {
+    "path": "backend/app/api/chat.py",
+    "acceptedNormalizedSha256": "23df481e594a1e6bb11cfba1ae1056e4280afb731bac7c09eb38510d19668f4d",
+    "candidateSha256": "78837eaebf0b395357448392d50e15b634951a9fc8a0d26b4bb30cb2faabd22a"
+  },
+  {
+    "path": "backend/app/agent/tools.py",
+    "acceptedNormalizedSha256": "0e824a3379f480a6b7e0a0dbc183615f336c80775381823706c7b744cf8b4bd4",
+    "candidateSha256": "5227b808aef6201c99aa8e93227eff44260fb3e11e7f65b6457e24eb33005019"
+  },
+  {
+    "path": "backend/app/tasks/db_config.py",
+    "acceptedNormalizedSha256": "f9dba3b9a2cad1c83ebe6360344bf5256a4f7cfc58695917b183a752c1aa8e28",
+    "candidateSha256": "da35fa95a122e7332b82a769a6e7c942268db3f5245fcdbb00ba942a468d0809"
+  },
+  {
+    "path": "backend/app/tasks/celery_app.py",
+    "acceptedNormalizedSha256": "64fa3dfb901f0937d4108dc936ba924a05941051ed79000cdf6d5c7c695ad461",
+    "candidateSha256": "77c3fbd9ca78a8b72211a4c01708bef3777bb053b4ccfa3f50aaaad8c2488b3d"
+  },
+  {
+    "path": "backend/app/services/db_config.py",
+    "acceptedNormalizedSha256": "8713af500dfb3c32e4b3bcead280f840a616a285c8b41509777ca7ba3f38aa8b",
+    "candidateSha256": "6ce5617bba3b4188231ab07e6eadc0e15fe85a8e70b2f482e097bb18418e1186"
+  },
+  {
+    "path": "backend/app/services/db_config_worker.py",
+    "acceptedNormalizedSha256": "03ae89f773480ee75ea8611d710d9c675f9dc82a865e745c1f8473da6bdd6dc8",
+    "candidateSha256": "ab0e1a938e16934b309addc46f0d43d625beae7f850ba6953279f5a53815dccf"
+  },
+  {
+    "path": "backend/app/services/database_tools.py",
+    "acceptedNormalizedSha256": "94eef98e1983b8e8f70c6b7c5d74c2db9b3f77c3a4e58e2716ed2644f4653085",
+    "candidateSha256": "d9ce95a1ecd52edc0bff37c9033ec63847af06722f805d0e9b7523474756dc4e"
+  },
+  {
+    "path": "backend/pyproject.toml",
+    "acceptedNormalizedSha256": "8bd72e1c647b81640715e41b88a33bf529a2e7127ab204de22d1106a99934d6f",
+    "candidateSha256": "48c98d2016af3ede8e4498ef25bf08c3623253b38925fb02b9c89d99b8ccb57d"
+  },
+  {
+    "path": "backend/uv.lock",
+    "acceptedNormalizedSha256": "6a496538fcdb1edfe5f229189319425c89ed8524b692f24ecae16db9c0631941",
+    "candidateSha256": "25902a7237fb7a790542265e045d953ab6b40ff088ac1ee146c7e9904578ea43"
+  }
+]

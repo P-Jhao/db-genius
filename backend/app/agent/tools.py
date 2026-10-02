@@ -17,6 +17,7 @@ from app.agent.output_guard import OutputArtifacts, bound_json
 from app.agent.sql_errors import failure, repairable
 from app.agent.types import ChatRequest, Intent
 from app.core.errors import BusinessError
+from app.core.observability_runtime import observe_tool
 
 
 class DatabaseInput(BaseModel):
@@ -85,6 +86,10 @@ class RunTools:
         return bound_json(value, self.artifacts, tool_name=tool_name)
 
     async def schema(self, db_id: int) -> str:
+        return await observe_tool(self.task_id, "getDatabaseSchema", self._schema,
+                                  lambda: self.last_result)(db_id=db_id)
+
+    async def _schema(self, db_id: int) -> str:
         from app.services import database_tools
 
         check_cancelled(self.cancel_event)
@@ -209,4 +214,5 @@ class RunTools:
         if intent == "db_compare":
             definitions.append(("compareDatabases", "Compare selected source and target database structures.", CompareInput, self.compare))
         return [StructuredTool.from_function(name=name, description=description, args_schema=schema,
-                                            coroutine=function) for name, description, schema, function in definitions]
+                                            coroutine=(function if name == "getDatabaseSchema" else
+                                                       observe_tool(self.task_id, name, function, lambda: self.last_result))) for name, description, schema, function in definitions]
