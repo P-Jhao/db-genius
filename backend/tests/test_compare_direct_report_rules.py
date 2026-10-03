@@ -4,7 +4,7 @@ import threading
 from collections.abc import Iterator
 
 import pytest
-from test_compare_risk_guidance import answer, call, report, run
+from test_compare_risk_guidance import answer, report, run
 from test_model_protocol import Provider
 
 from app.agent.report_rules import COMPARE_REPORT_RULE
@@ -46,10 +46,10 @@ async def test_direct_comparison_answer_receives_all_report_rules(
         "DDL is statement crash safety and does not guarantee user transaction rollback.\n"
         "```sql\nALTER TABLE ledger MODIFY balance NUMERIC(11,2);\n```"
     )
-    provider.replies = [call("compareDatabases", {"pre_id": 12, "test_id": 13}), answer(final_answer)]
+    provider.replies = [answer(final_answer)]
     result, events, tools = await run(provider)
     assert result["answer"] == final_answer and events[-1] == ("summary", final_answer)
-    assert len(provider.requests) == 2 and not tools.terminated
+    assert len(provider.requests) == 1 and not tools.terminated
     assert tools.statements_attempted == tools.completed_write_count == 0
     for request in provider.requests:
         messages = request["messages"]
@@ -58,6 +58,6 @@ async def test_direct_comparison_answer_receives_all_report_rules(
                    for item in messages)
     final_messages = provider.requests[-1]["messages"]
     assert isinstance(final_messages, list)
-    assert any(item["role"] == "tool" and "MODIFY_COLUMN" in str(item["content"])
+    assert any(item["role"] == "user" and "Server preparation observation" in str(item["content"]) and "MODIFY_COLUMN" in str(item["content"])
                for item in final_messages)
     assert "ledger" not in COMPARE_REPORT_RULE and "balance" not in COMPARE_REPORT_RULE

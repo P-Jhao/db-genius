@@ -103,8 +103,8 @@ async def test_explicit_sql_without_confirmation_routes_and_executes(
     final_messages = provider.requests[-1]["messages"]
     assert isinstance(final_messages, list)
     final_system = "\n".join(str(item["content"]) for item in final_messages if item["role"] == "system")
-    assert "SQL semantics from observed data facts" in final_system
-    assert "COUNT or SUM result alone" in final_system
+    assert "Separate semantics from observed facts." in final_system
+    assert "not the full distribution; generic aggregates cannot." in final_system
 
 
 @pytest.mark.asyncio

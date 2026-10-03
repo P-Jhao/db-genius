@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
 
 from app.agent.cancellation import check_cancelled
-from app.agent.compare import CompareProgress, prepare_compare
+from app.agent.compare import prepare_compare
+from app.agent.compare_preflight import PreparedComparison, limited_context_report, prepare_comparison
 from app.agent.context_runtime import RepeatedCalls, govern_messages, summary_request
 from app.agent.prompts import system_prompt
 from app.agent.report_rules import COMPARE_REPORT_RULE
@@ -28,15 +29,20 @@ class SQLNodes:
         self.max_steps = max_steps
         self.repeated_calls = RepeatedCalls()
         self.workflow = WorkflowProgress(set(context.request.file_ids or []))
-        self.comparison = CompareProgress()
+        self.comparison = PreparedComparison()
 
     async def prepare(self, state: RunState) -> dict[str, object]:
         context = self.context
         check_cancelled(context.cancel_event)
         intent = state["intent"]
         if intent == "db_compare":
+            from app.core.config import get_settings
+
             compare_messages = prepare_compare(context.request, context.history, context.locale)
-            return {"messages": [*compare_messages, SystemMessage(content=COMPARE_REPORT_RULE)]}
+            return await prepare_comparison(
+                context, self.comparison, [*compare_messages, SystemMessage(content=COMPARE_REPORT_RULE)],
+                state["step"], get_settings().compare_agent_max_steps,
+            )
         if intent not in ("sql_query", "workflow"):
             raise BusinessError(501, f"{intent} workflow is scheduled for a later phase")
         schemas: list[str] = []
@@ -92,6 +98,10 @@ class SQLNodes:
             artifacts=context.tools.artifacts,
         )
         check_cancelled(context.cancel_event)
+        if intent == "db_compare":
+            safe = await limited_context_report(context, self.comparison, messages, state["step"])
+            if safe is not None:
+                return {"messages": messages, "answer": safe, "finished": True}
         await context.emit("thinking", "Planning database step", state["step"])
         decision = await context.model_stream.call(
             messages, step=state["step"], event=None, tools=context.tools.for_intent(intent),
@@ -216,8 +226,13 @@ class SQLNodes:
         warning = (f"{workflow_status}; report only verified facts." if workflow_status else
                    f"{unfinished}; report unfinished work." if unfinished else "Summarize completed work.")
         warning += " " + (COMPARE_REPORT_RULE if state["intent"] == "db_compare" else EVIDENCE_RULE)
+        summary_messages = [*state["messages"], SystemMessage(content=warning)]
+        if state["intent"] == "db_compare":
+            safe = await limited_context_report(context, self.comparison, summary_messages, state["step"])
+            if safe is not None:
+                return {"answer": safe, "finished": True}
         answer = await context.model_stream.call(
-            [*state["messages"], SystemMessage(content=warning)], step=state["step"],
+            summary_messages, step=state["step"],
             event=None if workflow_status else "summary_delta",
         )
         check_cancelled(context.cancel_event)

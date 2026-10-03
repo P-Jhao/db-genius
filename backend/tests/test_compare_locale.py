@@ -62,7 +62,7 @@ async def test_safe_graph_summary_in_all_languages_has_same_facts_and_limits(
     assert '"ADD_COLUMN"' in report and '"MODIFY_COLUMN"' in report and '"MODIFY_NULLABLE"' in report
     assert '"preType": "VARCHAR(20)"' in report and '"testType": "VARCHAR(40)"' in report
     assert '"preNullable": false' in report and '"testNullable": true' in report
-    assert len(provider.requests) == 1  # No summary model may overwrite a limited comparison.
+    assert len(provider.requests) == 0  # No summary model may overwrite a limited comparison.
     assert not any(kind == "summary_delta" for kind, _ in events)
     assert events[-1] == ("summary", report)
 

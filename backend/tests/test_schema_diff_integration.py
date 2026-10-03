@@ -239,9 +239,9 @@ async def _run_graph_case(monkeypatch: pytest.MonkeyPatch, provider: Provider,
         return original(user_id, pre_id, test_id)
 
     monkeypatch.setattr(schema_diff, "compare_databases", observed)
-    provider.replies = [_call("compareDatabases", {"pre_id": PRE_ID, "test_id": TEST_ID}, "compare")]
+    provider.replies = []
     if not cross_engine:
-        provider.replies += [_call("doTerminate", {"reason": "report ready"}, "terminate"),
+        provider.replies = [_call("doTerminate", {"reason": "report ready"}, "terminate"),
                              _answer("pre to test: add fresh, remove retired, alter orders.")]
     request = ChatRequest.model_validate({"message": "Compare selected databases", "preDbConfigId": PRE_ID,
                                           "testDbConfigId": TEST_ID, "confirmedIntent": "db_compare"})
@@ -261,6 +261,6 @@ async def _run_graph_case(monkeypatch: pytest.MonkeyPatch, provider: Provider,
         assert "No directly executable migration SQL" in result["answer"]
         assert any(kind == "step" and '"preDbType": "postgresql"' in str(content)
                    and '"testDbType": "mysql"' in str(content) for kind, content in events)
-        assert len(provider.requests) == 1
+        assert len(provider.requests) == 0
     else:
         assert result["answer"] == "pre to test: add fresh, remove retired, alter orders."

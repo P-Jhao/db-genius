@@ -96,8 +96,7 @@ async def test_compare_pre_to_test_with_real_diff(
     provider: Provider, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, classified: bool,
 ) -> None:
     sqlite_schemas(monkeypatch, tmp_path)
-    provider.replies = [call("compareDatabases", {"pre_id": 12, "test_id": 13}, "compare"),
-                        call("doTerminate", {"reason": "report ready"}, "terminate"),
+    provider.replies = [call("doTerminate", {"reason": "report ready"}, "terminate"),
                         answer("pre→test: create orders, remove retired, add users.email.")]
     if classified:
         provider.replies.insert(0, answer(json.dumps({"intent": "db_compare", "confidence": 0.99,
@@ -123,11 +122,14 @@ async def test_reversed_direction_is_rejected(
 
 
 @pytest.mark.asyncio
-async def test_no_compare_call_cannot_claim_success(provider: Provider) -> None:
-    provider.replies = [answer("No differences; migration is safe.")]
+async def test_first_answer_without_tool_receives_completed_diff(
+    provider: Provider, monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    sqlite_schemas(monkeypatch, tmp_path)
+    provider.replies = [answer("pre→test: orders is new and retired is absent.")]
     result, _ = await run(provider, request())
-    assert "No database comparison completed" in result
-    assert "migration is safe" not in result
+    assert result == "pre→test: orders is new and retired is absent."
+    assert len(provider.requests) == 1
 
 
 @pytest.mark.asyncio
@@ -146,15 +148,18 @@ async def test_limited_compare_uses_factual_safe_summary(
     assert "No directly executable migration SQL" in result
     assert "orders" in result
     assert not any(kind == "summary_delta" for kind, _ in events)
-    assert len(provider.requests) == 1
+    assert len(provider.requests) == 0
 
 
 @pytest.mark.asyncio
 async def test_comparison_never_executes_migration_write(provider: Provider,
                                                          monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.models import DbConfig
-    from app.services import database_tools
+    from test_compare_risk_guidance import report
 
+    from app.models import DbConfig
+    from app.services import database_tools, schema_diff
+
+    monkeypatch.setattr(schema_diff, "compare_databases", lambda *_args: report())
     monkeypatch.setattr(database_tools, "_ready_config", lambda _user, _db: DbConfig(db_type="postgresql"))
     monkeypatch.setattr(database_tools, "execute_statement", lambda *_args, **_kwargs:
                         pytest.fail("Comparison write reached database service"))

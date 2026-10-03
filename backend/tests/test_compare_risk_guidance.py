@@ -86,12 +86,11 @@ async def test_report_distinguishes_precision_rewrite_lock_and_rollback(
         "after commit, recovery is a separate task. A possible rename between the two table "
         "names is unverified.\n```sql\nALTER TABLE ledger ALTER COLUMN balance TYPE NUMERIC(11,2);\n```"
     )
-    provider.replies = [call("compareDatabases", {"pre_id": 12, "test_id": 13}),
-                        call("doTerminate", {"reason": "Report ready"}), answer(final_report)]
+    provider.replies = [call("doTerminate", {"reason": "Report ready"}), answer(final_report)]
     result, events, tools = await run(provider)
     assert result["answer"] == final_report and events[-1] == ("summary", final_report)
     assert tools.statements_attempted == tools.completed_write_count == 0
-    assert len(provider.requests) == 3
+    assert len(provider.requests) == 2
     messages = provider.requests[-1]["messages"]
     assert isinstance(messages, list)
     system = "\n".join(str(item["content"]) for item in messages if item["role"] == "system")
@@ -99,7 +98,7 @@ async def test_report_distinguishes_precision_rewrite_lock_and_rollback(
                    "ACCESS EXCLUSIVE", "rolled back before commit", "possible renames as hypotheses"):
         assert phrase in system
     assert "ledger" not in system and "balance" not in system
-    assert any(item["role"] == "tool" and "MODIFY_COLUMN" in str(item["content"])
+    assert any(item["role"] == "user" and "Server preparation observation" in str(item["content"]) and "MODIFY_COLUMN" in str(item["content"])
                for item in messages)
     assert "integer capacity rises from 7 to 9" in final_report
     assert "possible rename" in final_report and "unverified" in final_report
@@ -115,7 +114,7 @@ async def test_incomplete_comparison_still_returns_bounded_factual_report(
     result, events, tools = await run(provider)
     assert "comparison is incomplete" in str(result["answer"])
     assert "No directly executable migration SQL" in str(result["answer"])
-    assert len(provider.requests) == 1 and tools.statements_attempted == 0
+    assert len(provider.requests) == 0 and tools.statements_attempted == 0
     assert events[-1] == ("summary", result["answer"])
 
 
@@ -124,8 +123,7 @@ async def test_mysql_report_receives_implicit_commit_boundary(
     provider: Provider, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(schema_diff, "compare_databases", lambda _user, _pre, _test: mysql_report())
-    provider.replies = [call("compareDatabases", {"pre_id": 12, "test_id": 13}),
-                        call("doTerminate", {"reason": "Report ready"}),
+    provider.replies = [call("doTerminate", {"reason": "Report ready"}),
                         answer("MySQL DDL can implicitly commit; a later failure cannot be promised to "
                                "restore earlier DDL. Atomic DDL is not user-transaction rollback.")]
     result, _, tools = await run(provider)

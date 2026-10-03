@@ -137,5 +137,5 @@ async def test_cancel_after_pre_metadata_prevents_test_read_and_final_model(
     with pytest.raises(RunAborted):
         await run_graph(context)
     assert calls == [12]
-    assert len(provider.requests) == 1
-    assert (usage.callCount, usage.totalTokens) == (1, 0)
+    assert len(provider.requests) == 0
+    assert (usage.callCount, usage.totalTokens) == (0, 0)

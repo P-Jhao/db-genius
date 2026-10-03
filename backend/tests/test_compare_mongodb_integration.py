@@ -162,15 +162,22 @@ async def test_production_compare_graph_stops_sampled_schema_before_sql_migratio
     assert "No directly executable migration SQL" in result
     assert "complete schema is certain" not in result and "ALTER TABLE" not in result
     assert not any(kind == "summary_delta" for kind, _ in events)
-    assert len(provider.requests) == 2 and tools.statements_executed == 1 and tools.completed_write_count == 0
+    assert len(provider.requests) == 0 and tools.statements_executed == 0 and tools.completed_write_count == 0
 
 
 @pytest.mark.asyncio
-async def test_production_graph_rejects_reverse_direction_and_other_owner(pair: Pair, provider: Provider) -> None:
+async def test_direction_tool_and_production_graph_reject_reverse_pair_and_other_owner(
+    pair: Pair, provider: Provider,
+) -> None:
     provider.replies = [call("compareDatabases", {"pre_id": 13, "test_id": 12}, "reverse")]
-    with pytest.raises(BusinessError, match="direction differs"):
-        await graph(provider)
-    assert len(provider.requests) == 1
+    tools = RunTools(7, ChatRequest(message="compare", preDbConfigId=12, testDbConfigId=13))
+    try:
+        compare = next(tool for tool in tools.for_intent("db_compare") if tool.name == "compareDatabases")
+        with pytest.raises(BusinessError, match="direction differs"):
+            await compare.ainvoke({"pre_id": 13, "test_id": 12})
+    finally:
+        tools.close()
+    assert len(provider.requests) == 0
     with pair[3]() as session:
         config = session.get(DbConfig, 12)
         assert config is not None
@@ -180,4 +187,4 @@ async def test_production_graph_rejects_reverse_direction_and_other_owner(pair: 
     provider.replies = [call("compareDatabases", {"pre_id": 12, "test_id": 13}, "unauthorized")]
     with pytest.raises(BusinessError) as denied:
         await graph(provider)
-    assert denied.value.code == 404 and len(provider.requests) == 1
+    assert denied.value.code == 404 and len(provider.requests) == 0

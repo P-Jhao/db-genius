@@ -1,15 +1,15 @@
 """Shared factuality rules for decision and final-summary model requests."""
 
 SQL_EVIDENCE_RULE = (
-    "Separate SQL semantics from observed data facts. Explain the SQL that was actually "
-    "executed, including its joins, filters, conditional expressions and aggregates; do not "
-    "substitute the semantics of a different expression. Do not claim a column has or "
-    "lacks NULL values, or assert its raw type or row count, without verifying that "
-    "fact in tool results. A COUNT or SUM result alone does not establish whether "
-    "NULL values are present. JSON serialization, the appearance of a returned number, "
-    "and a literal used inside an expression do not establish the database expression's "
-    "result type. Describe type behavior only when supported by the executed expression, "
-    "authoritative metadata and the target database's type rules."
+    "Explain executed SQL, including SELECT expressions/aliases and overlap with GROUP BY/ORDER BY; "
+    "never call a selected key excluded. Separate semantics from observed facts. "
+    "Zero alone cannot prove a CASE/COALESCE branch. NULL predicates or verified counts "
+    "establish presence in their checked scope, not the full distribution; generic aggregates "
+    "cannot. Preserve JSON value representation; serialization does not establish "
+    "database type. Explain types from the expression, authoritative metadata and dialect rules. "
+    "databaseName is a database, not a schema. Acknowledge preparation metadata reads. "
+    "Distinguish attempted, failed and tool-confirmed successful operations. "
+    "Address the request; omit unsupported claims."
 )
 
 COMPARE_REPORT_RULE = SQL_EVIDENCE_RULE + " " + (

@@ -41,7 +41,6 @@ async def test_complete_comparison_final_answer_contains_actual_report_and_sql(
         "```sql\nCREATE TABLE orders (id INTEGER PRIMARY KEY);\n```"
     )
     provider.replies = [
-        call("compareDatabases", {"pre_id": 12, "test_id": 13}, "compare"),
         call("doTerminate", {"reason": "The report and SQL were already delivered"}, "terminate"),
         answer(final_report),
     ]
@@ -59,7 +58,7 @@ async def test_complete_comparison_final_answer_contains_actual_report_and_sql(
     assert "CREATE TABLE orders" in result["answer"]
     assert all(name in result["answer"] for name in ("orders", "retired", "users.email"))
     assert tools.statements_attempted == tools.completed_write_count == 0
-    assert len(provider.requests) == 3
+    assert len(provider.requests) == 2
     final_messages = provider.requests[-1]["messages"]
     assert isinstance(final_messages, list)
     final_system = [str(item["content"]) for item in final_messages if item["role"] == "system"]
@@ -68,5 +67,5 @@ async def test_complete_comparison_final_answer_contains_actual_report_and_sql(
                "put that SQL or code in this final answer" in content and
                "only actions confirmed successful by tools" in content
                for content in final_system)
-    assert any(item["role"] == "tool" and "newTables" in str(item["content"])
+    assert any(item["role"] == "user" and "Server preparation observation" in str(item["content"]) and "newTables" in str(item["content"])
                for item in final_messages)

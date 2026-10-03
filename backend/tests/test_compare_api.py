@@ -45,8 +45,7 @@ def test_compare_sse_actual_diff_usage_and_replay(
     monkeypatch.setattr(database_tools, "get_schema", schema)
     monkeypatch.setattr(database_tools, "execute_statement", lambda *_args, **_kwargs:
                         pytest.fail("Deployment SQL must remain a report"))
-    provider.replies = [call("compareDatabases", {"pre_id": pre_id, "test_id": test_id}, "compare"),
-                        call("doTerminate", {"reason": "report ready"}, "done"),
+    provider.replies = [call("doTerminate", {"reason": "report ready"}, "done"),
                         reply("pre→test: add orders.note. Report SQL: ALTER TABLE orders ADD COLUMN note TEXT;")]
     response = client.post("/api/chat", json={"message": "Compare", "preDbConfigId": pre_id,
                           "testDbConfigId": test_id, "confirmedIntent": "db_compare"})
@@ -56,12 +55,12 @@ def test_compare_sse_actual_diff_usage_and_replay(
     assert [event["type"] for event in events][-3:] == ["summary", "usage", "done"]
     assert [event["type"] for event in events].count("done") == 1
     assert reads == [pre_id, test_id]
-    assert len(provider.requests) == 3
+    assert len(provider.requests) == 2
     steps = [event["content"] for event in events if event["type"] == "step"]
     assert any('"ADD_COLUMN"' in str(item) and '"note"' in str(item) for item in steps)
     usage = events[-2]["content"]
     assert isinstance(usage, dict)
-    assert (usage["callCount"], usage["totalTokens"], usage["conversationTotalTokens"]) == (3, 8, 8)
+    assert (usage["callCount"], usage["totalTokens"], usage["conversationTotalTokens"]) == (2, 8, 8)
     conversation_id = events[0]["content"]
     replay = client.get(f"/api/chat/conversations/{conversation_id}/messages").json()["data"]
     assert any(item["type"] == "summary" and "ALTER TABLE" in item["content"] for item in replay)
@@ -82,11 +81,13 @@ def test_request_cross_user_pair_is_denied_before_model(
 
 
 def test_model_wrong_pair_yields_one_error_terminal_without_summary(
-    chat_client: tuple[object, User, User, DbConfig], provider: Provider,
+    chat_client: tuple[object, User, User, DbConfig], provider: Provider, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     client, owner, _other, _foreign = chat_client
     assert isinstance(client, TestClient)
     pre_id, test_id = _pair(owner)
+    monkeypatch.setattr(database_tools, "get_schema", lambda _user, db_id:
+                        _schema("pre" if db_id == pre_id else "test", "postgresql"))
     provider.replies = [call("compareDatabases", {"pre_id": test_id, "test_id": pre_id}, "reverse")]
     response = client.post("/api/chat", json={"message": "Compare", "preDbConfigId": pre_id,
                           "testDbConfigId": test_id, "confirmedIntent": "db_compare"})

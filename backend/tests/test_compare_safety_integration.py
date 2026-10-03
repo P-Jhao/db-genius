@@ -115,7 +115,7 @@ async def test_real_metadata_read_failure_has_partial_report_and_no_model_succes
         assert "comparison is incomplete" in result["answer"]
         assert "all migrations are safe" not in result["answer"]
         assert "summary_delta" not in events
-        assert len(provider.requests) == 1
+        assert len(provider.requests) == 0
 
 
 @pytest.mark.asyncio
@@ -129,7 +129,6 @@ async def test_comparison_read_error_can_be_repaired_before_actual_comparison(
             _call("executeSql", {"db_id": PRE_ID,
                                 "statement": "SELECT missing_comparison_column FROM orders"}, "bad_read"),
             _call("executeSql", {"db_id": PRE_ID, "statement": "SELECT id FROM orders"}, "fixed_read"),
-            _call("compareDatabases", {"pre_id": PRE_ID, "test_id": TEST_ID}, "compare"),
             _call("doTerminate", {"reason": "report ready"}, "done"),
             _answer("The actual pre→test comparison completed after correcting the read."),
         ]
@@ -150,5 +149,5 @@ async def test_comparison_read_error_can_be_repaired_before_actual_comparison(
         assert any(kind == "step" and '"ADD_COLUMN"' in str(content) for kind, content in events)
         assert tools.statements_executed == 1 and tools.completed_write_count == 0
         assert tools.successful_writes == set()
-        assert len(provider.requests) == usage.callCount == 5
+        assert len(provider.requests) == usage.callCount == 4
         assert usage.totalTokens == 0  # Provider omitted usage; do not invent token accounting.

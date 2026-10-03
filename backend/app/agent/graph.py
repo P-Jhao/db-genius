@@ -150,7 +150,7 @@ def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunSt
     graph.add_conditional_edges("prerequisites", after_prerequisites)
     graph.add_edge("clarify", END)
     graph.add_edge("simple", END)
-    graph.add_edge("prepare_sql", "decide")
+    graph.add_conditional_edges("prepare_sql", after_tools)
     graph.add_conditional_edges("decide", after_decide, {"execute_tools": "execute_tools", "end": END})
     graph.add_conditional_edges("execute_tools", after_tools)
     graph.add_edge("summarize", END)
