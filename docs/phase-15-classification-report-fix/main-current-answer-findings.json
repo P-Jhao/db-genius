@@ -1,0 +1,242 @@
+{
+  "createdAt": "2026-10-03T07:46:50.296658+00:00",
+  "status": "confirmed-findings-not-blanket-answer-acceptance",
+  "reviewedBy": "main-agent",
+  "sourceHead": "db409e92230ee3d020d086bef469d1e1b29bbd2e",
+  "proposalSha256": "5fa1eb7d2540d5b0d864c36efe21eb09bd88f76ce77524a8a2a88a97f2d4ede7",
+  "reports": {
+    "classification": {
+      "json": "docs/phase-15-classification-report-fix/classification-20261003044921Z.json",
+      "jsonl": "docs/phase-15-classification-report-fix/classification-20261003044921Z.jsonl",
+      "jsonSha256": "5ec9063ff6b3b7ea8439f618acdf1efaa99d691db8e68bfd378f72b8ba6fcb63",
+      "jsonlSha256": "072dc39311410ca0bc44b6b295445109a647f9351fd14092bc8957c35f18651e",
+      "rows": 18,
+      "turns": 21,
+      "rawStatus": "review-required",
+      "rowStatuses": {
+        "review-required": 12,
+        "passed": 6
+      },
+      "finishedAt": "2026-10-03T04:54:57.107391+00:00",
+      "runtimeStable": true,
+      "sourceHead": "bb589d48b91dc96cc3c0039105056019be5ccad0",
+      "apiImage": "sha256:1858ecb48c85b0c3a5a4d3035ddb616fc615068e64da24017f455ec1579431ff",
+      "jsonlMatchesFinalJsonRows": true,
+      "savedBytesUseLf": true
+    },
+    "affected": {
+      "json": "docs/phase-15-classification-report-fix/affected-python-20261003044921Z.json",
+      "jsonl": "docs/phase-15-classification-report-fix/affected-python-20261003044921Z.jsonl",
+      "jsonSha256": "fa62568aa99a57e878be5fc82136c5ebab42faa5522f62f2f2d41bf2d7416301",
+      "jsonlSha256": "5e2049864aa4d89c5fe3598e6417583a112d1a1da0565c0b252b255207edfc03",
+      "rows": 36,
+      "turns": 36,
+      "rawStatus": "failed",
+      "rowStatuses": {
+        "review-required": 35,
+        "failed": 1
+      },
+      "finishedAt": "2026-10-03T05:04:01.694424+00:00",
+      "runtimeStable": true,
+      "sourceHead": "bb589d48b91dc96cc3c0039105056019be5ccad0",
+      "apiImage": "sha256:1858ecb48c85b0c3a5a4d3035ddb616fc615068e64da24017f455ec1579431ff",
+      "jsonlMatchesFinalJsonRows": true,
+      "savedBytesUseLf": true
+    }
+  },
+  "scope": "Independent check of 57 locators, actual final-answer UTF-8 hashes and status bindings, plus raw findings/SQL/output and preparation code. Proposal overall answer dispositions are not accepted wholesale.",
+  "reviewCounts": {
+    "turnBindingsChecked": 57,
+    "findingQuotesChecked": 9,
+    "confirmedTaskFailure": 1,
+    "confirmedAnswerClaimFindings": 7,
+    "preparationWordingCorrections": 1
+  },
+  "findings": [
+    {
+      "id": "F01",
+      "locator": {
+        "source": "docs/phase-15-classification-report-fix/affected-python-20261003044921Z.jsonl",
+        "jsonlLine": 18,
+        "variant": "python",
+        "database": "postgresql",
+        "case": "compare",
+        "repetition": 3,
+        "turn": 1,
+        "jsonPointer": "/rows/17/turns/0"
+      },
+      "category": "comparison-never-executed",
+      "priority": 1,
+      "exactAnswerExcerpt": "尚未完成数据库对比；未生成部署 SQL。",
+      "reason": "一次正常 provider 200/done 调用后没有工具或 diff 证据，requiredTools 与 comparisonDirectionAndChanges 均失败。safe_report 如实拒绝虚构报告，但已授权的只读结构对比没有执行。",
+      "suggestion": "保留此轮失败；合法 pre/test 校验后由受控编排先取得确定性 diff，再允许报告；不按随机性放行，不降温或自动重发写入。",
+      "executionResultCorrect": false,
+      "mainDisposition": "confirmed-finding"
+    },
+    {
+      "id": "F02",
+      "locator": {
+        "source": "docs/phase-15-classification-report-fix/affected-python-20261003044921Z.jsonl",
+        "jsonlLine": 8,
+        "variant": "python",
+        "database": "postgresql",
+        "case": "join",
+        "repetition": 2,
+        "turn": 1,
+        "jsonPointer": "/rows/7/turns/0"
+      },
+      "category": "zero-does-not-prove-coalesce-branch",
+      "priority": 2,
+      "exactAnswerExcerpt": "`Kai` 没有参与求和的 paid 行这一判断，来自其兜底值为 `0` 这一聚合结果",
+      "reason": "唯一 SQL 的 COALESCE(SUM(amount) FILTER(...),0)=0 无法区分无 paid 行、paid 输入全 NULL、非 NULL paid 金额之和恰为 0。没有明细证据不能确认 SUM=NULL、兜底被取或无 paid。fixture 真实情况不能补成模型已观察事实。",
+      "suggestion": "只报告返回 0；条件式解释 COALESCE 语义。实际分支/无 paid 断言须有对应工具证据。",
+      "executionResultCorrect": true,
+      "mainDisposition": "confirmed-finding"
+    },
+    {
+      "id": "F03",
+      "locator": {
+        "source": "docs/phase-15-classification-report-fix/affected-python-20261003044921Z.jsonl",
+        "jsonlLine": 26,
+        "variant": "python",
+        "database": "mysql",
+        "case": "join",
+        "repetition": 2,
+        "turn": 1,
+        "jsonPointer": "/rows/25/turns/0"
+      },
+      "category": "zero-does-not-prove-coalesce-branch",
+      "priority": 2,
+      "exactAnswerExcerpt": "Kai 的 0 来自 `COALESCE` 兜底。",
+      "reason": "唯一 CASE 无 ELSE 的 SUM/COALESCE 查询返回 0.00，也可能是非 NULL 金额和为零；不能区分无 paid 与 paid 金额全 NULL。没有明细或对照计数，不能确定实际兜底来源。",
+      "suggestion": "去掉实际来源断言，保留 CASE 未命中为 NULL、SUM/COALESCE 的条件语义；不要由零值反推分支。",
+      "executionResultCorrect": true,
+      "mainDisposition": "confirmed-finding"
+    },
+    {
+      "id": "F04",
+      "locator": {
+        "source": "docs/phase-15-classification-report-fix/affected-python-20261003044921Z.jsonl",
+        "jsonlLine": 3,
+        "variant": "python",
+        "database": "postgresql",
+        "case": "null",
+        "repetition": 1,
+        "turn": 1,
+        "jsonPointer": "/rows/2/turns/0"
+      },
+      "category": "projection-self-contradiction",
+      "priority": 2,
+      "exactAnswerExcerpt": "`id` 未出现在投影中，仅用于排序",
+      "reason": "两条实际语句都是 SELECT id，工具也仅返回 id；答案前文称投影仅 id。这里把排序列机械描述成未投影，直接与实际 SQL 和结果矛盾。",
+      "suggestion": "说明 id 同时是输出列与排序表达式；按实际 SELECT 投影逐项解释。",
+      "executionResultCorrect": true,
+      "mainDisposition": "confirmed-finding"
+    },
+    {
+      "id": "F05",
+      "locator": {
+        "source": "docs/phase-15-classification-report-fix/affected-python-20261003044921Z.jsonl",
+        "jsonlLine": 2,
+        "variant": "python",
+        "database": "postgresql",
+        "case": "join",
+        "repetition": 1,
+        "turn": 1,
+        "jsonPointer": "/rows/1/turns/0"
+      },
+      "category": "serialized-observation-misstated",
+      "priority": 2,
+      "exactAnswerExcerpt": "输出中 Kai 的 `total_amount` 序列化为不带引号的 `0`",
+      "reason": "第二条 SQL 工具结果的 Kai.total_amount 为字符串 \"0\"，不是 JSON number 0。后续统一 numeric 的类型推理正确，但呈现事实仍写错。",
+      "suggestion": "照工具真实 JSON 值陈述或删掉序列化比较；不要用 Markdown 表格的 0 替代原始 JSON。",
+      "executionResultCorrect": true,
+      "mainDisposition": "confirmed-finding"
+    },
+    {
+      "id": "F06",
+      "locator": {
+        "source": "docs/phase-15-classification-report-fix/affected-python-20261003044921Z.jsonl",
+        "jsonlLine": 20,
+        "variant": "python",
+        "database": "mysql",
+        "case": "join",
+        "repetition": 1,
+        "turn": 1,
+        "jsonPointer": "/rows/19/turns/0"
+      },
+      "category": "group-key-projection-overstatement",
+      "priority": 2,
+      "exactAnswerExcerpt": "分组键与排序键均未出现在输出列中。",
+      "reason": "GROUP BY c.id,c.name 中 c.name 被 SELECT c.name AS customer_name 输出。只有 c.id 未投影，不能说所有分组键未输出。实际 CASE 无 ELSE 与有明细支持的 Kai SUM=NULL 解释正确。",
+      "suggestion": "写 c.id 未输出，c.name 作为 customer_name 输出；逐表达式核对投影。",
+      "executionResultCorrect": true,
+      "mainDisposition": "confirmed-finding"
+    },
+    {
+      "id": "F07",
+      "locator": {
+        "source": "docs/phase-15-classification-report-fix/affected-python-20261003044921Z.jsonl",
+        "jsonlLine": 8,
+        "variant": "python",
+        "database": "postgresql",
+        "case": "join",
+        "repetition": 2,
+        "turn": 1,
+        "jsonPointer": "/rows/7/turns/0"
+      },
+      "category": "database-name-mislabeled-as-schema",
+      "priority": 2,
+      "exactAnswerExcerpt": "schema `s15_40fd473475524af9_py`",
+      "reason": "getDatabaseSchema 实际返回 databaseName=s15_40fd473475524af9_py；没有返回这个 PostgreSQL schema 名。随机数据库名不能作为 schema 名。",
+      "suggestion": "沿用真实字段“数据库名”；未报告 schema 名时保持未知。",
+      "executionResultCorrect": true,
+      "mainDisposition": "confirmed-finding"
+    },
+    {
+      "id": "F08",
+      "locator": {
+        "source": "docs/phase-15-classification-report-fix/affected-python-20261003044921Z.jsonl",
+        "jsonlLine": 24,
+        "variant": "python",
+        "database": "mysql",
+        "case": "compare",
+        "repetition": 1,
+        "turn": 1,
+        "jsonPointer": "/rows/23/turns/0"
+      },
+      "category": "unknown-dependency-asserted-as-none",
+      "priority": 2,
+      "exactAnswerExcerpt": "无前置依赖（观测中无外键）",
+      "reason": "neutral metadata 没有 FK/依赖覆盖；同一报告第8节亦明确未知。局部顺序说明却由未报告 FK 推断无前置依赖。固定 audit_events 实际无 FK 不能弥补工具范围缺失。",
+      "suggestion": "改为依赖未完整读取，顺序仅针对已观察变更；避免局部断言推翻 default/FK/trigger 未知声明。",
+      "executionResultCorrect": true,
+      "mainDisposition": "confirmed-finding"
+    },
+    {
+      "id": "F09",
+      "locator": {
+        "source": "docs/phase-15-classification-report-fix/classification-20261003044921Z.jsonl",
+        "jsonlLine": 13,
+        "variant": "python",
+        "database": "postgresql",
+        "case": "sql",
+        "repetition": 3,
+        "turn": 1,
+        "jsonPointer": "/rows/12/turns/0"
+      },
+      "category": "preparation-metadata-read-denied",
+      "priority": 2,
+      "exactAnswerExcerpt": "本次未查询任何列的 NULL 分布，也未查询列类型等元数据",
+      "reason": "无额外 NULL 探测成立；但冻结源码 SQLNodes.prepare 对选中库先 tools.schema 并发 step，提供权威结构上下文。该轮 step3项含准备 schema、executeSql、doTerminate。没有显式模型 getDatabaseSchema 调用不等于准备阶段未读元数据。",
+      "suggestion": "写未额外执行 NULL 分布/表达式类型探测；结构上下文来自准备阶段元数据。不要否认已有准备读取。",
+      "executionResultCorrect": true,
+      "mainDisposition": "wording-correction-required"
+    }
+  ],
+  "wordingNotesAcceptedAsFailures": false,
+  "rawStatusesRewritten": false,
+  "finalAnswersAccepted": false,
+  "fullMigrationAccepted": false,
+  "nextAction": "Apply reviewed deterministic read-only comparison orchestration and concise shared evidence rules, run controlled regression and fresh affected real-model evidence."
+}
