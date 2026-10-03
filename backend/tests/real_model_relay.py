@@ -225,8 +225,12 @@ class RelayHandler(BaseHTTPRequestHandler):
         }
         text_observer = ProviderTextObserver(request)
         if server.capture_synthetic:
+            from real_model_metadata_evidence import metadata_inputs
             from real_model_synthetic_evidence import executed_tools
 
+            report["syntheticMetadataInputs"] = metadata_inputs(
+                request, (server.upstream_key.get_secret_value(), server.access_key.get_secret_value()),
+            )
             try:
                 report["syntheticExecutedTools"] = executed_tools(
                     request, (server.upstream_key.get_secret_value(), server.access_key.get_secret_value()),
