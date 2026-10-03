@@ -28,9 +28,11 @@
 
 机器报告中 Python 与 Java 的失败、待人工复核、参数不可比和环境阻塞项均不计为通过。虽有 11 组配对状态为 passed，本轮总状态仍为 incomplete，整体真实模型验收未完成。usage 与 provider 错误计数只能说明调用计量及请求传输记录完整，不能替代答案或行为正确性复核。
 
-## 人工答案复核与待调查问题
+## 人工复核覆盖与已确认问题
 
-两份私有人工复核草稿均为 `draft-only` 且 `rootPass=false`：第 1 批覆盖第 1–40 行、46 个 turn；第 2 批覆盖第 41–110 行、81 个 turn，合计覆盖 110 行、127 个 turn。第 111–120 行不在这两批草稿中，且尚无最终人工结论；本文不采用草稿中的逐项判定，也不标记整体人工复核通过。PostgreSQL rewrite/rollback/precision 整数位、MySQL DDL 回滚承诺，以及 PostgreSQL repair 第 3 次重复中对 NULL 的否定，均仍需结合原始证据核实，不能当作已证实的正确答案或行为。
+三批私有人工复核草稿覆盖第 1–40 行（46 turns）、第 41–110 行（81 turns）和第 111–120 行（11 turns），合计覆盖全部 120 行、138 turns（Python 72，Java 66）。草稿仍为 `draft-only` 且 `rootPass=false`。主代理的独立完整性回执状态为 `integrity-only-passed`，确认原始行绑定、哈希、定位符及覆盖完整，但 `answerProposalAccepted=false`；该回执不采纳草稿逐项答案结论，也不改变本轮 `incomplete` 状态。
+
+另有主代理独立确认的 [第二轮答案问题记录](main-second-answer-findings.json)，状态为 `confirmed-findings-not-complete-answer-acceptance`：其中 9 项是答案叙述问题，涉及 PostgreSQL numeric 扩位重写风险、事务边界和整数位计算，MySQL DDL 隐式提交与未读取的默认值/外键依赖，以及 JOIN/repair 对结果的解释；另 1 项是 PostgreSQL 歧义请求未澄清便调用工具的历史行为问题。六个 compare 案例的差异、方向、scale 和展示 SQL 正确且未执行迁移，但这些事实不使错误叙述通过；MySQL 条件 rename 只是明确标注的假设，不列为错误。具体定位符、回答片段和理由见证据文件。该记录只确认列出的发现，不代表整体人工答案通过，不改写原始机器状态或 benchmark。
 
 ## 后续验收边界
 
