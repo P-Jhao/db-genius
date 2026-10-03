@@ -1,0 +1,76 @@
+{
+  "reviewedAt": "2026-10-03T02:18:01.191Z",
+  "sourceParentCommit": "c40cb4b15c19830864d11f8fba513d1bf26faed9",
+  "scope": "T-11/T-13/T-14/T-18/T-22/T-31 real-model defects; affected graph/tools and shared workflow regression",
+  "sourceHashes": {
+    "backend/app/agent/graph_sql.py": "f11a4c3a5314de36970a11ca0178dacc00d0a5e7a556cbefa41c64fabc9574f9",
+    "backend/app/agent/tools.py": "22be59d0b971f7f5fb5b6bac37a612a889a1fd53a851d0b14cbd3f753f93bc89",
+    "backend/app/agent/sql_outcome.py": "1687679641078e622fbe97f194c65bdd6600b5633ddba135bcd85a54524552cc",
+    "backend/tests/test_sql_termination.py": "0d6a3a7f3ca31b7cea4ab8b7a61f1243a2edfd1d22073d98228965b466c214db",
+    "backend/tests/test_compare_report_delivery.py": "174fe7596ef8c18d541581698caacd83b2e952f6f7608f0717b8ef00116d2d29"
+  },
+  "regression": {
+    "testModules": 44,
+    "passed": 524,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 524.28,
+    "command": "python -m pytest -q -ra tests/test_adapters_safety.py tests/test_chat_abort.py tests/test_chat_abort_api.py tests/test_chat_abort_real_api.py tests/test_chat_api.py tests/test_chat_graph.py tests/test_chat_integration.py tests/test_compare_api.py tests/test_compare_evidence.py tests/test_compare_graph.py tests/test_compare_locale.py tests/test_compare_locale_revision.py tests/test_compare_mongodb_integration.py tests/test_compare_reads.py tests/test_compare_report_delivery.py tests/test_compare_safety_integration.py tests/test_context_cancel.py tests/test_context_compress.py tests/test_file_tools.py tests/test_mongodb_workflow.py tests/test_mongodb_workflow_integration.py tests/test_mysql_family.py tests/test_mysql_family_metadata_errors.py tests/test_mysql_family_outcomes.py tests/test_mysql_family_workflow.py tests/test_native_adapters_safety.py tests/test_native_sql_repair_graph.py tests/test_native_sql_repair_policy.py tests/test_native_sql_repair_real.py tests/test_native_workflow_bridge.py tests/test_native_workflow_real.py tests/test_sql_error_boundary.py tests/test_sql_repair.py tests/test_sql_termination.py tests/test_sqlserver_real.py tests/test_trial_graph_targets.py tests/test_workflow_corrections.py tests/test_workflow_evidence.py tests/test_workflow_graph.py tests/test_workflow_identifiers.py tests/test_workflow_integration.py tests/test_workflow_large_import.py tests/test_workflow_sql_repair.py tests/test_workflow_text.py",
+    "cwd": "backend",
+    "realDatabaseFixtures": [
+      "PostgreSQL",
+      "MySQL",
+      "MariaDB",
+      "MongoDB",
+      "Oracle",
+      "SQL Server"
+    ],
+    "realModelCalls": false
+  },
+  "static": {
+    "ruff": {
+      "result": "passed",
+      "scope": "app and the 44 affected test modules"
+    },
+    "mypyStrict": {
+      "result": "passed",
+      "scope": "all app",
+      "sourceFiles": 104
+    }
+  },
+  "logs": {
+    "pytest-affected.log": {
+      "privatePath": ".git/acceptance/main-sql-effects-regression-20261003-r3/pytest-affected.log",
+      "sha256": "c5b8884f56a147cc19532fc2d7758566227ae8be91ba84b7c1a93d03a8a78f7e"
+    },
+    "ruff.log": {
+      "privatePath": ".git/acceptance/main-sql-effects-regression-20261003-r3/ruff.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    "mypy-strict.log": {
+      "privatePath": ".git/acceptance/main-sql-effects-regression-20261003-r3/mypy-strict.log",
+      "sha256": "858ab8dceca8f18b2bc4df8afab8026e434e47b1f9a20a10f857f0d9f1d3505b"
+    }
+  },
+  "images": {
+    "api": "sha256:3530a6288ab8c07477541d48e52cb7dbb75d0cf48c7a7f8eae1efe2808d09087",
+    "worker": "sha256:a47f60e7388ab4be38bfae5924bfacfa646b2f72b49a90afc08349ac2c111503"
+  },
+  "imageSourceParity": {
+    "api": {
+      "checked": 139,
+      "mismatch": []
+    },
+    "worker": {
+      "checked": 139,
+      "mismatch": []
+    }
+  },
+  "productionSourcesChangedDuringGate": 0,
+  "realModelEffectValidation": "pending second full matrix",
+  "frontendProductionChanges": false,
+  "originalJavaChanges": false,
+  "oracleChanges": false,
+  "modelGenerationParameterChanges": false,
+  "AGENTS": "checked; unchanged because no functional boundary or core directory change"
+}

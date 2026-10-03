@@ -11,6 +11,7 @@ from app.agent.cancellation import check_cancelled
 from app.agent.compare import CompareProgress, prepare_compare
 from app.agent.context_runtime import RepeatedCalls, govern_messages, summary_request
 from app.agent.prompts import system_prompt
+from app.agent.sql_outcome import explicit_forbidden_request, zero_execution_summary
 from app.agent.workflow import WorkflowProgress
 from app.agent.workflow_rows import schema_mutation
 from app.core.errors import BusinessError
@@ -48,6 +49,15 @@ class SQLNodes:
             *context.history, SystemMessage(content="\n\n".join(schemas)),
             HumanMessage(content=context.request.message),
         ]
+        if intent == "sql_query":
+            messages.append(SystemMessage(content=(
+                "Honor the user's requested output projection exactly. If the user names output "
+                "columns or aliases, the result you execute and report must contain exactly those "
+                "columns, with no extra identifiers, join keys, grouping keys, or sort keys. "
+                "You may use other columns in JOIN, GROUP BY, filtering, and ORDER BY without "
+                "selecting them. An auxiliary verification query does not replace the requested "
+                "final projection. Preserve the requested row order and values."
+            )))
         if intent == "workflow":
             messages.append(SystemMessage(content=(
                 "Structured table rows require literal batch writes and matching query evidence. "
@@ -85,6 +95,12 @@ class SQLNodes:
         check_cancelled(context.cancel_event)
         if not decision.tool_calls:
             if intent == "sql_query" and context.tools.statements_executed == 0:
+                if (context.tools.statements_attempted == 0 and
+                        explicit_forbidden_request(context.request.message)):
+                    content = zero_execution_summary(context.request.message, context.locale, [])
+                    await context.emit("summary", content, state["step"])
+                    return {"messages": messages, "decision": decision,
+                            "answer": content, "finished": True}
                 raise RuntimeError("SQL agent answered without executing a statement")
             if not isinstance(decision.content, str):
                 raise TypeError("Database answer must be text")
@@ -175,10 +191,10 @@ class SQLNodes:
                 return {"answer": safe, "finished": True}
         workflow_status = self.workflow.status() if state["intent"] == "workflow" else None
         if state["intent"] == "sql_query" and context.tools.statements_executed == 0:
-            content = ("No database statement was successfully executed. "
-                       "Unfinished work: the requested database operation was not completed.")
-            if context.tools.statement_errors:
-                content += "\n\nStatement errors:\n" + "\n".join(context.tools.statement_errors)
+            content = zero_execution_summary(
+                context.request.message if context.tools.statements_attempted == 0 else "",
+                context.locale, context.tools.statement_errors,
+            )
             await context.emit("summary", content, state["step"])
             return {"answer": content, "finished": True}
         unfinished = context.tools.loop_stop_reason
@@ -195,6 +211,17 @@ class SQLNodes:
             unfinished = "Step limit reached"
         warning = (f"{workflow_status}; report only verified facts." if workflow_status else
                    f"{unfinished}; report unfinished work." if unfinished else "Summarize completed work.")
+        if state["intent"] == "db_compare":
+            warning += " " + (
+                "Write the final answer as a self-contained comparison report using only the "
+                "verified compareDatabases result. Include the actual observed differences and "
+                "the concrete migration SQL supported by those differences in this final answer "
+                "for manual review. If reliable SQL cannot be generated, explain why in the final "
+                "answer. If you claim to provide SQL or code, put that SQL or code in this final "
+                "answer; do not claim a planned report or code block "
+                "was already delivered in earlier reasoning or tool decisions. Describe only "
+                "actions confirmed successful by tools as completed. Never execute migration SQL."
+            )
         answer = await context.model_stream.call(
             [*state["messages"], SystemMessage(content=warning)], step=state["step"],
             event=None if workflow_status else "summary_delta",

@@ -60,6 +60,7 @@ class RunTools:
         self.terminated = False
         self.successful_writes: set[tuple[int, str]] = set()
         self.statements_executed = 0
+        self.statements_attempted = 0
         self.cancel_event = cancel_event
         self.interruption: dict[str, object] | None = None
         self.completed_write_count = 0
@@ -109,6 +110,7 @@ class RunTools:
         signature = (db_id, statement.strip())
         if signature in self.successful_writes:
             raise BusinessError(409, "A successful write was already executed in this run")
+        self.statements_attempted += 1
         try:
             if self.cancel_event is None:
                 result = await asyncio.to_thread(execute, self.user_id, db_id, statement)

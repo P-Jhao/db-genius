@@ -1,0 +1,72 @@
+"""A comparison report must be present in the delivered final answer."""
+
+import threading
+from collections.abc import Iterator
+from pathlib import Path
+
+import pytest
+from test_compare_graph import answer, call, request, sqlite_schemas
+from test_model_protocol import Provider, model
+
+from app.agent.graph import RunContext, run_graph
+from app.agent.streaming import ModelStream
+from app.agent.tools import RunTools
+from app.agent.types import Usage
+from app.services import database_tools
+
+
+@pytest.fixture
+def provider() -> Iterator[Provider]:
+    service = Provider([])
+    thread = threading.Thread(target=service.serve_forever, daemon=True)
+    thread.start()
+    yield service
+    service.shutdown()
+    service.server_close()
+    thread.join(timeout=2)
+
+
+@pytest.mark.asyncio
+async def test_complete_comparison_final_answer_contains_actual_report_and_sql(
+    provider: Provider, monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    sqlite_schemas(monkeypatch, tmp_path)
+    monkeypatch.setattr(database_tools, "execute_statement", lambda *_args, **_kwargs:
+                        pytest.fail("Migration SQL reached the execution service"))
+    monkeypatch.setattr(database_tools, "execute_comparison_read", lambda *_args, **_kwargs:
+                        pytest.fail("No comparison SQL read was requested"))
+    final_report = (
+        "pre → test: orders is new, retired is absent, and users.email was added. "
+        "Review the data loss risk for retired before deployment.\n\n"
+        "```sql\nCREATE TABLE orders (id INTEGER PRIMARY KEY);\n```"
+    )
+    provider.replies = [
+        call("compareDatabases", {"pre_id": 12, "test_id": 13}, "compare"),
+        call("doTerminate", {"reason": "The report and SQL were already delivered"}, "terminate"),
+        answer(final_report),
+    ]
+    events: list[tuple[str, object]] = []
+
+    async def emit(kind: str, content: object, _step: int) -> None:
+        events.append((kind, content))
+
+    chat_request = request()
+    tools = RunTools(7, chat_request)
+    result = await run_graph(RunContext(chat_request, [], "en", ModelStream(model(provider), emit, Usage()),
+                                        tools, emit))
+    assert result["answer"] == final_report
+    assert events[-1] == ("summary", final_report)
+    assert "CREATE TABLE orders" in result["answer"]
+    assert all(name in result["answer"] for name in ("orders", "retired", "users.email"))
+    assert tools.statements_attempted == tools.completed_write_count == 0
+    assert len(provider.requests) == 3
+    final_messages = provider.requests[-1]["messages"]
+    assert isinstance(final_messages, list)
+    final_system = [str(item["content"]) for item in final_messages if item["role"] == "system"]
+    assert any("self-contained comparison report" in content and
+               "concrete migration SQL supported by those differences" in content and
+               "put that SQL or code in this final answer" in content and
+               "only actions confirmed successful by tools" in content
+               for content in final_system)
+    assert any(item["role"] == "tool" and "newTables" in str(item["content"])
+               for item in final_messages)
