@@ -35,6 +35,7 @@ SOURCE_FILES = (
     "scripts/acceptance/classification_regression.py", "scripts/acceptance/affected_effects.py",
     "backend/app/resources/prompts/intent-classifier_zh_CN.md",
     "backend/app/resources/prompts/intent-classifier_en.md",
+    "backend/app/agent/protocol_errors.py", "backend/app/core/observability_logging.py",
 )
 
 

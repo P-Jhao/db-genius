@@ -20,6 +20,10 @@ _PREFIX = re.compile(r'\A\s*\{\s*"report"\s*:\s*"')
 _ESCAPES = {'"': '"', "\\": "\\", "/": "/", "b": "\b", "f": "\f",
             "n": "\n", "r": "\r", "t": "\t"}
 _FINISH_REASONS = {"stop", "length", "tool_calls", "function_call", "content_filter"}
+ENVELOPE_ISSUES = frozenset({
+    "invalid_json", "duplicate_field", "not_object", "field_set", "report_not_text",
+    "completion_not_true", "report_not_closed", "report_mismatch",
+})
 
 
 class IncompleteFinalReport(RuntimeError):
@@ -126,15 +130,37 @@ class ReportDecoder:
     def finish(self, reason: str | None, tool_calls: int) -> ReportCompletion:
         clean, protocol = summary_cleanup(self.text)
         envelope_complete = False
+        envelope_issue: str | None = None
         error = self.error
+
+        def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+            nonlocal envelope_issue
+            try:
+                return _unique_object(pairs)
+            except ValueError:
+                envelope_issue = "duplicate_field"
+                raise
+
         try:
-            value = json.loads(self.wire, object_pairs_hook=_unique_object)
+            value = json.loads(self.wire, object_pairs_hook=unique_object)
         except (json.JSONDecodeError, ValueError):
+            if envelope_issue is None:
+                envelope_issue = "invalid_json"
             error = "invalid_report_envelope"
         else:
-            if (not isinstance(value, dict) or set(value) != {"report", "complete"} or
-                    not isinstance(value["report"], str) or value["complete"] is not True or
-                    not self.closed or value["report"] != self.text):
+            if not isinstance(value, dict):
+                envelope_issue = "not_object"
+            elif set(value) != {"report", "complete"}:
+                envelope_issue = "field_set"
+            elif not isinstance(value["report"], str):
+                envelope_issue = "report_not_text"
+            elif value["complete"] is not True:
+                envelope_issue = "completion_not_true"
+            elif not self.closed:
+                envelope_issue = "report_not_closed"
+            elif value["report"] != self.text:
+                envelope_issue = "report_mismatch"
+            if envelope_issue is not None:
                 error = "invalid_report_envelope"
             else:
                 envelope_complete = True
@@ -155,7 +181,7 @@ class ReportDecoder:
             "finishReason": reason if reason is None or reason in _FINISH_REASONS else "other",
             "structuredToolCallCount": tool_calls, "protocolCleanup": protocol,
             "envelopeComplete": envelope_complete, "framingVerified": error is None,
-            "errorCode": error,
+            "errorCode": error, "envelopeIssue": envelope_issue,
         }
         if reason is not None and reason not in _FINISH_REASONS:
             observation["finishReasonUtf8Sha256"] = _digest(reason)

@@ -19,13 +19,14 @@ FINAL_REPORT_SOURCES = {
     "backend/app/agent/product_locale.py", "backend/app/api/chat.py",
     "backend/app/core/observability_runtime.py", "backend/tests/real_model_observations.py",
     "backend/app/agent/compare_preflight.py",
+    "backend/app/agent/protocol_errors.py", "backend/app/core/observability_logging.py",
 }
 IMAGE = "sha256:" + "a" * 64
 
 
 def test_source_binding_covers_final_report_and_comparison_preflight() -> None:
     assert FINAL_REPORT_SOURCES.issubset(support.SOURCE_FILES)
-    assert len(support.SOURCE_FILES) == len(set(support.SOURCE_FILES)) == 31
+    assert len(support.SOURCE_FILES) == len(set(support.SOURCE_FILES)) == 33
 
 
 def install_sources(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict[str, str]:
