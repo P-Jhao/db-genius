@@ -1,5 +1,6 @@
 """Ordinary workflows and known SQL failures retain the original execution scope."""
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -37,7 +38,8 @@ async def test_unattached_update_delete_create_are_verified(
     provider.replies = [call("executeSql", {"db_id": 12, "statement": write}, "write"),
                         call("executeSql", {"db_id": 12, "statement": verify}, "verify"),
                         call("doTerminate", {"reason": "verified"}, "done"),
-                        answer("The workflow operation was executed and queried.")]
+                        answer(json.dumps({"report": "The workflow operation was executed and queried.",
+                                           "complete": True}))]
     request = ChatRequest.model_validate({"message": "Change the database", "dbConfigIds": [12],
                                           "confirmedIntent": "workflow"})
     result, _ = await run(provider, request)

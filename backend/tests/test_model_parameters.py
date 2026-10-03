@@ -93,7 +93,8 @@ async def test_sql_tool_followup_and_final_summary_use_ordinary_parameters(
 
     monkeypatch.setattr(database_tools, "execute_statement", execute)
     provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": "SELECT 1"}),
-                        tool_reply("doTerminate", {"reason": "Done"}), response("The value is 1.")]
+                        tool_reply("doTerminate", {"reason": "Done"}),
+                        response(json.dumps({"report": "The value is 1.", "complete": True}))]
     request = ChatRequest(message="Select one", dbConfigIds=[12], confirmedIntent="sql_query")
     usage = Usage()
     result = await run_graph(RunContext(request, [], "en", ModelStream(model(provider), emit, usage),

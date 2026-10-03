@@ -15,6 +15,7 @@ from typing import cast
 import httpx
 from pydantic import SecretStr
 from real_model_cases import MODEL
+from real_model_observations import ProviderTextObserver, record_finish_reason
 from real_model_relay_body import request_body
 
 
@@ -102,7 +103,8 @@ def _usage(packet: dict[str, object], report: dict[str, object]) -> None:
         report["usage"] = totals
 
 
-def _packet(data: bytes, report: dict[str, object], started: float) -> None:
+def _packet(data: bytes, report: dict[str, object], started: float,
+            observer: ProviderTextObserver | None = None) -> None:
     lines = [line[5:].removeprefix(" ") for line in data.decode("utf-8").splitlines()
              if line.startswith("data:")]
     if not lines:
@@ -115,21 +117,28 @@ def _packet(data: bytes, report: dict[str, object], started: float) -> None:
     _usage(packet, report)
     choices = packet.get("choices")
     if isinstance(choices, list):
-        for choice in choices:
-            delta = object_value(object_value(choice).get("delta", {}))
+        for index, choice in enumerate(choices):
+            record_finish_reason(object_value(choice), report)
+            if index == 0 and observer is not None:
+                observer.consume(object_value(choice))
+            raw_delta = object_value(choice).get("delta", {})
+            if raw_delta is None:
+                raw_delta = {}
+            delta = object_value(raw_delta)
             if report["firstDeltaSeconds"] is None and any(
                 delta.get(key) for key in ("content", "reasoning_content", "tool_calls")
             ):
                 report["firstDeltaSeconds"] = monotonic() - started
 
 
-def consume_frames(pending: bytes, part: bytes, report: dict[str, object], started: float) -> bytes:
+def consume_frames(pending: bytes, part: bytes, report: dict[str, object], started: float,
+                   observer: ProviderTextObserver | None = None) -> bytes:
     pending += part
     # Match only after joining raw chunks: neither UTF-8 nor CRLF is chunk-aligned.
     while delimiter := re.search(rb"\r\n\r\n|\n\n|\r\r", pending):
         packet, pending = pending[:delimiter.start()], pending[delimiter.end():]
         try:
-            _packet(packet, report, started)
+            _packet(packet, report, started, observer)
         except (UnicodeDecodeError, ValueError, TypeError) as error:
             # Evidence parsing must never rewrite or interrupt the actual response.
             report["evidenceError"] = type(error).__name__
@@ -212,7 +221,9 @@ class RelayHandler(BaseHTTPRequestHandler):
             "stream": request.get("stream") is True, "usage": None, "providerDone": False,
             "firstDeltaSeconds": None, "elapsedSeconds": None, "httpStatus": None, "transportError": None,
             "evidenceError": None,
+            "finishReason": None, "finishReasonPresent": False,
         }
+        text_observer = ProviderTextObserver(request)
         if server.capture_synthetic:
             from real_model_synthetic_evidence import executed_tools
 
@@ -260,7 +271,7 @@ class RelayHandler(BaseHTTPRequestHandler):
                             continue
                         if report["evidenceError"] == "FrameLimitExceeded":
                             continue
-                        pending = consume_frames(pending, part, report, started)
+                        pending = consume_frames(pending, part, report, started, text_observer)
                         if len(pending) > 4 * 1024 * 1024:
                             report["evidenceError"] = "FrameLimitExceeded"
                             pending = b""
@@ -269,6 +280,10 @@ class RelayHandler(BaseHTTPRequestHandler):
         except (httpx.HTTPError, BrokenPipeError, ConnectionResetError, ValueError, TypeError) as error:
             report["transportError"] = type(error).__name__
         finally:
+            try:
+                text_observer.finish(report)
+            except (ValueError, TypeError) as error:
+                report["evidenceError"] = type(error).__name__
             report["elapsedSeconds"] = monotonic() - started
             self.close_connection = True
 

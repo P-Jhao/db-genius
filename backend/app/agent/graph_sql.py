@@ -11,6 +11,7 @@ from app.agent.cancellation import check_cancelled
 from app.agent.compare import prepare_compare
 from app.agent.compare_preflight import PreparedComparison, limited_context_report, prepare_comparison
 from app.agent.context_runtime import RepeatedCalls, govern_messages, summary_request
+from app.agent.final_report import REPORT_CONTRACT
 from app.agent.prompts import system_prompt
 from app.agent.report_rules import COMPARE_REPORT_RULE
 from app.agent.report_rules import SQL_EVIDENCE_RULE as EVIDENCE_RULE
@@ -228,18 +229,25 @@ class SQLNodes:
         warning += " " + (COMPARE_REPORT_RULE if state["intent"] == "db_compare" else EVIDENCE_RULE)
         summary_messages = [*state["messages"], SystemMessage(content=warning)]
         if state["intent"] == "db_compare":
-            safe = await limited_context_report(context, self.comparison, summary_messages, state["step"])
+            safe = await limited_context_report(
+                context, self.comparison,
+                [*summary_messages, SystemMessage(content=REPORT_CONTRACT)], state["step"],
+            )
             if safe is not None:
                 return {"answer": safe, "finished": True}
+        prefix = (f"{unfinished}. Unfinished work: remaining requested steps were not verified complete.\n\n"
+                  if unfinished else "")
+        if prefix and workflow_status is None:
+            await context.emit("summary_delta", prefix, state["step"])
         answer = await context.model_stream.call(
             summary_messages, step=state["step"],
             event=None if workflow_status else "summary_delta",
+            final_report=True,
         )
         check_cancelled(context.cancel_event)
         if not isinstance(answer.content, str):
             raise TypeError("Summary must be text")
-        content = (f"{unfinished}. Unfinished work: remaining requested steps were not verified complete.\n\n"
-                   f"{answer.content}" if unfinished else answer.content)
+        content = prefix + answer.content
         if workflow_status is not None:
             content = workflow_status if unfinished is None else f"{unfinished}. {workflow_status}"
         await context.emit("summary", content, state["step"])

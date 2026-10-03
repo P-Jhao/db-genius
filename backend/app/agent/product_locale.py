@@ -13,6 +13,28 @@ _ERRORS = {
     "es": ("El modelo devolvió una respuesta no válida.", "La solicitud de chat falló (taskId: {task_id})."),
 }
 
+_REPORT_ERRORS = {
+    "en": "The final report could not be completed. Verified operation records are retained; "
+          "this report failure does not roll back completed writes. Review the execution steps "
+          "before deciding whether to send the request again (taskId: {task_id}).",
+    "zh-CN": "最终报告未能完整生成。已确认的操作记录仍保留；报告失败不会撤销已经完成的写入。"
+             "请先查看执行步骤，再决定是否重新发送请求（taskId: {task_id}）。",
+    "zh-TW": "最終報告未能完整產生。已確認的操作紀錄仍保留；報告失敗不會撤銷已完成的寫入。"
+             "請先查看執行步驟，再決定是否重新傳送請求（taskId: {task_id}）。",
+    "fr": "Le rapport final n’a pas pu être terminé. Les opérations vérifiées restent consignées ; "
+          "cet échec du rapport n’annule pas les écritures déjà effectuées. Consultez les étapes "
+          "d’exécution avant de décider de renvoyer la demande (taskId: {task_id}).",
+    "ms": "Laporan akhir tidak dapat disiapkan. Rekod operasi yang disahkan masih disimpan; "
+          "kegagalan laporan ini tidak membatalkan penulisan yang telah selesai. Semak langkah "
+          "pelaksanaan sebelum memutuskan untuk menghantar semula permintaan (taskId: {task_id}).",
+    "ja": "最終レポートを完成できませんでした。確認済みの操作記録は保持され、レポートの失敗によって"
+          "完了済みの書き込みが取り消されることはありません。リクエストを再送するか決める前に、"
+          "実行手順を確認してください（taskId: {task_id}）。",
+    "es": "No se pudo completar el informe final. Se conservan los registros de las operaciones "
+          "verificadas; este fallo no revierte las escrituras ya completadas. Revise los pasos de "
+          "ejecución antes de decidir si envía de nuevo la solicitud (taskId: {task_id}).",
+}
+
 
 def product_text(key: str, locale: str, *args: object) -> str:
     pattern = _messages(select_locale(locale)).get(key)
@@ -46,3 +68,7 @@ def missing_database(intent: Intent, locale: str) -> str:
 
 def stream_error(invalid: bool, locale: str, task_id: str) -> str:
     return _ERRORS[select_locale(locale)][0 if invalid else 1].format(task_id=task_id)
+
+
+def final_report_error(locale: str, task_id: str) -> str:
+    return _REPORT_ERRORS[select_locale(locale)].format(task_id=task_id)

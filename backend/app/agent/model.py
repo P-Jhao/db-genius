@@ -100,7 +100,12 @@ def _delta_chunk(packet: dict[str, object]) -> ChatGenerationChunk | None:
     first = choices[0]
     if not isinstance(first, dict):
         raise TypeError("Invalid model choice")
+    finish = first.get("finish_reason")
+    if finish is not None and not isinstance(finish, str):
+        raise TypeError("Model finish reason must be text")
     delta = first.get("delta")
+    if delta is None and finish is not None:
+        delta = {}
     if not isinstance(delta, dict):
         return None
     content = delta.get("content")
@@ -141,12 +146,13 @@ def _delta_chunk(packet: dict[str, object]) -> ChatGenerationChunk | None:
                     "type": "tool_call_chunk",
                 }
             )
-    if not content and not reasoning and not chunks:
+    if not content and not reasoning and not chunks and finish is None:
         return None
     return ChatGenerationChunk(
         message=AIMessageChunk(
             content=content or "",
             additional_kwargs=additional,
+            response_metadata={} if finish is None else {"finish_reason": finish},
             tool_call_chunks=cast(list[ToolCallChunk], chunks),
         )
     )

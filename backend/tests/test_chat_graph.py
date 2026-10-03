@@ -201,7 +201,7 @@ async def test_terminate_summarizes_after_tool(provider: Provider,
         [frame({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "finish",
             "function": {"name": "doTerminate", "arguments": '{"reason":"Done"}'}}]}}]}),
          frame("[DONE]")],
-        response("The value is 1."),
+        response(json.dumps({"report": "The value is 1.", "complete": True})),
     ]
     events: list[tuple[str, object]] = []
 

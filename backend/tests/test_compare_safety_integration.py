@@ -130,7 +130,8 @@ async def test_comparison_read_error_can_be_repaired_before_actual_comparison(
                                 "statement": "SELECT missing_comparison_column FROM orders"}, "bad_read"),
             _call("executeSql", {"db_id": PRE_ID, "statement": "SELECT id FROM orders"}, "fixed_read"),
             _call("doTerminate", {"reason": "report ready"}, "done"),
-            _answer("The actual pre→test comparison completed after correcting the read."),
+            _answer(json.dumps({"report": "The actual pre→test comparison completed after correcting the read.",
+                                "complete": True})),
         ]
         request = ChatRequest(message="compare", preDbConfigId=PRE_ID, testDbConfigId=TEST_ID,
                               confirmedIntent="db_compare")

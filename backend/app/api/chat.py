@@ -14,9 +14,10 @@ from sqlalchemy import select
 
 from app.adapters.safety import UnsafeStatement
 from app.agent.cancellation import RunAborted, check_cancelled
+from app.agent.final_report import IncompleteFinalReport
 from app.agent.graph import RunContext, run_graph
 from app.agent.model import CompatibleChatModel
-from app.agent.product_locale import stream_error
+from app.agent.product_locale import final_report_error, stream_error
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Usage
 from app.api.auth import CurrentUser, DatabaseSession
@@ -168,7 +169,9 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
         raise
     except Exception as error:  # noqa: BLE001 - stream errors need an SSE terminal event
         logger.error("Chat run failed taskId=%s errorType=%s", task_id, type(error).__name__)
-        if isinstance(error, BusinessError):
+        if isinstance(error, IncompleteFinalReport):
+            public_error = final_report_error(locale, task_id)
+        elif isinstance(error, BusinessError):
             public_error = translate(error.message, locale, *error.message_args)
         elif isinstance(error, UnsafeStatement):
             public_error = str(error)

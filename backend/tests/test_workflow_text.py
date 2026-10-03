@@ -1,5 +1,6 @@
 """Text attachments can guide verified operations without pretending to be table rows."""
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -32,7 +33,8 @@ async def test_document_and_ocr_instructions_can_update_and_verify(
                         call("executeSql", {"db_id": 12, "statement":
                              "SELECT id,name FROM imports WHERE id=1"}, "verify"),
                         call("doTerminate", {"reason": "verified"}, "done"),
-                        answer("The attached instruction was applied; Eve was queried from the database.")]
+                        answer(json.dumps({"report": "The attached instruction was applied; Eve was queried "
+                                                     "from the database.", "complete": True}))]
     summary, _ = await run(provider, workflow_request())
     with sqlite3.connect(target) as connection:
         assert connection.execute("SELECT id,name FROM imports").fetchall() == [(1, "Eve")]

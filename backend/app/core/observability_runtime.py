@@ -38,14 +38,16 @@ class ObservedModelStream(ModelStream):
         self.task_id = task_id
 
     async def call(self, messages: list[BaseMessage], step: int = 0, event: str | None = "content",
-                   tools: list[BaseTool] | None = None, classification: bool = False) -> AIMessage:
+                   tools: list[BaseTool] | None = None, classification: bool = False,
+                   final_report: bool = False) -> AIMessage:
         prompt_before = self.usage.promptTokens
         completion_before = self.usage.completionTokens
         outcome = "error"
         try:
             with span("model.call", task_id=self.task_id, attributes={"model.step": step}):
                 result = await super().call(messages, step=step, event=event,
-                                            tools=tools, classification=classification)
+                                            tools=tools, classification=classification,
+                                            final_report=final_report)
             outcome = "done"
             return result
         except RunAborted as error:

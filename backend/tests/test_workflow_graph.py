@@ -110,7 +110,7 @@ async def test_import_reads_writes_and_selects(provider: Provider, monkeypatch: 
         call("executeSql", {"db_id": 12, "statement": "INSERT INTO imports VALUES (1, 'Ada')"}, "write"),
         call("executeSql", {"db_id": 12, "statement": "SELECT id, name FROM imports"}, "verify"),
         call("doTerminate", {"reason": "verified"}, "done"),
-        answer("Imported and verified Ada."),
+        answer(json.dumps({"report": "Imported and verified Ada.", "complete": True})),
     ]
     if classified:
         provider.replies.insert(0, answer(json.dumps({"intent": "workflow", "confidence": 0.99,
@@ -146,7 +146,7 @@ async def test_import_status_is_bound_to_evidence(
         provider.replies.append(call("executeSql", {"db_id": 12,
                                                     "statement": "SELECT id FROM imports"}, "verify"))
     provider.replies.extend([call("doTerminate", {"reason": "done"}, "done"),
-                             answer("Everything imported successfully.")])
+                             answer(json.dumps({"report": "Everything imported successfully.", "complete": True}))])
     result, events = await run(provider, workflow_request())
     assert expected in result
     summary = next(content for kind, content in events if kind == "summary")
@@ -164,7 +164,7 @@ async def test_failed_read_stops_before_write(provider: Provider, monkeypatch: p
     provider.replies = [simultaneous_calls(
         ("readFile", {"file_id": 5}),
         ("executeSql", {"db_id": 12, "statement": "INSERT INTO imports VALUES (1, 'Ada')"})),
-                        answer("I imported everything.")]
+                        answer(json.dumps({"report": "I imported everything.", "complete": True}))]
     result, _ = await run(provider, workflow_request())
     assert "readFile did not succeed" in result
     with sqlite3.connect(target) as connection:

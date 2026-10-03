@@ -97,7 +97,8 @@ async def test_compare_pre_to_test_with_real_diff(
 ) -> None:
     sqlite_schemas(monkeypatch, tmp_path)
     provider.replies = [call("doTerminate", {"reason": "report ready"}, "terminate"),
-                        answer("pre→test: create orders, remove retired, add users.email.")]
+                        answer(json.dumps({"report": "pre→test: create orders, remove retired, add users.email.",
+                                           "complete": True}))]
     if classified:
         provider.replies.insert(0, answer(json.dumps({"intent": "db_compare", "confidence": 0.99,
                                                       "reasoning": "schemas", "needsClarification": False})))

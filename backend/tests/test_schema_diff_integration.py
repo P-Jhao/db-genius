@@ -242,7 +242,8 @@ async def _run_graph_case(monkeypatch: pytest.MonkeyPatch, provider: Provider,
     provider.replies = []
     if not cross_engine:
         provider.replies = [_call("doTerminate", {"reason": "report ready"}, "terminate"),
-                             _answer("pre to test: add fresh, remove retired, alter orders.")]
+                             _answer(json.dumps({"report": "pre to test: add fresh, remove retired, alter orders.",
+                                                 "complete": True}))]
     request = ChatRequest.model_validate({"message": "Compare selected databases", "preDbConfigId": PRE_ID,
                                           "testDbConfigId": TEST_ID, "confirmedIntent": "db_compare"})
     events: list[tuple[str, object]] = []

@@ -2,13 +2,20 @@
 
 import asyncio
 import json
+import logging
 import threading
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import suppress
 from typing import cast
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, message_chunk_to_message
+from langchain_core.messages import (
+    AIMessage,
+    AIMessageChunk,
+    BaseMessage,
+    SystemMessage,
+    message_chunk_to_message,
+)
 from langchain_core.messages.tool import ToolCall
 from langchain_core.tools import BaseTool
 from langchain_core.utils.function_calling import convert_to_openai_tool
@@ -16,9 +23,11 @@ from pydantic import BaseModel
 
 from app.agent.cancellation import check_cancelled
 from app.agent.dsml import AllowedTool, StructuredCall, SummaryFilter, reconcile, strip
+from app.agent.final_report import REPORT_CONTRACT, IncompleteFinalReport, ReportDecoder
 from app.agent.types import EventSink, Usage
 
 DEFAULT_TEMPERATURE = 0.7
+logger = logging.getLogger(__name__)
 
 
 def _append(old: str | None, new: str | None, *, identity: bool = False) -> str | None:
@@ -57,13 +66,19 @@ class ModelStream:
         event: str | None = "content",
         tools: list[BaseTool] | None = None,
         classification: bool = False,
+        final_report: bool = False,
     ) -> AIMessage:
         self.partial = ""
         self.reasoning = ""
         aggregate: AIMessageChunk | None = None
         latest_usage: dict[str, int] | None = None
         call_fragments: dict[int, StructuredCall] = {}
-        output_filter = SummaryFilter() if event == "summary_delta" else None
+        if final_report and (tools or classification):
+            raise ValueError("Final-report framing cannot be used for a tool or classification call")
+        report_decoder = ReportDecoder() if final_report else None
+        output_filter = SummaryFilter() if event == "summary_delta" or final_report else None
+        if final_report:
+            messages = [*messages, SystemMessage(content=REPORT_CONTRACT)]
         options: dict[str, object] = (
             {"thinking": {"type": "disabled"}} if classification
             else {"temperature": DEFAULT_TEMPERATURE}
@@ -104,7 +119,9 @@ class ModelStream:
                 content_chunk = chunk.model_copy(update={"usage_metadata": None})
                 aggregate = content_chunk if aggregate is None else aggregate + content_chunk
                 if isinstance(chunk.content, str):
-                    text = output_filter.push(chunk.content) if output_filter else chunk.content
+                    decoded = (report_decoder.push(chunk.content) if report_decoder is not None
+                               else chunk.content)
+                    text = output_filter.push(decoded) if output_filter else decoded
                     self.partial += text
                     if text and event is not None:
                         await self.emit(event, text, step)
@@ -126,6 +143,19 @@ class ModelStream:
         check_cancelled(self.cancel_event)
         if aggregate is None:
             raise RuntimeError("Model returned an empty stream")
+        report_observation: dict[str, object] | None = None
+        if report_decoder is not None:
+            reason = aggregate.response_metadata.get("finish_reason")
+            if reason is not None and not isinstance(reason, str):
+                raise TypeError("Summary finish reason must be text")
+            completion = report_decoder.finish(reason, len(call_fragments))
+            report_observation = completion.observation
+            logger.info("Final report framing " + json.dumps(
+                {"step": step, **report_observation}, sort_keys=True,
+            ))
+            check_cancelled(self.cancel_event)
+            if completion.error is not None:
+                raise IncompleteFinalReport(completion.error)
         if output_filter is not None:
             tail = output_filter.finish()
             self.partial += tail
@@ -134,6 +164,8 @@ class ModelStream:
         recovered: list[dict[str, object]] | None = None
         structured = [call_fragments[index] for index in sorted(call_fragments)]
         content = aggregate.content
+        if report_decoder is not None:
+            content = completion.content
         if tools and isinstance(content, str):
             allowed = {}
             schemas: dict[str, type[BaseModel]] = {}
@@ -178,4 +210,8 @@ class ModelStream:
         additional = dict(message.additional_kwargs)
         if self.reasoning:
             additional["reasoning_content"] = self.reasoning
-        return message.model_copy(update={"additional_kwargs": additional, "usage_metadata": latest_usage})
+        response_metadata: dict[str, object] = dict(message.response_metadata)
+        if report_observation is not None:
+            response_metadata["summary_observation"] = report_observation
+        return message.model_copy(update={"additional_kwargs": additional, "usage_metadata": latest_usage,
+                                          "response_metadata": response_metadata})

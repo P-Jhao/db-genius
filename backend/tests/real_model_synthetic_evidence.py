@@ -9,6 +9,7 @@ import re
 from real_model_answers import answer_review, redact_answer
 from real_model_cases import EffectCase
 from real_model_evidence import _answer, tool_results
+from real_model_observations import summary_delivery
 from real_model_relay import object_value
 
 SENSITIVE_FIELD = re.compile(r"password|api.?key|authorization|oss.?key|base.?url", re.IGNORECASE)
@@ -91,6 +92,7 @@ def turn_evidence(case: EffectCase, index: int, events: list[dict[str, object]],
                 "taskIds": sorted({str(event["taskId"]) for event in events if "taskId" in event})},
         "classification": scrub(classified, secrets), "clarification": scrub(clarification, secrets),
         "syntheticToolResults": scrub(tools, secrets), "answerReview": review,
+        "summaryDelivery": summary_delivery(events),
     }
 
 

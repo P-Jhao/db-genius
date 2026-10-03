@@ -1,5 +1,6 @@
 """Real SQL dialect, quoted identifier and typed import regression cases."""
 
+import json
 from contextlib import contextmanager
 from decimal import Decimal
 from io import BytesIO
@@ -83,7 +84,7 @@ async def test_real_special_identifiers_decimals_nulls_and_text_codes(
                             tool_reply("executeSql", {"db_id": DB_ID, "statement": insert}, "write"),
                             tool_reply("executeSql", {"db_id": DB_ID, "statement": select}, "verify"),
                             tool_reply("doTerminate", {"reason": "verified"}, "done"),
-                            answer_reply("Two rows were inserted and verified.")]
+                            answer_reply(json.dumps({"report": "Two rows were inserted and verified.", "complete": True}))]
         if wrong_identifier:
             alter = (f"ALTER TABLE {table} MODIFY {q}identifier{q} VARCHAR(20)" if db_type == "mysql" else
                      f"ALTER TABLE {table} ALTER COLUMN {q}identifier{q} TYPE VARCHAR(20)")
@@ -126,7 +127,8 @@ async def test_pg_case_distinct_tables_and_columns_cannot_verify_each_other(
                             tool_reply("executeSql", {"db_id": DB_ID, "statement":
                                 f'SELECT "Name",name FROM {selected}'}, "verify"),
                             tool_reply("doTerminate", {"reason": "verified"}, "done"),
-                            answer_reply("Case distinct columns were imported and verified.")]
+                            answer_reply(json.dumps({"report": "Case distinct columns were imported and verified.",
+                                                     "complete": True}))]
         result, _ = await run(provider, uploaded.id)
         if wrong_table:
             assert "lack a successful subsequent SELECT" in result

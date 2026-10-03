@@ -8,7 +8,9 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from test_model_protocol import Provider, frame, model
 
+from app.agent.final_report import REPORT_CONTRACT
 from app.agent.graph import RunContext, run_graph
+from app.agent.report_rules import SQL_EVIDENCE_RULE
 from app.agent.streaming import ModelStream
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Usage
@@ -102,9 +104,15 @@ async def test_explicit_sql_without_confirmation_routes_and_executes(
     assert any(kind == "classified" for kind, _ in events)
     final_messages = provider.requests[-1]["messages"]
     assert isinstance(final_messages, list)
-    final_system = "\n".join(str(item["content"]) for item in final_messages if item["role"] == "system")
-    assert "Separate semantics from observed facts." in final_system
-    assert "not the full distribution; generic aggregates cannot." in final_system
+    assert any(item["role"] == "system" and item["content"] == SQL_EVIDENCE_RULE
+               for item in final_messages)
+    observations = [json.loads(item["content"]) for item in final_messages
+                    if item["role"] == "tool" and item["tool_call_id"] == "executeSql"]
+    assert observations == [{"success": True, "rowCount": 1, "data": [{"n": 3}]}]
+    assert all(item["content"] != REPORT_CONTRACT for item in final_messages)
+    assert "tools" in provider.requests[-1]
+    assert events[-1] == ("summary", "The result is 3.")
+    assert not any(kind == "summary_delta" for kind, _ in events)
 
 
 @pytest.mark.asyncio

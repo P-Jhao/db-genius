@@ -46,7 +46,8 @@ def test_compare_sse_actual_diff_usage_and_replay(
     monkeypatch.setattr(database_tools, "execute_statement", lambda *_args, **_kwargs:
                         pytest.fail("Deployment SQL must remain a report"))
     provider.replies = [call("doTerminate", {"reason": "report ready"}, "done"),
-                        reply("pre→test: add orders.note. Report SQL: ALTER TABLE orders ADD COLUMN note TEXT;")]
+                        reply(json.dumps({"report": "pre→test: add orders.note. Report SQL: "
+                                                    "ALTER TABLE orders ADD COLUMN note TEXT;", "complete": True}))]
     response = client.post("/api/chat", json={"message": "Compare", "preDbConfigId": pre_id,
                           "testDbConfigId": test_id, "confirmedIntent": "db_compare"})
     assert response.status_code == 200

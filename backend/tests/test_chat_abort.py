@@ -171,7 +171,8 @@ async def test_abort_during_summary_preserves_only_partial(provider: Provider,
                                                             monkeypatch: pytest.MonkeyPatch) -> None:
     cancel = threading.Event()
     provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": "SELECT 1"}),
-                        tool_reply("doTerminate", {"reason": "done"}), reply("partial conclusion", usage=False)]
+                        tool_reply("doTerminate", {"reason": "done"}),
+                        reply('{"report":"partial conclusion', usage=False)]
     monkeypatch.setattr(database_tools, "get_schema", lambda _user, _db: {"tables": []})
     monkeypatch.setattr(database_tools, "execute_statement", lambda _user, _db, _sql, **_kwargs:
                         {"success": True, "rowCount": 1, "data": [{"value": 1}]})

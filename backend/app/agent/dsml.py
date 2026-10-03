@@ -214,6 +214,23 @@ def strip(content: str) -> str:
     return clean
 
 
+def summary_cleanup(content: str) -> tuple[str, str]:
+    """Classify cleanup without granting summary text any tool capability."""
+    clean = strip(content)
+    remainder = _WRAPPER.sub("", content)
+    remainder = _SIMPLE_BLOCK.sub("", remainder)
+    remainder = _INVOKE.sub("", remainder)
+    if (_PROTOCOL.search(remainder) or _CLOSING.search(remainder) or
+            strip(remainder) != remainder):
+        return clean, "incomplete"
+    for wrapper in _WRAPPER.finditer(content):
+        try:
+            _parse_invokes(wrapper.group(1))
+        except ValueError:
+            return clean, "incomplete"
+    return clean, "removed" if clean != content else "none"
+
+
 class SummaryFilter:
     """Hold text after '<' until final cleanup, so fragments cannot reach SSE."""
 

@@ -1,5 +1,6 @@
 """A comparison report must be present in the delivered final answer."""
 
+import json
 import threading
 from collections.abc import Iterator
 from pathlib import Path
@@ -8,7 +9,9 @@ import pytest
 from test_compare_graph import answer, call, request, sqlite_schemas
 from test_model_protocol import Provider, model
 
+from app.agent.final_report import REPORT_CONTRACT
 from app.agent.graph import RunContext, run_graph
+from app.agent.report_rules import COMPARE_REPORT_RULE
 from app.agent.streaming import ModelStream
 from app.agent.tools import RunTools
 from app.agent.types import Usage
@@ -42,7 +45,7 @@ async def test_complete_comparison_final_answer_contains_actual_report_and_sql(
     )
     provider.replies = [
         call("doTerminate", {"reason": "The report and SQL were already delivered"}, "terminate"),
-        answer(final_report),
+        answer(json.dumps({"report": final_report, "complete": True})),
     ]
     events: list[tuple[str, object]] = []
 
@@ -62,10 +65,7 @@ async def test_complete_comparison_final_answer_contains_actual_report_and_sql(
     final_messages = provider.requests[-1]["messages"]
     assert isinstance(final_messages, list)
     final_system = [str(item["content"]) for item in final_messages if item["role"] == "system"]
-    assert any("self-contained comparison report" in content and
-               "concrete migration SQL supported by those differences" in content and
-               "put that SQL or code in this final answer" in content and
-               "only actions confirmed successful by tools" in content
-               for content in final_system)
+    assert any(COMPARE_REPORT_RULE in content for content in final_system)
+    assert final_system[-1] == REPORT_CONTRACT
     assert any(item["role"] == "user" and "Server preparation observation" in str(item["content"]) and "newTables" in str(item["content"])
                for item in final_messages)

@@ -3,6 +3,7 @@
 import json
 import threading
 from collections.abc import Iterator
+from typing import cast
 
 import pytest
 from sqlalchemy.orm import Session, sessionmaker
@@ -107,7 +108,7 @@ async def test_real_import_pages_batches_and_multiple_selects(
             tool_reply("executeSql", {"db_id": DB_ID,
                 "statement": f"SELECT id,name,city FROM {table} ORDER BY id LIMIT 100 OFFSET 100"}, "verify_rest"),
             tool_reply("doTerminate", {"reason": "verified"}, "done"),
-            answer_reply("All source rows were imported and verified."),
+            answer_reply(json.dumps({"report": "All source rows were imported and verified.", "complete": True})),
         ])
         result, events = await run(service, uploaded.id)
         assert actual_rows(config, table) == [source_row(i) for i in range(1, 201)]
@@ -116,7 +117,7 @@ async def test_real_import_pages_batches_and_multiple_selects(
         assert recovered["totalRows"] == total_rows and len(recovered["data"]) == 200
         assert recovered["truncated"] is (total_rows > 200)
         assert service.source_preview["sourceTruncated"] is (total_rows > 200)
-        assert service.source_preview["returnedItems"] <= 50
+        assert cast(int, service.source_preview["returnedItems"]) <= 50
         raw_steps = [item for kind, item in events if kind == "step" and isinstance(item, str)]
         raw_source = json.loads(next(item.removeprefix("readFile: ") for item in raw_steps
                                     if item.startswith("readFile: ")))

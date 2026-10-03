@@ -47,7 +47,8 @@ async def test_known_failed_insert_can_be_corrected_but_not_reported_as_success(
                     f"SELECT id,name,city FROM {table} ORDER BY id"}, "verify"),
             ])
         provider.replies.extend([tool_reply("doTerminate", {"reason": "done"}, "done"),
-                                 answer_reply("The file was completely imported and verified.")])
+                                 answer_reply(json.dumps({"report": "The file was completely imported and verified.",
+                                                          "complete": True}))])
         result, events = await run(provider, uploaded.id)
         errors = [json.loads(content.removeprefix("executeSql: ")) for kind, content in events
                   if kind == "step" and isinstance(content, str) and content.startswith("executeSql: ")]

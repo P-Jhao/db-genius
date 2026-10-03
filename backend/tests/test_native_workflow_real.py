@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from io import BytesIO
 from uuid import uuid4
 
@@ -72,7 +73,7 @@ async def test_actual_unicode_file_import_and_verification(
             tool_reply("executeSql", {"db_id": DB_ID, "statement": write2}, "write2"),
             tool_reply("executeSql", {"db_id": DB_ID, "statement": select}, "verify"),
             tool_reply("doTerminate", {"reason": "verified"}, "done"),
-            answer_reply("Two Unicode rows were imported and verified.")]
+            answer_reply(json.dumps({"report": "Two Unicode rows were imported and verified.", "complete": True}))]
         result, _events = await run(provider, uploaded.id)
         assert result == "Two Unicode rows were imported and verified."
         with engine.connect() as connection:

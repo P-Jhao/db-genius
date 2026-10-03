@@ -26,9 +26,10 @@ def selected_database(user: User) -> int:
         return config.id
 
 
+@pytest.mark.parametrize("final_protocol", [False, True])
 def test_recovered_call_and_split_final_summary_match_history(
     chat_client: tuple[TestClient, User, User, DbConfig], provider: Provider,
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, final_protocol: bool,
 ) -> None:
     client, user, _, _foreign = chat_client
     db_id = selected_database(user)
@@ -44,23 +45,32 @@ def test_recovered_call_and_split_final_summary_match_history(
     protocol = _sql_text(db_id=str(db_id))
     first = frame({"choices": [{"delta": {"content": protocol, "tool_calls": [{"index": 0,
         "id": "original_id", "function": {"name": "executeSql", "arguments": ""}}]}}]})
+    report = "One row. " + (protocol if final_protocol else "") + " Verified."
+    wire = json.dumps({"report": report, "complete": True})
     provider.replies = [[first[:8], first[8:53], first[53:], frame("[DONE]")],
         [frame({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "end",
             "function": {"name": "doTerminate", "arguments": '{"reason":"verified"}'}}]}}]}),
          frame("[DONE]")],
-        [frame({"choices": [{"delta": {"content": part}}]}) for part in
-            ["One row. <", protocol[1:16], protocol[16:], " Verified."]]
+        [frame({"choices": [{"delta": {"content": wire[index:index + 17]}}]})
+         for index in range(0, len(wire), 17)]
         + [frame("[DONE]")]]
     response = client.post("/api/chat", json={"message": "query", "confirmedIntent": "sql_query",
                                              "dbConfigIds": [db_id]})
     events = parse_events(response.text)
-    assert calls == ["SELECT 1"] and not any(event["type"] == "error" for event in events)
+    assert calls == ["SELECT 1"] and len(provider.requests) == 3
     streamed = "".join(str(event["content"]) for event in events if event["type"] == "summary_delta")
     final = [event["content"] for event in events if event["type"] == "summary"]
-    assert streamed == "One row.  Verified." and final == [streamed]
     assert "DSML" not in response.text and "original_id" not in response.text
     history = client.get(f"/api/chat/conversations/{events[0]['content']}/messages").json()["data"]
-    assert history[-1]["content"] == streamed and history[-1]["type"] == "summary"
+    if final_protocol:
+        errors = [event["content"] for event in events if event["type"] == "error"]
+        assert len(errors) == 1 and "final report could not be completed" in str(errors[0])
+        assert final == [] and [event["type"] for event in events][-3:] == ["usage", "error", "done"]
+        assert history[-1]["content"] == errors[0] and history[-1]["type"] == "error"
+    else:
+        assert not any(event["type"] == "error" for event in events)
+        assert streamed == "One row.  Verified." and final == [streamed]
+        assert history[-1]["content"] == streamed and history[-1]["type"] == "summary"
     sent = provider.requests[1]["messages"]
     assert isinstance(sent, list)
     assistant = next(message for message in sent if message.get("tool_calls"))

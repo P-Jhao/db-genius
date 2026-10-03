@@ -208,7 +208,8 @@ async def test_actual_upload_import_and_row_verification(
                             tool_reply("executeSql", {"db_id": DB_ID, "statement": insert}, "insert"),
                             tool_reply("executeSql", {"db_id": DB_ID, "statement": select}, "verify"),
                             tool_reply("doTerminate", {"reason": "verified"}, "done"),
-                            answer_reply("Two source rows were imported and verified.")]
+                            answer_reply(json.dumps({"report": "Two source rows were imported and verified.",
+                                                     "complete": True}))]
         result, events = await run(provider, uploaded.id)
         assert result == "Two source rows were imported and verified."
         assert actual_rows(config, table) == [(1, "Ada", "杭州"), (2, "Lin", "深圳")]

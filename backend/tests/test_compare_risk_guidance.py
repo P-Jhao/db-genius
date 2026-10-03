@@ -7,7 +7,9 @@ from collections.abc import Iterator
 import pytest
 from test_model_protocol import Provider, frame, model
 
+from app.agent.final_report import REPORT_CONTRACT
 from app.agent.graph import RunContext, run_graph
+from app.agent.report_rules import COMPARE_REPORT_RULE
 from app.agent.streaming import ModelStream
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Usage
@@ -86,7 +88,8 @@ async def test_report_distinguishes_precision_rewrite_lock_and_rollback(
         "after commit, recovery is a separate task. A possible rename between the two table "
         "names is unverified.\n```sql\nALTER TABLE ledger ALTER COLUMN balance TYPE NUMERIC(11,2);\n```"
     )
-    provider.replies = [call("doTerminate", {"reason": "Report ready"}), answer(final_report)]
+    provider.replies = [call("doTerminate", {"reason": "Report ready"}),
+                        answer(json.dumps({"report": final_report, "complete": True}))]
     result, events, tools = await run(provider)
     assert result["answer"] == final_report and events[-1] == ("summary", final_report)
     assert tools.statements_attempted == tools.completed_write_count == 0
@@ -94,9 +97,7 @@ async def test_report_distinguishes_precision_rewrite_lock_and_rollback(
     messages = provider.requests[-1]["messages"]
     assert isinstance(messages, list)
     system = "\n".join(str(item["content"]) for item in messages if item["role"] == "system")
-    for phrase in ("NUMERIC(p,s)", "integer capacity is p-s", "table rewrite",
-                   "ACCESS EXCLUSIVE", "rolled back before commit", "possible renames as hypotheses"):
-        assert phrase in system
+    assert COMPARE_REPORT_RULE in system and REPORT_CONTRACT in system
     assert "ledger" not in system and "balance" not in system
     assert any(item["role"] == "user" and "Server preparation observation" in str(item["content"]) and "MODIFY_COLUMN" in str(item["content"])
                for item in messages)
@@ -124,13 +125,13 @@ async def test_mysql_report_receives_implicit_commit_boundary(
 ) -> None:
     monkeypatch.setattr(schema_diff, "compare_databases", lambda _user, _pre, _test: mysql_report())
     provider.replies = [call("doTerminate", {"reason": "Report ready"}),
-                        answer("MySQL DDL can implicitly commit; a later failure cannot be promised to "
-                               "restore earlier DDL. Atomic DDL is not user-transaction rollback.")]
+                        answer(json.dumps({"report": "MySQL DDL can implicitly commit; a later failure cannot be "
+                                          "promised to restore earlier DDL. Atomic DDL is not "
+                                          "user-transaction rollback.", "complete": True}))]
     result, _, tools = await run(provider)
     assert "cannot be promised" in str(result["answer"])
     messages = provider.requests[-1]["messages"]
     assert isinstance(messages, list)
     system = "\n".join(str(item["content"]) for item in messages if item["role"] == "system")
-    for phrase in ("MySQL 8.0", "implicit commits", "atomic DDL", "not rollback"):
-        assert phrase in system
+    assert COMPARE_REPORT_RULE in system and REPORT_CONTRACT in system
     assert tools.statements_attempted == 0
