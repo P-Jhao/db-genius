@@ -25,3 +25,13 @@ TiDB、Doris、StarRocks、OceanBase 保留实现与协议验收，真实实例�
 修正过时断言后的主代理完整复跑：1179 通过、0 失败、5 跳过；队列不可用独立运行 1 通过，部署契约 4 通过，Ruff 与全应用 strict mypy（103 源文件）通过，791 个文件守卫保持。五项跳过的独立证据分别为队列专门运行、真实 Chrome/Nginx 5 项部署测试、重启前后 prepare/verify 和 Linux 上传完整模块 14 项。冻结候选 SHA：8f49dff0680400dc084da8aaa2da5596377b3b4db2c0b71d537a520ca50f1709；验收证据 run-98feb6511329，复验日志与 main-backend-full-final-review.json 单独保存。首次失败日志与过长 Windows 预检快照保持原样。
 
 固定源码 UI 的截图时序修订后，主代理独立完整复跑退出 0：18 场景、36 张截图、0 页面错误、0 交互断言失败。人工检查确认历史抽屉与两条消息位于视口内，会话列表显示完整，历史回放有用户消息与最终摘要，试用空态与受限控件正确。drawer/list 差异为 0%，普通聊天 0.11% 为已有 Upload Excel → Upload file 文案修复造成的控件位移，trial 0.10% 为已有上传隐藏规则。数据库类型选择框差异 3.97% 与用户明确授权一致。生产源码指纹保持 e4a2782b8a6c148083ba68c54bd0f9d8c02e9825ea7f4cefbb7eff61a9f69d6b，依赖与原差异阈值未修改；本次只修订两个测试文件。最终 root 回执为 docs/phase-15-ui/main-ui-final-review.json，run790a2c1d-c727-41c4-ba07-5884c6793334；原 44.44% 失败记录仍保留。此证据使用 mock API，不能代替真实模型效果对照。
+
+## 2026-10-03 正式组装与提交交接
+
+正式工作树从冻结基线 `cbe4815f1aa7ac7c266040f69f9231f8487bafbd` 完成 835 个目标文件组装并通过 root review：835/835 目标匹配，273 个后端路径与接受基线一致且 0 处不匹配，前端源码指纹为 `e4a2782b8a6c148083ba68c54bd0f9d8c02e9825ea7f4cefbb7eff61a9f69d6b`，配置私有值匹配数为 0。组装写入 717 个文件、118 个未变，隔离 2 个 draft，并保留无关文件。正式审查记录见[组装审查](../phase-15-acceptance/main-assembly-review.json)。
+
+本次交付分为四个提交：`a55adb29eacebdb6881dc8bdf8a85e276e68286e`（修正十种数据库工作流注册验收断言）、`710e048c3c5981fbfd002c0440a6a4b19880df99`（S14 部署与跨进程监控）、`f2cbd4f47747fae0a9beb2f24dad7bbbc38bed0d`（原界面 UI fixture 与截图稳定性验收）、`c4ec379c9e23b0db135b7f85f094d47e40ea81da`（迁移验收与正式组装证据文档）。
+
+真实模型对照已运行完毕，但**验收状态仍为 incomplete**：`deepseek-flash` 共 120 行、60 组配对；Python 结果为 11 失败、43 待人工复核、6 通过，Java 为 42 失败、12 通过、6 组文件导入环境阻塞。54 组非文件配对均标记参数一致，参数失配为 0；6 组 `file_import` 的 Java OSS 条件不可用，Python local 文件结果不能替代匹配对照。结果见[真实模型基准记录](../phase-15-real-model/benchmark-20261002T220250206579Z.json)。因此正式组装与代码交付已完成，完整迁移验收仍须等待失败项调查和人工复核，不能登记为通过。
+
+首轮模型结果的缺陷分类、人工复核边界、独立清理计数和原版源文件完整性见[首轮结果复核](../phase-15-real-model/FIRST-RUN-REVIEW.md)。
