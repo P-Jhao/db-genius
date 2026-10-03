@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass
 from uuid import uuid4
 
+from app.agent.protocol_errors import ProtocolCode, mark
+
 _PREFIX = r"[｜|]+DSML[｜|]+"
 _WRAPPER = re.compile(fr"<{_PREFIX}tool_calls\s*>(.*?)</{_PREFIX}tool_calls\s*>", re.IGNORECASE | re.DOTALL)
 _INVOKE = re.compile(fr"<(?:{_PREFIX})?invoke\b([^>]*)>(.*?)</(?:{_PREFIX})?invoke\s*>", re.IGNORECASE | re.DOTALL)
@@ -52,9 +54,9 @@ def _normalize(name: str, arguments: dict[str, object], schema: AllowedTool) -> 
     for key, value in arguments.items():
         canonical = aliases.get(key, key)
         if canonical not in schema.fields:
-            raise ValueError(f"Unknown DSML argument for {name}: {key}")
+            raise mark(ValueError(f"Unknown DSML argument for {name}: {key}"), ProtocolCode.DSML_ARGUMENT_UNKNOWN)
         if canonical in normalized:
-            raise ValueError(f"Conflicting DSML argument aliases for {name}: {canonical}")
+            raise mark(ValueError(f"Conflicting DSML argument aliases for {name}: {canonical}"), ProtocolCode.DSML_ALIAS_CONFLICT)
         normalized[canonical] = value
     return normalized
 
@@ -64,14 +66,14 @@ def _attributes(text: str) -> dict[str, str]:
     for match in _ATTRIBUTE.finditer(text):
         key = match.group(1).lower()
         if key in values:
-            raise ValueError(f"Duplicate DSML {key} attribute")
+            raise mark(ValueError(f"Duplicate DSML {key} attribute"), ProtocolCode.DSML_ATTRIBUTE_DUPLICATED)
         values[key] = match.group(2)
     return values
 
 
 def _typed_value(raw: str, string: str | None) -> object:
     if string is not None and string.lower() not in {"true", "false"}:
-        raise ValueError("Invalid DSML string attribute")
+        raise mark(ValueError("Invalid DSML string attribute"), ProtocolCode.DSML_STRING_ATTRIBUTE_INVALID)
     if string is not None and string.lower() == "true":
         return raw
     value = raw.strip()
@@ -85,7 +87,7 @@ def _typed_value(raw: str, string: str | None) -> object:
         number = None
     if number is not None:
         if not math.isfinite(number):
-            raise ValueError("Non-finite DSML numeric parameter")
+            raise mark(ValueError("Non-finite DSML numeric parameter"), ProtocolCode.DSML_NUMBER_NOT_FINITE)
         return number
     if value.lower() in {"true", "false"}:
         return value.lower() == "true"
@@ -97,28 +99,28 @@ def _parse_invokes(body: str) -> list[RecoveredCall]:
     position = 0
     for invoke in _INVOKE.finditer(body):
         if body[position:invoke.start()].strip():
-            raise ValueError("Malformed DSML invoke sequence")
+            raise mark(ValueError("Malformed DSML invoke sequence"), ProtocolCode.DSML_INVOKE_SEQUENCE_INVALID)
         attributes = _attributes(invoke.group(1))
         name = attributes.get("name", "")
         if not name:
-            raise ValueError("DSML invoke is missing a tool name")
+            raise mark(ValueError("DSML invoke is missing a tool name"), ProtocolCode.DSML_TOOL_NAME_MISSING)
         arguments: dict[str, object] = {}
         parameter_position = 0
         for parameter in _PARAMETER.finditer(invoke.group(2)):
             if invoke.group(2)[parameter_position:parameter.start()].strip():
-                raise ValueError("Malformed DSML parameter sequence")
+                raise mark(ValueError("Malformed DSML parameter sequence"), ProtocolCode.DSML_PARAMETER_SEQUENCE_INVALID)
             parameter_attributes = _attributes(parameter.group(1))
             key = parameter_attributes.get("name", "")
             if not key or key in arguments:
-                raise ValueError("DSML parameter name is missing or duplicated")
+                raise mark(ValueError("DSML parameter name is missing or duplicated"), ProtocolCode.DSML_PARAMETER_NAME_INVALID)
             arguments[key] = _typed_value(parameter.group(2), parameter_attributes.get("string"))
             parameter_position = parameter.end()
         if invoke.group(2)[parameter_position:].strip():
-            raise ValueError("DSML invoke has malformed parameters")
+            raise mark(ValueError("DSML invoke has malformed parameters"), ProtocolCode.DSML_PARAMETERS_INVALID)
         calls.append(RecoveredCall(name, arguments))
         position = invoke.end()
     if body[position:].strip() or not calls:
-        raise ValueError("Malformed DSML tool call block")
+        raise mark(ValueError("Malformed DSML tool call block"), ProtocolCode.DSML_BLOCK_INVALID)
     return calls
 
 
@@ -126,12 +128,12 @@ def parse(content: str, *, allow_simple: bool = False) -> tuple[list[RecoveredCa
     """Parse a complete wrapper; simple invokes require a corroborating structured call."""
     wrappers = list(_WRAPPER.finditer(content))
     if len(wrappers) > 1:
-        raise ValueError("Multiple DSML tool-call wrappers are ambiguous")
+        raise mark(ValueError("Multiple DSML tool-call wrappers are ambiguous"), ProtocolCode.DSML_WRAPPERS_AMBIGUOUS)
     if wrappers:
         wrapper = wrappers[0]
         outside = content[:wrapper.start()] + content[wrapper.end():]
         if _PROTOCOL.search(outside):
-            raise ValueError("DSML protocol text outside the tool-call wrapper")
+            raise mark(ValueError("DSML protocol text outside the tool-call wrapper"), ProtocolCode.DSML_OUTSIDE_WRAPPER)
         return _parse_invokes(wrapper.group(1)), outside.strip()
     if _INVOKE.search(content) and (allow_simple or re.match(fr"\s*<{_PREFIX}invoke\b", content,
                                                           re.IGNORECASE)):
@@ -139,7 +141,7 @@ def parse(content: str, *, allow_simple: bool = False) -> tuple[list[RecoveredCa
     if not allow_simple and re.search(fr"<{_PREFIX}", content, re.IGNORECASE) is None:
         return None
     if _PROTOCOL.search(content):
-        raise ValueError("Incomplete DSML tool-call block")
+        raise mark(ValueError("Incomplete DSML tool-call block"), ProtocolCode.DSML_INCOMPLETE)
     return None
 
 
@@ -153,18 +155,18 @@ def reconcile(content: str, structured: list[StructuredCall],
     if not structured and clean:
         return strip(content), None
     if structured and len(structured) != len(recovered):
-        raise ValueError("DSML and structured tool-call counts differ")
+        raise mark(ValueError("DSML and structured tool-call counts differ"), ProtocolCode.DSML_COUNT_MISMATCH)
     calls: list[dict[str, object]] = []
     for index, candidate in enumerate(recovered):
         if candidate.name not in allowed:
-            raise ValueError(f"Unknown DSML tool: {candidate.name}")
+            raise mark(ValueError(f"Unknown DSML tool: {candidate.name}"), ProtocolCode.DSML_TOOL_UNKNOWN)
         schema = allowed[candidate.name]
         normalized = _normalize(candidate.name, candidate.args, schema)
         original = structured[index] if structured else None
         if original is not None and original.name and original.name != candidate.name:
-            raise ValueError("DSML and structured tool names differ")
+            raise mark(ValueError("DSML and structured tool names differ"), ProtocolCode.DSML_NAME_MISMATCH)
         if original is not None and not original.id:
-            raise ValueError("Structured tool call lacks an ID")
+            raise mark(ValueError("Structured tool call lacks an ID"), ProtocolCode.DSML_ID_MISSING)
         arguments = normalized
         if original is not None and original.args:
             try:
@@ -173,19 +175,19 @@ def reconcile(content: str, structured: list[StructuredCall],
                 pass
             else:
                 if not isinstance(existing, dict):
-                    raise TypeError("Model tool-call arguments must be a JSON object")
+                    raise mark(TypeError("Model tool-call arguments must be a JSON object"), ProtocolCode.DSML_NOT_OBJECT)
                 # Original valid structured arguments take precedence over DSML text.
                 arguments = existing
         if not schema.required.issubset(arguments):
-            raise ValueError(f"DSML tool arguments are missing required fields for {candidate.name}")
+            raise mark(ValueError(f"DSML tool arguments are missing required fields for {candidate.name}"), ProtocolCode.DSML_REQUIRED_MISSING)
         if any(key not in schema.fields for key in arguments):
-            raise ValueError(f"Unknown structured argument for {candidate.name}")
+            raise mark(ValueError(f"Unknown structured argument for {candidate.name}"), ProtocolCode.DSML_STRUCTURED_ARGUMENT_UNKNOWN)
         calls.append({"name": candidate.name, "args": arguments,
                       "id": original.id if original is not None else f"dsml-{uuid4().hex}",
                       "type": "tool_call"})
     ids = [call["id"] for call in calls]
     if len(set(ids)) != len(ids):
-        raise ValueError("Duplicate tool-call IDs")
+        raise mark(ValueError("Duplicate tool-call IDs"), ProtocolCode.DSML_IDS_DUPLICATED)
     return clean, calls
 
 

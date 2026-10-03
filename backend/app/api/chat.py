@@ -18,6 +18,7 @@ from app.agent.final_report import IncompleteFinalReport
 from app.agent.graph import RunContext, run_graph
 from app.agent.model import CompatibleChatModel
 from app.agent.product_locale import final_report_error, stream_error
+from app.agent.protocol_errors import protocol_code
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Usage
 from app.api.auth import CurrentUser, DatabaseSession
@@ -168,7 +169,12 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
         cancel_event.set()
         raise
     except Exception as error:  # noqa: BLE001 - stream errors need an SSE terminal event
-        logger.error("Chat run failed taskId=%s errorType=%s", task_id, type(error).__name__)
+        code = protocol_code(error)
+        if code is None:
+            logger.error("Chat run failed taskId=%s errorType=%s", task_id, type(error).__name__)
+        else:
+            logger.error("Chat run failed taskId=%s errorType=%s protocolCode=%s protocolStage=%s",
+                         task_id, type(error).__name__, code, code.stage)
         if isinstance(error, IncompleteFinalReport):
             public_error = final_report_error(locale, task_id)
         elif isinstance(error, BusinessError):

@@ -6,6 +6,7 @@ import logging
 import re
 from collections.abc import Callable, Mapping
 
+from app.agent.protocol_errors import ProtocolCode, ProtocolStage
 from app.core.config import Settings
 from app.core.diagnostics import sanitize_diagnostic
 
@@ -24,6 +25,10 @@ def redact(message: str, settings: Settings) -> str:
 
 
 def safe_value(value: object) -> object:
+    if type(value) is ProtocolCode:
+        return value.text
+    if type(value) is ProtocolStage:
+        return value.value
     if isinstance(value, BaseException):
         return type(value).__name__
     if isinstance(value, (int, float, bool)) or value is None:

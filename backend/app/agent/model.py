@@ -12,6 +12,8 @@ from langchain_core.messages.tool import ToolCallChunk
 from langchain_core.outputs import ChatGenerationChunk, ChatResult
 from pydantic import SecretStr
 
+from app.agent.protocol_errors import ProtocolCode, mark
+
 
 def completion_url(base_url: str) -> str:
     """Keep an explicit endpoint, or append the compatible API path once."""
@@ -67,16 +69,16 @@ def _usage_chunk(value: object) -> ChatGenerationChunk | None:
     if value is None:
         return None
     if not isinstance(value, dict):
-        raise TypeError("Invalid model usage packet")
+        raise mark(TypeError("Invalid model usage packet"), ProtocolCode.USAGE_PACKET_TYPE)
     prompt = value.get("prompt_tokens")
     completion = value.get("completion_tokens")
     total = value.get("total_tokens")
     if type(prompt) is not int or type(completion) is not int:
-        raise TypeError("Model usage requires prompt and completion token counts")
+        raise mark(TypeError("Model usage requires prompt and completion token counts"), ProtocolCode.USAGE_COUNTS_TYPE)
     if total is None:
         total = prompt + completion
     if type(total) is not int or min(prompt, completion, total) < 0:
-        raise ValueError("Invalid model usage values")
+        raise mark(ValueError("Invalid model usage values"), ProtocolCode.USAGE_VALUES_INVALID)
     return ChatGenerationChunk(
         message=AIMessageChunk(
             content="",
@@ -94,15 +96,15 @@ def _delta_chunk(packet: dict[str, object]) -> ChatGenerationChunk | None:
     if choices is None:
         return None
     if not isinstance(choices, list):
-        raise TypeError("Invalid model choices")
+        raise mark(TypeError("Invalid model choices"), ProtocolCode.CHOICES_TYPE)
     if not choices:
         return None
     first = choices[0]
     if not isinstance(first, dict):
-        raise TypeError("Invalid model choice")
+        raise mark(TypeError("Invalid model choice"), ProtocolCode.CHOICE_TYPE)
     finish = first.get("finish_reason")
     if finish is not None and not isinstance(finish, str):
-        raise TypeError("Model finish reason must be text")
+        raise mark(TypeError("Model finish reason must be text"), ProtocolCode.FINISH_REASON_TYPE)
     delta = first.get("delta")
     if delta is None and finish is not None:
         delta = {}
@@ -111,9 +113,9 @@ def _delta_chunk(packet: dict[str, object]) -> ChatGenerationChunk | None:
     content = delta.get("content")
     reasoning = delta.get("reasoning_content")
     if content is not None and not isinstance(content, str):
-        raise ValueError("Invalid model content delta")
+        raise mark(ValueError("Invalid model content delta"), ProtocolCode.CONTENT_TYPE)
     if reasoning is not None and not isinstance(reasoning, str):
-        raise ValueError("Invalid model reasoning delta")
+        raise mark(ValueError("Invalid model reasoning delta"), ProtocolCode.REASONING_TYPE)
     additional: dict[str, object] = {}
     if reasoning:
         additional["reasoning_content"] = reasoning
@@ -121,22 +123,22 @@ def _delta_chunk(packet: dict[str, object]) -> ChatGenerationChunk | None:
     calls = delta.get("tool_calls")
     if calls is not None:
         if not isinstance(calls, list):
-            raise ValueError("Invalid model tool calls")
+            raise mark(ValueError("Invalid model tool calls"), ProtocolCode.TOOL_CALLS_TYPE)
         for call in calls:
             if not isinstance(call, dict) or type(call.get("index")) is not int:
-                raise TypeError("Model tool call requires an index")
+                raise mark(TypeError("Model tool call requires an index"), ProtocolCode.TOOL_INDEX_TYPE)
             if call["index"] < 0:
-                raise ValueError("Model tool-call index must be nonnegative")
+                raise mark(ValueError("Model tool-call index must be nonnegative"), ProtocolCode.TOOL_INDEX_NEGATIVE)
             if call.get("id") is not None and not isinstance(call["id"], str):
-                raise TypeError("Model tool-call ID must be text")
+                raise mark(TypeError("Model tool-call ID must be text"), ProtocolCode.TOOL_ID_TYPE)
             function = call.get("function")
             if function is not None and not isinstance(function, dict):
-                raise ValueError("Invalid model tool function")
+                raise mark(ValueError("Invalid model tool function"), ProtocolCode.TOOL_FUNCTION_TYPE)
             function = function or {}
             if function.get("name") is not None and not isinstance(function["name"], str):
-                raise ValueError("Invalid model tool name")
+                raise mark(ValueError("Invalid model tool name"), ProtocolCode.TOOL_NAME_TYPE)
             if function.get("arguments") is not None and not isinstance(function["arguments"], str):
-                raise ValueError("Invalid model tool arguments")
+                raise mark(ValueError("Invalid model tool arguments"), ProtocolCode.TOOL_ARGUMENTS_TYPE)
             chunks.append(
                 {
                     "name": function.get("name"),
@@ -219,11 +221,15 @@ class CompatibleChatModel(BaseChatModel):
 
     @staticmethod
     def _parse_packet(data: str) -> list[ChatGenerationChunk]:
-        packet = json.loads(data)
+        try:
+            packet = json.loads(data)
+        except json.JSONDecodeError as error:
+            mark(error, ProtocolCode.PACKET_JSON_INVALID)
+            raise
         if not isinstance(packet, dict):
-            raise TypeError("Invalid model stream packet")
+            raise mark(TypeError("Invalid model stream packet"), ProtocolCode.PACKET_NOT_OBJECT)
         if "error" in packet:
-            raise RuntimeError("Model provider returned a stream error")
+            raise mark(RuntimeError("Model provider returned a stream error"), ProtocolCode.PROVIDER_STREAM_ERROR)
         result: list[ChatGenerationChunk] = []
         delta = _delta_chunk(packet)
         if delta is not None:
