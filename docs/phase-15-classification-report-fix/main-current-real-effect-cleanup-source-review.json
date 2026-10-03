@@ -1,0 +1,30 @@
+{
+  "createdAt": "2026-10-03T07:31:30.799079+00:00",
+  "status": "passed",
+  "users": [
+    {
+      "container": "sqlchat-s14-test-postgres-1",
+      "count": 0
+    },
+    {
+      "container": "sqlchat-s15-java-postgres",
+      "count": 0
+    }
+  ],
+  "targets": {
+    "postgresql": {
+      "databaseCount": 0,
+      "roleCount": 0
+    },
+    "mysql": {
+      "databaseCount": 0,
+      "roleCount": 0
+    }
+  },
+  "originalJavaSource": {
+    "checked": 289,
+    "mismatch": []
+  },
+  "scope": "Independent read-only live system user/target DB+role counts and original Java source hashes after both targeted runs. Per-resource file/message cleanup also recorded by runners.",
+  "postRunEnvironmentNote": "Dedicated test databases had stopped after the runs finished; existing PostgreSQL/MySQL/Java PostgreSQL containers restarted with unchanged persisted volumes solely for independent read-only counts. API stack had also restarted after the completed runs; this does not alter recorded stable start/end run identity."
+}
