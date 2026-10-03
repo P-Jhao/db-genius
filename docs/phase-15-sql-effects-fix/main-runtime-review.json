@@ -1,0 +1,84 @@
+{
+  "createdAt": "2026-10-03T02:22:28.284Z",
+  "candidateCommit": "49bdaffc2400bf4d9b0de0e56b67314f518b9ec9",
+  "imageSourceParity": {
+    "api": {
+      "checked": 139,
+      "mismatch": []
+    },
+    "worker": {
+      "checked": 139,
+      "mismatch": []
+    }
+  },
+  "services": {
+    "sqlchat-s14-test-api-1": {
+      "id": "c90782fc4cc4d20781ab128078ccc623b92c9963d57ab5d772f5c1d93ff31d0f",
+      "image": "sha256:3530a6288ab8c07477541d48e52cb7dbb75d0cf48c7a7f8eae1efe2808d09087",
+      "status": "running",
+      "health": "healthy"
+    },
+    "sqlchat-s14-test-worker-1": {
+      "id": "2fd18d47d5774d3ade8aba96238e65f630d6007510e84022ea35fb31292cf609",
+      "image": "sha256:a47f60e7388ab4be38bfae5924bfacfa646b2f72b49a90afc08349ac2c111503",
+      "status": "running",
+      "health": "healthy"
+    },
+    "sqlchat-s14-test-frontend-1": {
+      "id": "235cde26e073aba8f48ae31258f41bc02e027dd1a3fecf289f3188c09f2981c3",
+      "image": "sha256:8e2b80509446c9e0adf71083f4ee75b054681328b9883bf6051d1e73ce85bc0c",
+      "status": "running",
+      "health": "healthy"
+    },
+    "sqlchat-s14-test-postgres-1": {
+      "id": "a929e16bfbfc1a4a772494a1915854290cb535233ab737824b73da1ce367ba5b",
+      "image": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+      "status": "running",
+      "health": "healthy"
+    },
+    "sqlchat-s14-test-rabbitmq-1": {
+      "id": "22f0909acd01329441aa5e89821d03fdfee51b90d629faa79c5d3903dec65141",
+      "image": "sha256:9a5494b32def2c288a755c933ea2ffd7f4a28647f7648776ad8b15507493f702",
+      "status": "running",
+      "health": "healthy"
+    },
+    "sqlchat-s15-java": {
+      "id": "57176cca75ea92ae777ea192215e527509398aa73fc254b49b7de723d4ef5263",
+      "image": "sha256:d7051a45dd955e4d5d1db4d3f4269fe13d1c6dff8cc6b7ef89fc8577b96c1982",
+      "status": "running",
+      "health": null
+    },
+    "sqlchat-s15-java-postgres": {
+      "id": "f25908bb6d70b065a9ee0ce8b151356c84bc14778d2875376daccaba53da6c42",
+      "image": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+      "status": "running",
+      "health": null
+    },
+    "sqlchat-s15-java-rabbit": {
+      "id": "9fc7bb0af9a6466b2e9893e4f3cffb94c175095b37ac44bb7abf1e8630020de9",
+      "image": "sha256:d7af1c87c5f1eda13fcfca06db452bf3aeab6619fc3358b68535c0c02c4e52bc",
+      "status": "running",
+      "health": null
+    }
+  },
+  "protectedServiceIdentityChanges": [],
+  "proxyReadiness": {
+    "httpStatus": 200,
+    "body": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "status": "UP",
+        "checks": {
+          "database": "UP",
+          "broker": "UP"
+        }
+      }
+    }
+  },
+  "metricsInitExitCode": 0,
+  "backupBytes": 26036,
+  "namedVolumesPreserved": true,
+  "frontendImageChanged": false,
+  "status": "passed"
+}

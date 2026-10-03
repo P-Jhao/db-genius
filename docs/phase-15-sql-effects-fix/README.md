@@ -25,3 +25,9 @@ SQL `prepare` 在原提示词、schema 和用户请求之外追加运行时系�
 - 静态检查和相关回归由主代理复跑；真实模型、数据库效果与 Docker 由主代理统一验收。
 
 本轮未改变功能边界或核心目录，因此根目录 `AGENTS.md` 保持不变。
+
+## 主代理回归、运行镜像与第二轮状态
+
+主代理复核记录见 [main-fix-review.json](main-fix-review.json)：以候选提交 `49bdaffc2400bf4d9b0de0e56b67314f518b9ec9` 验证 44 个受影响测试模块，共 524 passed、0 failed、0 skipped；Ruff 对 app 与相关测试通过，strict mypy 对 app 的 104 个源文件通过。该回归使用受控模型/真实数据库 fixture，不包含真实模型调用。
+
+复核后的 Compose 运行回执见 [main-runtime-review.json](main-runtime-review.json)：API、Worker 各检查 139 个镜像源码路径且均无差异，服务健康、代理 readiness 为 200，metrics-init 退出码为 0，命名卷保留，受保护服务身份无变化。第二轮真实模型矩阵已完成采集，共 120 行、60 组配对、138 个 turn；机器报告状态为 incomplete，见[第二轮结果复核](../phase-15-real-model/SECOND-RUN-REVIEW.md)。524 项回归使用受控模型与真实数据库 fixture，镜像健康回执只证明部署状态；两者都不代表真实 provider 效果验收通过。
