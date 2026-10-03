@@ -12,7 +12,7 @@ from pydantic import ValidationError
 from app.agent.cancellation import check_cancelled
 from app.agent.graph_sql import SQLNodes
 from app.agent.product_locale import clarification, intent_label, missing_database, product_text
-from app.agent.prompts import classification_prompt, system_prompt
+from app.agent.prompts import classification_prompt, classification_user_prompt, system_prompt
 from app.agent.streaming import ModelStream
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Classification, EventSink, Intent
@@ -74,7 +74,8 @@ def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunSt
         await context.emit("classifying", product_text("chat.classifying", context.locale), 0)
         response = await context.model_stream.call(
             [SystemMessage(content=classification_prompt(context.request, context.locale)),
-             *context.history, HumanMessage(content=context.request.message)],
+             HumanMessage(content=classification_user_prompt(context.request, context.history,
+                                                              context.locale))],
             event=None, classification=True,
         )
         check_cancelled(context.cancel_event)

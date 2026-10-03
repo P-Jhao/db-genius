@@ -4,6 +4,8 @@ import re
 from collections.abc import Mapping, Sequence
 from importlib.resources import files
 
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+
 from app.agent.types import ChatRequest, Intent
 
 _RESOURCE_NAME = re.compile(r"[a-z0-9_-]+\Z")
@@ -147,17 +149,56 @@ def system_prompt(intent: Intent, request: ChatRequest, locale: str) -> str:
 
 def classification_prompt(request: ChatRequest, locale: str) -> str:
     """Render the original classifier's system section for the current request."""
-    template = render_prompt_template(
-        load_prompt_template("intent-classifier", locale),
-        {
-            "hasDbConfig": str(bool(request.db_config_ids)).lower(),
-            "hasFiles": str(bool(request.file_ids)).lower(),
-            "hasCompareConfig": str(
-                request.pre_db_config_id is not None and request.test_db_config_id is not None
-            ).lower(),
-            "history": "Conversation history is supplied separately through prior messages.",
-            "message": request.message,
-        },
-    )
-    sections = split_prompt_sections(template)
-    return f"{sections[0]}\n\nWrite reasoning in {language(locale)}."
+    sections = split_prompt_sections(load_prompt_template("intent-classifier", locale))
+    if len(sections) != 2:
+        raise ValueError("Intent classifier prompt requires a user section")
+    system = render_prompt_template(sections[0], {
+        "hasDbConfig": str(bool(request.db_config_ids)).lower(),
+        "hasFiles": str(bool(request.file_ids)).lower(),
+        "hasCompareConfig": str(
+            request.pre_db_config_id is not None and request.test_db_config_id is not None
+        ).lower(),
+    })
+    if _prompt_variant(locale) == "zh_CN":
+        actionability = (
+            "对于 sql_query/workflow，能判断意图类别不等于任务已可执行。只有当前消息或有效历史"
+            "明确给出具体操作及其目标、数据来源或范围时，才设 needsClarification=false。已选择的"
+            "数据库或附件仅表示资源可用，不能替用户补出缺失的操作或目标。历史中的明确任务可以支持"
+            "续问；无附件但明确的多步骤数据库操作仍可归为 workflow。"
+        )
+    else:
+        actionability = (
+            "For sql_query/workflow, identifying the intent category does not make the task "
+            "actionable. Set needsClarification=false only when the current message or effective "
+            "history identifies both a concrete operation and its target, data source, or scope. "
+            "Selected database and file flags indicate available resources; they do not supply "
+            "a missing operation or target. A concrete prior goal may ground a follow-up, and an "
+            "explicit multi-step database task may be workflow without an attachment."
+        )
+    return f"{system}\n\n{actionability}\n\nWrite reasoning in {language(locale)}."
+
+
+def classification_user_prompt(request: ChatRequest, history: Sequence[BaseMessage], locale: str) -> str:
+    """Render the source classifier's user section with one labeled history snapshot."""
+    sections = split_prompt_sections(load_prompt_template("intent-classifier", locale))
+    if len(sections) != 2:
+        raise ValueError("Intent classifier prompt requires a user section")
+    zh = _prompt_variant(locale) == "zh_CN"
+    if not history:
+        history_text = "（无历史对话）" if zh else "(no conversation history)"
+    else:
+        lines = ["## 最近对话历史\n" if zh else "## Recent conversation history\n"]
+        for message in history:
+            if not isinstance(message.content, str):
+                raise TypeError("Classification history content must be text")
+            if isinstance(message, HumanMessage):
+                role = "用户" if zh else "user"
+            elif isinstance(message, AIMessage):
+                role = "助手" if zh else "assistant"
+            elif isinstance(message, SystemMessage):
+                role = "摘要" if zh else "summary"
+            else:
+                raise TypeError("Unsupported classification history message")
+            lines.append(f"{role}: {message.content}")
+        history_text = "\n".join(lines)
+    return render_prompt_template(sections[1], {"history": history_text, "message": request.message})

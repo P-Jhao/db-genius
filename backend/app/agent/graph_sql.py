@@ -11,6 +11,8 @@ from app.agent.cancellation import check_cancelled
 from app.agent.compare import CompareProgress, prepare_compare
 from app.agent.context_runtime import RepeatedCalls, govern_messages, summary_request
 from app.agent.prompts import system_prompt
+from app.agent.report_rules import COMPARE_REPORT_RULE
+from app.agent.report_rules import SQL_EVIDENCE_RULE as EVIDENCE_RULE
 from app.agent.sql_outcome import explicit_forbidden_request, zero_execution_summary
 from app.agent.workflow import WorkflowProgress
 from app.agent.workflow_rows import schema_mutation
@@ -33,7 +35,8 @@ class SQLNodes:
         check_cancelled(context.cancel_event)
         intent = state["intent"]
         if intent == "db_compare":
-            return {"messages": prepare_compare(context.request, context.history, context.locale)}
+            compare_messages = prepare_compare(context.request, context.history, context.locale)
+            return {"messages": [*compare_messages, SystemMessage(content=COMPARE_REPORT_RULE)]}
         if intent not in ("sql_query", "workflow"):
             raise BusinessError(501, f"{intent} workflow is scheduled for a later phase")
         schemas: list[str] = []
@@ -48,6 +51,7 @@ class SQLNodes:
             SystemMessage(content=system_prompt(intent, context.request, context.locale)),
             *context.history, SystemMessage(content="\n\n".join(schemas)),
             HumanMessage(content=context.request.message),
+            SystemMessage(content=EVIDENCE_RULE),
         ]
         if intent == "sql_query":
             messages.append(SystemMessage(content=(
@@ -211,17 +215,7 @@ class SQLNodes:
             unfinished = "Step limit reached"
         warning = (f"{workflow_status}; report only verified facts." if workflow_status else
                    f"{unfinished}; report unfinished work." if unfinished else "Summarize completed work.")
-        if state["intent"] == "db_compare":
-            warning += " " + (
-                "Write the final answer as a self-contained comparison report using only the "
-                "verified compareDatabases result. Include the actual observed differences and "
-                "the concrete migration SQL supported by those differences in this final answer "
-                "for manual review. If reliable SQL cannot be generated, explain why in the final "
-                "answer. If you claim to provide SQL or code, put that SQL or code in this final "
-                "answer; do not claim a planned report or code block "
-                "was already delivered in earlier reasoning or tool decisions. Describe only "
-                "actions confirmed successful by tools as completed. Never execute migration SQL."
-            )
+        warning += " " + (COMPARE_REPORT_RULE if state["intent"] == "db_compare" else EVIDENCE_RULE)
         answer = await context.model_stream.call(
             [*state["messages"], SystemMessage(content=warning)], step=state["step"],
             event=None if workflow_status else "summary_delta",
