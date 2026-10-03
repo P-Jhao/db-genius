@@ -1,0 +1,529 @@
+{
+  "project": "sqlchat-s14-test",
+  "services": {
+    "cli-proxy-api": {
+      "id": "7012b8dc99b6bab2d8741a2e71ce49f622e05e3395be6b4f2416f69429605381",
+      "image": "sha256:0b007a6abd15aec1f5314908417ceab99f049f75353e3703f52f0968747f6110",
+      "status": "running",
+      "health": null,
+      "startedAt": "2026-10-03T07:12:19.040574677Z",
+      "exitCode": 0,
+      "project": "cliproxyapi",
+      "service": "cli-proxy-api",
+      "volumes": []
+    },
+    "docker-api-1": {
+      "id": "245e065d0d028af5af00c54bf4685694eb58988f69ebf184bf3de9d4ebea4d1d",
+      "image": "sha256:21ef2a2946cea38dce99130e0a0c9b9980701ebb5f6a52b6f535c0c986240324",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T06:11:21.269685792Z",
+      "exitCode": 137,
+      "project": "docker",
+      "service": "api",
+      "volumes": []
+    },
+    "docker-db-1": {
+      "id": "cffce5de67c53935b4b7eb6cb0df6ee6fe0e21fc7c18342f18fd925c00068a2a",
+      "image": "sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f",
+      "status": "exited",
+      "health": "unhealthy",
+      "startedAt": "2026-09-22T06:08:22.365844072Z",
+      "exitCode": 0,
+      "project": "docker",
+      "service": "db",
+      "volumes": []
+    },
+    "docker-nginx-1": {
+      "id": "5d46f5b6c611709f34d01982ad11b259df8595e4a63cbad38b0a858d2f785008",
+      "image": "sha256:5a88c9c45479443d7be2eadc894b4ed0a9801bae03d97a5760ae13b5c2005942",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-21T14:33:10.27704991Z",
+      "exitCode": 137,
+      "project": "docker",
+      "service": "nginx",
+      "volumes": []
+    },
+    "docker-plugin_daemon-1": {
+      "id": "9c5dff36132f93f23587afa073f5f75fdd2a4955e0a9cc74ccddc93eb846537f",
+      "image": "sha256:dc568b1707133adfc2bf49254c71ef89f2bd2a33c74465abf7872c6fa374f588",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T06:11:09.683347995Z",
+      "exitCode": 2,
+      "project": "docker",
+      "service": "plugin_daemon",
+      "volumes": []
+    },
+    "docker-sandbox-1": {
+      "id": "a2d8adcfe80a8a7e49bf0f7c405277a03ab829dd8f17fedc1590b4a93aae0601",
+      "image": "sha256:4e65e8a351a2b17d11750b65403527a347e5cb938bc2271521ca7d689c008ad3",
+      "status": "exited",
+      "health": "unhealthy",
+      "startedAt": "2026-09-22T06:08:22.413620913Z",
+      "exitCode": 2,
+      "project": "docker",
+      "service": "sandbox",
+      "volumes": []
+    },
+    "docker-ssrf_proxy-1": {
+      "id": "41a85ee01859f7f3a0eb67750d2dee49b11c1e3f00430c44c806323bd31eccd0",
+      "image": "sha256:6a097f68bae708cedbabd6188d68c7e2e7a38cedd05a176e1cc0ba29e3bbe029",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T06:08:22.218172195Z",
+      "exitCode": 137,
+      "project": "docker",
+      "service": "ssrf_proxy",
+      "volumes": [
+        "62fe955aa7e50002bfa72e311496dc32fca839435b772e5affb6dd429cefb241",
+        "a06e703338ef977ad28982f52dd0bc9dae3769833ea9a0ae9ab621db29796d69"
+      ]
+    },
+    "docker-weaviate-1": {
+      "id": "7a5b0cd56393fe9c32d8e415e748e55ea2a85cdcb06bec44e0ce01cb8ba76607",
+      "image": "sha256:17a5238fcfc31d50427bb0e8338f01c3a0d62e27fbe3b6a9a6832b6e43b638bf",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T06:08:22.228641458Z",
+      "exitCode": 0,
+      "project": "docker",
+      "service": "weaviate",
+      "volumes": []
+    },
+    "docker-web-1": {
+      "id": "8bd573508fb220a173fe41e8ee29c21b73bfa156782503683c893f3c358b370d",
+      "image": "sha256:c8995154a42f26acd1b1511d2b4b1a5dab6d2736f8fb624f44b15292b6e6823d",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T06:08:22.517189759Z",
+      "exitCode": 137,
+      "project": "docker",
+      "service": "web",
+      "volumes": []
+    },
+    "docker-worker-1": {
+      "id": "1684dd344ba288f2e9a136a3dc96d3998e983333690f1fb4dbfbc89916c95131",
+      "image": "sha256:21ef2a2946cea38dce99130e0a0c9b9980701ebb5f6a52b6f535c0c986240324",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T06:11:21.421261521Z",
+      "exitCode": 137,
+      "project": "docker",
+      "service": "worker",
+      "volumes": []
+    },
+    "docmind-mysql": {
+      "id": "eebcaebda8962e7a3272b8f31637a93fad278e23358ba2a0cfe8e2e776ea4c37",
+      "image": "sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-24T15:22:30.745895774Z",
+      "exitCode": 0,
+      "project": "chengyuan-ragflow",
+      "service": "mysql",
+      "volumes": [
+        "chengyuan-ragflow_docmind_mysql_data"
+      ]
+    },
+    "myblog-dev-pg": {
+      "id": "61768f0e7767d9bd9426b43e7c9b61c77e895dacca5a865dc371613ae0cd70a2",
+      "image": "sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-07-26T11:15:25.994077647Z",
+      "exitCode": 0,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "d68d7be09e0f99afb09875bbf68cff8812c1c9190f2bec544fa69a5c984fed4c"
+      ]
+    },
+    "myblogclaude-dev-pg": {
+      "id": "0117bf03a6093b7cfea4c0b87af9580634b791693a140e3208c2960f7ae91074",
+      "image": "sha256:33f923b05f64ca54ac4401c01126a6b92afe839a0aa0a52bc5aeb5cc958e5f20",
+      "status": "exited",
+      "health": "unhealthy",
+      "startedAt": "2026-07-27T02:57:26.398312659Z",
+      "exitCode": 0,
+      "project": "myblogclaude",
+      "service": "db",
+      "volumes": [
+        "myblogclaude_myblog_pgdata"
+      ]
+    },
+    "ragflow-es-01": {
+      "id": "02d719d98484861f22620cf128f9597e18cc336b97ab71070725a83e73b05b83",
+      "image": "sha256:58a3a280935d830215802322e9a0373faaacdfd646477aa7e718939c2f29292a",
+      "status": "exited",
+      "health": "unhealthy",
+      "startedAt": "2026-09-22T14:54:18.75411071Z",
+      "exitCode": 137,
+      "project": "docker",
+      "service": "es01",
+      "volumes": [
+        "docker_esdata01"
+      ]
+    },
+    "ragflow-minio": {
+      "id": "165a4acc1fc9f6a6f645390126c64f2fd9a58fec6625c41edaca9e73aaee5b54",
+      "image": "sha256:064117214caceaa8d8a90ef7caa58f2b2aeb316b5156afe9ee8da5b4d83e12c8",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T14:54:18.793505208Z",
+      "exitCode": 0,
+      "project": "docker",
+      "service": "minio",
+      "volumes": [
+        "docker_minio_data"
+      ]
+    },
+    "ragflow-mysql": {
+      "id": "f216debed512f159ba108860b6f2d6994689801660bdf23045f7b207408bf8e1",
+      "image": "sha256:ccb8f749bb5e59f9f8f03bf7282c7ef27a93a1814a24f0a8a926fb4e19b7fb97",
+      "status": "exited",
+      "health": "unhealthy",
+      "startedAt": "2026-09-22T14:54:18.785829131Z",
+      "exitCode": 137,
+      "project": "docker",
+      "service": "mysql",
+      "volumes": [
+        "docker_mysql_data"
+      ]
+    },
+    "ragflow-redis": {
+      "id": "9a4bce3221a7a237191e4c4281b743bafbe344188f77646fc3594c2a4dea1d48",
+      "image": "sha256:640c5e62cea04b6d6f2084232651d0cc70362d31f4f805e7be94dbed6855e8f2",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T14:54:18.773763106Z",
+      "exitCode": 0,
+      "project": "docker",
+      "service": "redis",
+      "volumes": [
+        "docker_redis_data"
+      ]
+    },
+    "ragflowplus-management-backend": {
+      "id": "951202ef32b131bdbb5e93f916effb42372943cccb0fbfe24a800fc9121bd9f8",
+      "image": "sha256:92b91b006d721ad26eab052a16fe435eb918eee40637a257ec5c6e5dd13a48ba",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T14:55:10.904238481Z",
+      "exitCode": 137,
+      "project": "docker",
+      "service": "management-backend",
+      "volumes": []
+    },
+    "ragflowplus-management-frontend": {
+      "id": "ffbce2a117f965787e6bb11414f3f9c6b1bc6a4231a9211e434a43db0d820265",
+      "image": "sha256:3e6b6395d6d5d2668e7e4a57553fe416fba1ab2134ae49c8b5ec495d32677c68",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T14:55:11.598512283Z",
+      "exitCode": 137,
+      "project": "docker",
+      "service": "management-frontend",
+      "volumes": []
+    },
+    "ragflowplus-server": {
+      "id": "ab3629f017953776cd0d7ed3c689cf6e70a4bab965376f1d38b8d392a4631c61",
+      "image": "sha256:4bbf3c5aa15d84753c3a40274530ca834003a3ccc9abfca491d1b621e54bd4a8",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-22T14:54:29.978985561Z",
+      "exitCode": 137,
+      "project": "docker",
+      "service": "ragflow",
+      "volumes": []
+    },
+    "sqlchat-migration-test-mysql": {
+      "id": "7f549bdd204a00f3a8830ea5f1928d37ed84609301a015625981e72187561dbc",
+      "image": "sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b",
+      "status": "running",
+      "health": null,
+      "startedAt": "2026-10-03T07:29:53.957395618Z",
+      "exitCode": 0,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "ec4c28c5fa226bbf0d0cb7037c3a15283525fc0ee8b0b9bbe3443c60cee4a8ef"
+      ]
+    },
+    "sqlchat-migration-test-postgres": {
+      "id": "8fca7becd99cc888c324ca11d96cd4259ad3882bc0c1c148ad63b93735cf03de",
+      "image": "sha256:33f923b05f64ca54ac4401c01126a6b92afe839a0aa0a52bc5aeb5cc958e5f20",
+      "status": "running",
+      "health": null,
+      "startedAt": "2026-10-03T07:29:53.466649551Z",
+      "exitCode": 0,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "63334eb50314dea87660b2fa4c9d8b923ef91c23563187a65d78661ec9e3f451"
+      ]
+    },
+    "sqlchat-s05-rabbit": {
+      "id": "76fcdb921ad3a163dca1de4b3148b2e1063f058b86b3c234c149b5d0cecb64f4",
+      "image": "sha256:d7af1c87c5f1eda13fcfca06db452bf3aeab6619fc3358b68535c0c02c4e52bc",
+      "status": "running",
+      "health": null,
+      "startedAt": "2026-10-03T07:53:46.955634189Z",
+      "exitCode": 0,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "611334ffa2831395fb7cbcba8cda7c801cb204139a38d06984dc68ea872e3876"
+      ]
+    },
+    "sqlchat-s12-mariadb": {
+      "id": "8283e43ef510da0b3a94b1aa9d5d19802a5eed04b5a6444de7aaf05e6f606fad",
+      "image": "sha256:70cc072b29b4a89ae07abb2d4da2c64678a7f2dfe092751bb51c87d67dc1338b",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-10-02T13:38:56.551150523Z",
+      "exitCode": 0,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "da59e3f005ec055c13ff0e7e6e92c3b26a12bb9082b76d16af89087436ccf3c4"
+      ]
+    },
+    "sqlchat-s12-mongo": {
+      "id": "fa606d26397b62502c99bdf19d5bf79c811c7a5bf3edbcd27f06be1bbfe51190",
+      "image": "sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2",
+      "status": "running",
+      "health": null,
+      "startedAt": "2026-10-03T07:53:46.698098514Z",
+      "exitCode": 0,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "6db1c70ffd24ccc6c58128e727f60fc1f4b8370b2ab203456f22413e30d4fa13",
+        "73747d69eb0bc80ca8dde232b5c331036db5bb0acd37236ad68a490f2e82ef10"
+      ]
+    },
+    "sqlchat-s12-oracle": {
+      "id": "a0142b8d21f6db91535633d23e1dfa92c60e92780744ccf8c1c6aa39514150bc",
+      "image": "sha256:f5ff19033860d662c821cb04eb10483fa94f14f78eae252d054291ea07028093",
+      "status": "exited",
+      "health": "unhealthy",
+      "startedAt": "2026-10-02T13:38:57.711379958Z",
+      "exitCode": 137,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "sqlchat-s12-oracle-data"
+      ]
+    },
+    "sqlchat-s12-oracle-port11521-failed-4129d107": {
+      "id": "4129d10766b364eac731f185ce02dfbc2b5b0732eaa71a859baee2d4dbf02a4f",
+      "image": "sha256:f5ff19033860d662c821cb04eb10483fa94f14f78eae252d054291ea07028093",
+      "status": "created",
+      "health": null,
+      "startedAt": "0001-01-01T00:00:00Z",
+      "exitCode": 0,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "sqlchat-s12-oracle-data"
+      ]
+    },
+    "sqlchat-s12-sqlserver": {
+      "id": "6082b6d03ff6997dfa32cd7d391f3a64ab7bd4ffcb0049616223d44e872498e7",
+      "image": "sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-10-02T13:38:57.263975445Z",
+      "exitCode": 137,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "sqlchat-s12-sqlserver-data"
+      ]
+    },
+    "sqlchat-s14-test-api-1": {
+      "id": "1c36aef68fac052edea74cc57ce75d788684c7474778c72c30274480ed0b0b52",
+      "image": "sha256:39590d1186db4ddc557fdb59c42691c5e722a74d1b6af0099e307a0199f74fd4",
+      "status": "running",
+      "health": "healthy",
+      "startedAt": "2026-10-03T09:22:43.55811045Z",
+      "exitCode": 0,
+      "project": "sqlchat-s14-test",
+      "service": "api",
+      "volumes": [
+        "sqlchat-s14-final-1790948846302-metrics_multiprocess_data",
+        "sqlchat-s14-final-1790948846302-uploads_data"
+      ]
+    },
+    "sqlchat-s14-test-frontend-1": {
+      "id": "82188db2356a09da6a4786eaf49eb8cc1366c864ff713d27fa33348d18fa3bd2",
+      "image": "sha256:b9261200255b58d73269b2f7ad40b4cf157344d9055e09510774ebac9ac6e9b1",
+      "status": "running",
+      "health": "healthy",
+      "startedAt": "2026-10-03T07:12:18.992320928Z",
+      "exitCode": 0,
+      "project": "sqlchat-s14-test",
+      "service": "frontend",
+      "volumes": []
+    },
+    "sqlchat-s14-test-metrics-init-1": {
+      "id": "f1366206cfbac42cfd068a964b062f02031ea901a51a7b2b444013a72ab9ee0a",
+      "image": "sha256:39590d1186db4ddc557fdb59c42691c5e722a74d1b6af0099e307a0199f74fd4",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-10-03T09:22:34.106644262Z",
+      "exitCode": 0,
+      "project": "sqlchat-s14-test",
+      "service": "metrics-init",
+      "volumes": [
+        "sqlchat-s14-final-1790948846302-metrics_multiprocess_data"
+      ]
+    },
+    "sqlchat-s14-test-migrate-1": {
+      "id": "f712f7252122db05efee098ae0751aaa6875c0b403493ea92f6ed94ac8d707ee",
+      "image": "sha256:39590d1186db4ddc557fdb59c42691c5e722a74d1b6af0099e307a0199f74fd4",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-10-03T09:22:35.978370972Z",
+      "exitCode": 0,
+      "project": "sqlchat-s14-test",
+      "service": "migrate",
+      "volumes": []
+    },
+    "sqlchat-s14-test-postgres-1": {
+      "id": "a929e16bfbfc1a4a772494a1915854290cb535233ab737824b73da1ce367ba5b",
+      "image": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+      "status": "running",
+      "health": "healthy",
+      "startedAt": "2026-10-03T07:12:18.995267234Z",
+      "exitCode": 0,
+      "project": "sqlchat-s14-test",
+      "service": "postgres",
+      "volumes": [
+        "sqlchat-s14-final-1790948846302-postgres_data"
+      ]
+    },
+    "sqlchat-s14-test-rabbitmq-1": {
+      "id": "22f0909acd01329441aa5e89821d03fdfee51b90d629faa79c5d3903dec65141",
+      "image": "sha256:9a5494b32def2c288a755c933ea2ffd7f4a28647f7648776ad8b15507493f702",
+      "status": "running",
+      "health": "healthy",
+      "startedAt": "2026-10-03T07:12:19.031760457Z",
+      "exitCode": 0,
+      "project": "sqlchat-s14-test",
+      "service": "rabbitmq",
+      "volumes": [
+        "sqlchat-s14-final-1790948846302-rabbitmq_data"
+      ]
+    },
+    "sqlchat-s14-test-worker-1": {
+      "id": "b0b3c1a003f4e2c101183339c0b23d66d7580d0500b31d04bf95f7b3926910bb",
+      "image": "sha256:5444ad60e656461b7cc0e727241942cb33cf7110848ffe606854d56144573534",
+      "status": "running",
+      "health": "healthy",
+      "startedAt": "2026-10-03T09:22:43.560845038Z",
+      "exitCode": 0,
+      "project": "sqlchat-s14-test",
+      "service": "worker",
+      "volumes": [
+        "sqlchat-s14-final-1790948846302-metrics_multiprocess_data",
+        "sqlchat-s14-final-1790948846302-uploads_data"
+      ]
+    },
+    "sqlchat-s15-java": {
+      "id": "57176cca75ea92ae777ea192215e527509398aa73fc254b49b7de723d4ef5263",
+      "image": "sha256:d7051a45dd955e4d5d1db4d3f4269fe13d1c6dff8cc6b7ef89fc8577b96c1982",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-10-02T19:17:35.156046198Z",
+      "exitCode": 137,
+      "project": null,
+      "service": null,
+      "volumes": []
+    },
+    "sqlchat-s15-java-postgres": {
+      "id": "f25908bb6d70b065a9ee0ce8b151356c84bc14778d2875376daccaba53da6c42",
+      "image": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+      "status": "running",
+      "health": null,
+      "startedAt": "2026-10-03T07:29:54.293454584Z",
+      "exitCode": 0,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "5affff1df91466d2a013bf0c5f5031e2484b3959b4511e09e8d6760c74c003c9"
+      ]
+    },
+    "sqlchat-s15-java-rabbit": {
+      "id": "9fc7bb0af9a6466b2e9893e4f3cffb94c175095b37ac44bb7abf1e8630020de9",
+      "image": "sha256:d7af1c87c5f1eda13fcfca06db452bf3aeab6619fc3358b68535c0c02c4e52bc",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-10-02T19:17:28.643357914Z",
+      "exitCode": 137,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "ad0ea256bd1388a8fe7b130c8a9a916151ad369fd0160371cf1e03a29ca6f41b"
+      ]
+    },
+    "video-agent-qdrant": {
+      "id": "fd32384931127829278efd4b9c856b31d292bcb5d61b0acd2230e88feb7ff351",
+      "image": "sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc",
+      "status": "exited",
+      "health": null,
+      "startedAt": "2026-09-21T08:27:55.585506904Z",
+      "exitCode": 143,
+      "project": null,
+      "service": null,
+      "volumes": [
+        "qdrant_storage"
+      ]
+    }
+  },
+  "checks": {
+    "otherContainersUnchanged": true,
+    "namedVolumesPreserved": true,
+    "acceptedImagesMatch": true,
+    "applicationHealthy": true,
+    "metricsInitializerExitedZero": true,
+    "migrationExitedZero": true,
+    "frontendImageChanged": false
+  },
+  "proxy": {
+    "proxyBase": "http://127.0.0.1:18109",
+    "health": {
+      "health": {
+        "httpStatus": 200,
+        "status": "UP"
+      },
+      "health/live": {
+        "httpStatus": 200,
+        "status": "UP"
+      },
+      "health/ready": {
+        "httpStatus": 200,
+        "status": "UP"
+      }
+    },
+    "metrics": {
+      "httpStatus": 200,
+      "bytes": 1030,
+      "fixedLabelNames": [
+        "le"
+      ]
+    },
+    "internalMetricAliases": {
+      "/api/metrics": {
+        "httpStatus": 200,
+        "bytes": 1030
+      },
+      "/metrics": {
+        "httpStatus": 200,
+        "bytes": 1030
+      }
+    }
+  }
+}

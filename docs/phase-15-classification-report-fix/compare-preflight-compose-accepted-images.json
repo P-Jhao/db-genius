@@ -1,0 +1,20 @@
+{
+  "services": {
+    "migrate": {
+      "pull_policy": "never",
+      "image": "sha256:39590d1186db4ddc557fdb59c42691c5e722a74d1b6af0099e307a0199f74fd4"
+    },
+    "metrics-init": {
+      "pull_policy": "never",
+      "image": "sha256:39590d1186db4ddc557fdb59c42691c5e722a74d1b6af0099e307a0199f74fd4"
+    },
+    "api": {
+      "pull_policy": "never",
+      "image": "sha256:39590d1186db4ddc557fdb59c42691c5e722a74d1b6af0099e307a0199f74fd4"
+    },
+    "worker": {
+      "pull_policy": "never",
+      "image": "sha256:5444ad60e656461b7cc0e727241942cb33cf7110848ffe606854d56144573534"
+    }
+  }
+}
