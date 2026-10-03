@@ -397,7 +397,7 @@ onMounted(async () => {
           />
         </a-form-item>
         <a-form-item :label="$t('admin.modelConfig.fieldModelName')" required>
-          <a-input v-model="form.modelName" placeholder="deepseek-v4-pro" />
+          <a-input v-model="form.modelName" placeholder="deepseek-flash" />
         </a-form-item>
         <a-form-item :label="$t('admin.modelConfig.fieldContextWindow')">
           <div class="context-window-row">

@@ -1,0 +1,30 @@
+{
+  "createdAt": "2026-10-03",
+  "reviewedBy": "main-agent",
+  "status": "passed",
+  "scope": "One model-name input placeholder; component structure, bindings, and API behavior unchanged",
+  "file": "frontend/src/views/admin/ModelConfigPage.vue",
+  "beforeRawSha256": "4cce971302515452c9daf8d838c2a82119208cef20b8d3bd332cee6acd776c23",
+  "afterRawSha256": "a15d098285b41ee82053a6cdb642a9fd918c51bc31ed8566ec265e27830ecafa",
+  "exactSingleLiteralDiffIndependentlyVerified": true,
+  "mainValidation": {
+    "command": "pnpm --dir frontend build",
+    "exitCode": 0,
+    "includes": [
+      "vue-tsc -b",
+      "vite build"
+    ],
+    "existingNonBlockingWarnings": [
+      "Vite native-loader __dirname compatibility",
+      "large output chunks"
+    ]
+  },
+  "generatedDeclarations": {
+    "auto-imports.d.ts": "Git normalized OID matches index; no staged content diff",
+    "components.d.ts": "Git normalized OID matches index; no staged content diff"
+  },
+  "fullScreenshotSuiteRerun": false,
+  "browserInteractionRevalidated": false,
+  "boundary": "The prior 18-scene/36-screenshot evidence remains tied to its earlier source snapshot. This focused validation accepts only the placeholder change and production build, not a new full UI gate.",
+  "agentsMdChanged": false
+}
