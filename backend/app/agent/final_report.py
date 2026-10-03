@@ -8,12 +8,22 @@ from dataclasses import dataclass
 from app.agent.dsml import summary_cleanup
 
 REPORT_CONTRACT = (
-    "For this final-report call only, return exactly one JSON object, with no code fence: "
-    '{"report":"the complete user-facing Markdown report","complete":true}. '
-    "Put report first and complete last. Escape the report as a JSON string. Write the "
-    "report in the user's language. The complete flag means the entire report was "
-    "transmitted, not that every requested operation succeeded. Report actual verified "
-    "successes, failures and unfinished work. Do not call tools."
+    "For this final-report call only, return exactly one JSON object. Its top-level fields "
+    'must be exactly "report" and "complete", both required, with report first and complete '
+    "last. Do not add, rename, duplicate or nest these fields. Do not copy a tool-result "
+    "object as the envelope. report must be a nonempty JSON string containing the entire "
+    "user-facing Markdown report in the user's language. Put all titles, status, verified "
+    "successes, failures, unfinished work, limitations, comparison details and migration "
+    "SQL inside report; none belong in additional top-level fields. complete must be the "
+    "literal JSON boolean true: it means the entire report was transmitted, not that "
+    "every requested operation succeeded. Describe failures or unfinished work inside "
+    "report while keeping complete true when the report is fully transmitted. Escape "
+    "quotes, backslashes and newlines in report as JSON; Markdown code fences may appear "
+    "inside that string. Do not wrap the JSON object in a code fence or add surrounding "
+    "prose. Formatting-only example: "
+    '{"report":"A short Markdown report.\\nNext paragraph.","complete":true}. '
+    "Replace the example text with a report grounded in the supplied verified evidence. "
+    "Do not call tools."
 )
 
 _PREFIX = re.compile(r'\A\s*\{\s*"report"\s*:\s*"')
