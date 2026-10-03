@@ -1,0 +1,43 @@
+{
+  "status": "passed",
+  "scope": "Preserve first and second benchmark original bytes in Git without changing raw artifacts or report semantics",
+  "reviewedBy": "main-agent",
+  "sourceHeadBeforeCommit": "8624e46cd0bea9c12661efd04f0b60d125330d7a",
+  "coreAutocrlf": "true",
+  "attributes": [
+    "/docs/phase-15-real-model/benchmark-*.json -text",
+    "/docs/phase-15-real-model/benchmark-*.jsonl -text"
+  ],
+  "artifacts": [
+    {
+      "path": "docs/phase-15-real-model/benchmark-20261002T220250206579Z.json",
+      "rawAndStagedSha256": "e3ad52b468ea545af715328663b8aa036b45a9c3811b492d8bc044da798a8f51",
+      "priorNormalizedBlobSha256": "2d1d66572a5750336e1df56f4af21f555b7ac288505118b5fb06e3ca172e2059",
+      "stagedBytesEqualRawArtifact": true,
+      "semanticDataChanged": false
+    },
+    {
+      "path": "docs/phase-15-real-model/benchmark-20261002T220250206579Z.jsonl",
+      "rawAndStagedSha256": "065e6fdb37ea889d7fa5dd5699adcbef52759048af03184157e0fabdd0ff6bc0",
+      "priorNormalizedBlobSha256": "76202e2822ac60601a23915074c734d47e9ae942861301260e979028618286e7",
+      "stagedBytesEqualRawArtifact": true,
+      "semanticDataChanged": false
+    },
+    {
+      "path": "docs/phase-15-real-model/benchmark-20261003T022312342Z.json",
+      "rawAndStagedSha256": "8e3076a0b347a4d77f3a8f1eaac6501851879ed3e38e953893e47439cf965411",
+      "priorNormalizedBlobSha256": "28bcdeb168dff99978fcb0af6bc62fd9a317854ab4d98f1e96298265f61aa0e8",
+      "stagedBytesEqualRawArtifact": true,
+      "semanticDataChanged": false
+    },
+    {
+      "path": "docs/phase-15-real-model/benchmark-20261003T022312342Z.jsonl",
+      "rawAndStagedSha256": "2f038b860e0853dbad775999c4d5c756cd45dd05cbca11117eef04d957f6697e",
+      "priorNormalizedBlobSha256": "a015a0defe31d9a279d0d5eb81758f295ba576742965553ad617feb20b25fda6",
+      "stagedBytesEqualRawArtifact": true,
+      "semanticDataChanged": false
+    }
+  ],
+  "sensitivePatternMatches": 0,
+  "historyRewritten": false
+}
