@@ -20,7 +20,11 @@ from real_model_runner import provider_key
 
 SOURCE_FILES = (
     "backend/app/agent/prompts.py", "backend/app/agent/graph.py", "backend/app/agent/graph_sql.py",
-    "backend/app/agent/report_rules.py", "backend/tests/real_model_classification_regression.py",
+    "backend/app/agent/report_rules.py", "backend/app/agent/final_report.py",
+    "backend/app/agent/streaming.py", "backend/app/agent/model.py", "backend/app/agent/dsml.py",
+    "backend/app/agent/product_locale.py", "backend/app/agent/compare_preflight.py",
+    "backend/app/api/chat.py", "backend/app/core/observability_runtime.py",
+    "backend/tests/real_model_observations.py", "backend/tests/real_model_classification_regression.py",
     "backend/tests/real_model_classification_effects.py",
     "backend/tests/real_model_affected_effects.py", "backend/tests/real_model_regression_support.py",
     "backend/tests/real_model_synthetic_evidence.py", "backend/tests/real_model_api.py",
