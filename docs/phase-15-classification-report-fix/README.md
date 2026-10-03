@@ -32,6 +32,6 @@
 
 主代理对当前正式候选完成 23 个受影响测试模块，199 passed、0 failed、0 skipped，耗时 265.09 秒；Ruff 对 `backend/app` 与 `backend/tests` 全量通过，strict mypy 对 `backend/app` 的 105 个源文件通过。门禁记录的 128 个源码路径哈希保持稳定。受控 directcompare 测试覆盖比较工具后的直接回答规则；这组回归没有调用真实模型，不构成真实效果通过。主代理复核记录见 [main-fix-review.json](main-fix-review.json)。
 
-现有 `scripts/acceptance/classification_regression.py` 与 helper 属于旧的未跟踪 runner 草稿，不作为可接受的真实专项入口，也不构成 SSE、清理或事实断言通过证据。更新后的 runner 正在隔离完善；待新版本交付、候选镜像审查并部署后，再运行独立真实模型专项并记录实际结果。当前尚无真实效果、SSE 或专项清理结论，不改原固定矩阵和 oracle。
+真实效果 runner 已接收并冻结为 10 个文件，状态为 `runner-accepted-real-effects-pending`。主代理离线门禁为 41 passed、2 skipped；两个 opt-in PostgreSQL/MySQL oracle 检查已另行通过（2 passed、0 failed、0 skipped）。Ruff 11 路径及 strict mypy 8 个源文件通过，源码保护检查稳定。详细回执见 [main-runner-review.json](main-runner-review.json)。下一步按两个独立范围运行真实模型：分类回归 18 rows、21 turns；显式 Python-only 受影响效果 36 rows、36 turns，不构成新配对全矩阵。回执确认尚未调用真实 provider；真实效果、SSE 与专项清理结论仍待采集。
 
 根目录 `AGENTS.md` 已检查；本次只是现有功能的错误修复，没有改变功能边界或核心目录结构，因此保持不变。

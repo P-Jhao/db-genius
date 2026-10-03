@@ -142,12 +142,15 @@ def _seed(target: TargetSnapshot, *, comparison_target: bool) -> None:
 
 @contextmanager
 def isolated_database(db_type: DatabaseType, variant: str, *,
-                      comparison_target: bool = False) -> Iterator[TargetSnapshot]:
+                      comparison_target: bool = False,
+                      cleanup_evidence: dict[str, object] | None = None) -> Iterator[TargetSnapshot]:
     if variant not in {"py", "java", "pre", "test"}:
         raise ValueError("Unknown isolated target variant")
     name = f"s15_{uuid4().hex[:16]}_{variant}"
     if re.fullmatch(r"s15_[0-9a-f]{16}_(py|java|pre|test)", name) is None:
         raise ValueError("Invalid acceptance resource name")
+    if cleanup_evidence is not None:
+        cleanup_evidence.update({"generatedDatabase": name, "generatedRole": name, "database": db_type, "status": "pending"})
     password = SecretStr(secrets.token_urlsafe(32))
     admin = _admin(db_type)
     role_created = database_created = False
@@ -196,9 +199,13 @@ def isolated_database(db_type: DatabaseType, variant: str, *,
                     "SELECT COUNT(*) FROM pg_roles WHERE rolname=%s" if db_type == "postgresql" else
                     "SELECT COUNT(*) FROM mysql.user WHERE User=%s", (name,),
                 ).scalar_one()
+                if cleanup_evidence is not None:
+                    cleanup_evidence.update({"databaseCount": database_count, "roleCount": user_count, "status": "passed"})
                 if database_count != 0 or user_count != 0:
                     raise RuntimeError("Exact S15 database/user resources remain after cleanup")
-        except SQLAlchemyError as error:
+        except Exception as error:  # noqa: BLE001 - record cleanup failure, redact diagnostics and rethrow
+            if cleanup_evidence is not None:
+                cleanup_evidence.update({"status": "failed", "errorType": type(error).__name__})
             raise RuntimeError(f"Exact S15 target cleanup failed: {type(error).__name__}") from None
         finally:
             admin.dispose()

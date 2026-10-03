@@ -54,42 +54,63 @@ def _admin(variant: Variant) -> tuple[str, SecretStr]:
     return username, SecretStr(password)
 
 
-def _cleanup(variant: Variant, username: str) -> None:
+def _cleanup(variant: Variant, username: str) -> dict[str, object]:
     if re.fullmatch(r"s15_real_[0-9a-f]{20}", username) is None:
         raise ValueError("Cleanup requires its exact randomly generated user")
     if variant == "python":
         script = (
-            "import sys; from sqlalchemy import delete,select; from app.core.database import SessionLocal; "
-            "from app.models import User,Conversation,DbConfig,AuthSession,UserModelConfig,UploadedFile; "
-            "from app.storage.backend import get_storage; "
+            "import json,sys; from sqlalchemy import delete,select,func; from app.core.database import SessionLocal; "
+            "from app.models import User,Conversation,Message,DbConfig,AuthSession,UserModelConfig,UploadedFile; "
+            "from app.storage.backend import get_storage; from app.storage.local import LocalStorage; "
             "s=SessionLocal(); u=s.scalar(select(User).where(User.username==sys.argv[1])); "
-            "sys.exit(0) if u is None else None; "
-            "files=list(s.scalars(select(UploadedFile).where(UploadedFile.user_id==u.id))); "
-            "assert all(f.oss_key.startswith(f'uploads/{u.id}/') for f in files); "
-            "[get_storage().delete(f.oss_key) for f in files]; "
-            "[s.execute(delete(t).where(t.user_id==u.id)) for t in "
-            "(Conversation,DbConfig,AuthSession,UserModelConfig,UploadedFile)]; s.delete(u); s.commit(); s.close()"
+            "uid=None if u is None else u.id; "
+            "files=[] if uid is None else list(s.scalars(select(UploadedFile).where(UploadedFile.user_id==uid))); "
+            "assert all(f.oss_key.startswith(f'uploads/{uid}/') for f in files); "
+            "conversations=[] if uid is None else list(s.scalars(select(Conversation.id).where(Conversation.user_id==uid))); "
+            "storage=get_storage(); [storage.delete(f.oss_key) for f in files]; "
+            "[s.execute(delete(t).where(t.user_id==uid)) for t in "
+            "(Conversation,DbConfig,AuthSession,UserModelConfig,UploadedFile) if uid is not None]; "
+            "s.delete(u) if u is not None else None; s.commit(); "
+            "counts={t.__name__+'Count':s.scalar(select(func.count()).select_from(t).where(t.user_id==uid)) "
+            "for t in (Conversation,DbConfig,AuthSession,UserModelConfig,UploadedFile)} if uid is not None else {}; "
+            "counts.update({'userCount':s.scalar(select(func.count()).select_from(User).where(User.username==sys.argv[1])), "
+            "'storageFileCount':sum(storage._path(f.oss_key).exists() for f in files) if isinstance(storage,LocalStorage) else None, "
+            "'storageDeleteCallsCompleted':len(files),"
+            "'messageCount':s.scalar(select(func.count()).select_from(Message).where(Message.conversation_id.in_(conversations)))}); print(json.dumps(counts)); s.close()"
         )
         command = ["docker", "exec", "sqlchat-s14-test-api-1", "python", "deploy/connection_env.py",
                    "python", "-c", script, username]
         result = subprocess.run(command, capture_output=True, text=True, check=False, timeout=30)
     else:
-        owned = f"(SELECT id FROM app.sys_user WHERE username='{username}')"
+        owned = "(SELECT id FROM s15_cleanup_user)"
         sql = (
             "BEGIN; "
+            f"CREATE TEMP TABLE s15_cleanup_user AS SELECT id FROM app.sys_user WHERE username='{username}'; "
+            "CREATE TEMP TABLE s15_cleanup_conversation AS SELECT id FROM app.conversation WHERE user_id IN (SELECT id FROM s15_cleanup_user); "
             f"DELETE FROM app.message WHERE conversation_id IN (SELECT id FROM app.conversation WHERE user_id IN {owned}); "
             f"DELETE FROM app.conversation WHERE user_id IN {owned}; "
             f"DELETE FROM app.db_config WHERE user_id IN {owned}; "
             f"DELETE FROM app.user_model_config WHERE user_id IN {owned}; "
             f"DELETE FROM app.uploaded_file WHERE user_id IN {owned}; "
-            f"DELETE FROM app.sys_user WHERE username='{username}'; COMMIT;"
+            f"DELETE FROM app.sys_user WHERE username='{username}'; COMMIT; "
+            "SELECT json_build_object("
+            f"'userCount',(SELECT COUNT(*) FROM app.sys_user WHERE username='{username}'),"
+            "'messageCount',(SELECT COUNT(*) FROM app.message WHERE conversation_id IN (SELECT id FROM s15_cleanup_conversation)),"
+            f"'conversationCount',(SELECT COUNT(*) FROM app.conversation WHERE user_id IN {owned}),"
+            f"'dbConfigCount',(SELECT COUNT(*) FROM app.db_config WHERE user_id IN {owned}),"
+            f"'modelConfigCount',(SELECT COUNT(*) FROM app.user_model_config WHERE user_id IN {owned}),"
+            f"'fileMetadataCount',(SELECT COUNT(*) FROM app.uploaded_file WHERE user_id IN {owned}));"
         )
         result = subprocess.run([
             "docker", "exec", "-i", "sqlchat-s15-java-postgres", "sh", "-c",
-            'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1',
+            'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -v ON_ERROR_STOP=1',
         ], input=sql, capture_output=True, text=True, check=False, timeout=30)
     if result.returncode != 0:
         raise RuntimeError("Exact real-model user cleanup failed; diagnostics omit credentials")
+    counts = object_value(json.loads(result.stdout if variant == "python" else result.stdout.strip().splitlines()[-1]))
+    if any(value != 0 for key, value in counts.items() if key.endswith("Count") and value is not None):
+        raise RuntimeError("Exact owned API resources remain after cleanup")
+    return {"status": "passed", **counts}
 
 
 @dataclass
@@ -98,6 +119,7 @@ class ApiSession:
     username: str
     client: httpx.Client = field(repr=False)
     token: SecretStr = field(repr=False)
+    event_capture: list[dict[str, object]] | None = field(default=None, repr=False)
 
     def upload_csv(self) -> int:
         response = self.client.post("file/upload", files={"file": ("s15_contacts.csv", CSV, "text/csv")})
@@ -132,7 +154,7 @@ class ApiSession:
         return config_id
 
     def chat(self, body: dict[str, object]) -> tuple[list[dict[str, object]], dict[str, object]]:
-        events: list[dict[str, object]] = []
+        events: list[dict[str, object]] = [] if self.event_capture is None else self.event_capture
         started = monotonic()
         first_visible: float | None = None
         with self.client.stream("POST", "chat", json=body) as response:
@@ -155,13 +177,16 @@ class ApiSession:
 
 
 @contextmanager
-def api_session(variant: Variant, relay: RealProviderRelay) -> Iterator[ApiSession]:
+def api_session(variant: Variant, relay: RealProviderRelay, *,
+                cleanup_evidence: dict[str, object] | None = None) -> Iterator[ApiSession]:
     default = "http://127.0.0.1:18109" if variant == "python" else "http://127.0.0.1:18110"
     url = os.environ.get(f"SQLCHAT_REAL_{variant.upper()}_URL", default)
     parsed = urlsplit(url)
     if parsed.hostname not in {"127.0.0.1", "localhost"} or parsed.port != (18109 if variant == "python" else 18110):
         raise ValueError("Real-model fixture requires the isolated loopback deployment")
     username = f"s15_real_{uuid4().hex[:20]}"
+    if cleanup_evidence is not None:
+        cleanup_evidence.update({"generatedUser": username, "status": "pending"})
     password = SecretStr(secrets.token_urlsafe(24))
     administrator, admin_password = _admin(variant)
     client = httpx.Client(base_url=url.rstrip("/") + "/api/", timeout=httpx.Timeout(330, connect=10),
@@ -199,7 +224,14 @@ def api_session(variant: Variant, relay: RealProviderRelay) -> Iterator[ApiSessi
                 api(client, "POST", "auth/logout")
         finally:
             client.close()
-            _cleanup(variant, username)
+            try:
+                cleaned = _cleanup(variant, username)
+                if cleanup_evidence is not None:
+                    cleanup_evidence.update(cleaned)
+            except Exception as error:
+                if cleanup_evidence is not None:
+                    cleanup_evidence.update({"status": "failed", "errorType": type(error).__name__})
+                raise
 
 
 def runtime_identity() -> dict[str, object]:

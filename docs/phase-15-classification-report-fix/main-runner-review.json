@@ -1,0 +1,59 @@
+{
+  "status": "runner-accepted-real-effects-pending",
+  "sourceHeadBeforeHarnessCommit": "3b97ad1bc5c332070d624b037ff6162fd6ad2b7d",
+  "manifestSha256": "47dcd4fba6800dbeeebfb6a593f6be8bd247146ab6d7b9fecfee1a8ff6f14cad",
+  "fileHashes": {
+    "backend/tests/real_model_affected_effects.py": "6db36d9cc049655b83543b306cf9dccdaa2de0439731a2aad4b2a83f26d2c2a9",
+    "backend/tests/real_model_api.py": "154b2f1482d87f653f239a753d514f37233c97c7c007e358e454160c285984ac",
+    "backend/tests/real_model_classification_effects.py": "bd6af62fffe013c5a0618490ed5277f692c6e44029445c72239f311634a8d1ad",
+    "backend/tests/real_model_classification_regression.py": "5ba2473939ce5307ce8a2f6a99e73345827d6d05215bffa7b5a83b2c05bfd062",
+    "backend/tests/real_model_database.py": "f1022bea82b35b4a03dd8b612dea28921c4945cea74b40481fdd624b94901857",
+    "backend/tests/real_model_regression_support.py": "e31c534eff16911c8d8b399b5ba847fb3d990d44342d2d8b0617fea5e59fd66b",
+    "backend/tests/real_model_relay.py": "8925754c73512dc1afc0c1d82b3d9e1d80330fc709a640a24b146e72e86d9a2b",
+    "backend/tests/real_model_synthetic_evidence.py": "0075fd125a51517559b484a1a3af2eb6f6c51596ef20a60d16bafaf082fde6fe",
+    "backend/tests/test_real_model_regression_evidence.py": "44f74a0bb272d6e1ac9bb546f79575d723e7f81e8e30aa8caf658bedb6fccf93",
+    "scripts/acceptance/affected_effects.py": "e69567e40397b31b742b7e7567581683b3d54cbd8354f5fe5203ea2f4a916058"
+  },
+  "checks": {
+    "offlinePytest": {
+      "passed": 41,
+      "skipped": 2,
+      "reason": "Two dedicated PG/MySQL oracle checks require opt-in and were separately completed below."
+    },
+    "realDatabaseOraclePytest": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Dedicated PostgreSQL/MySQL random fixtures, original fixed oracles and fingerprint checks; no model calls."
+    },
+    "ruff": {
+      "status": "passed",
+      "paths": 11
+    },
+    "strictMypy": {
+      "status": "passed",
+      "sourceFiles": 8
+    },
+    "sourceGuards": {
+      "candidateFilesStable": true,
+      "originalFixedHelpersStable": true,
+      "deployedBackend140FilesStable": true
+    }
+  },
+  "approvedRealScopes": {
+    "classification": {
+      "scope": "python-only-classification-regression",
+      "rows": 18,
+      "turns": 21
+    },
+    "affected": {
+      "scope": "python-only-affected-effects",
+      "rows": 36,
+      "turns": 36,
+      "pairedComparisonClaim": false
+    }
+  },
+  "executionPolicy": "No automatic resending of a failed turn; exact owned-resource cleanup; immutable new JSON/JSONL evidence; no adoption of narrative answers without main review.",
+  "realProviderCalled": false,
+  "agentsMdChangeRequired": false
+}

@@ -1,2 +1,6 @@
 /docs/phase-15-real-model/benchmark-*.json -text
 /docs/phase-15-real-model/benchmark-*.jsonl -text
+/docs/phase-15-classification-report-fix/classification-*.json -text
+/docs/phase-15-classification-report-fix/classification-*.jsonl -text
+/docs/phase-15-classification-report-fix/affected-*.json -text
+/docs/phase-15-classification-report-fix/affected-*.jsonl -text

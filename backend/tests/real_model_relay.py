@@ -60,12 +60,14 @@ def generation_parameters(request: dict[str, object]) -> dict[str, object]:
 class RealProviderRelay(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, key: SecretStr, upstream: str = "https://api.deepseek.com") -> None:
+    def __init__(self, key: SecretStr, upstream: str = "https://api.deepseek.com", *,
+                 capture_synthetic: bool = False) -> None:
         if not key.get_secret_value():
             raise ValueError("The actual provider key is required")
         self.upstream_key = key
         self.access_key = SecretStr(secrets.token_urlsafe(32))
         self.upstream = upstream.rstrip("/")
+        self.capture_synthetic = capture_synthetic
         self.records: list[dict[str, object]] = []
         self.requests: list[dict[str, object]] = []
         self.label = "unassigned"
@@ -211,6 +213,15 @@ class RelayHandler(BaseHTTPRequestHandler):
             "firstDeltaSeconds": None, "elapsedSeconds": None, "httpStatus": None, "transportError": None,
             "evidenceError": None,
         }
+        if server.capture_synthetic:
+            from real_model_synthetic_evidence import executed_tools
+
+            try:
+                report["syntheticExecutedTools"] = executed_tools(
+                    request, (server.upstream_key.get_secret_value(), server.access_key.get_secret_value()),
+                )
+            except (ValueError, TypeError) as error:
+                report["evidenceError"] = type(error).__name__
         with server.lock:
             server.records.append(report)
         try:
