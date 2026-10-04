@@ -16,7 +16,8 @@ from app.adapters.safety import UnsafeStatement
 from app.agent.cancellation import RunAborted, check_cancelled
 from app.agent.final_report import IncompleteFinalReport
 from app.agent.graph import RunContext, run_graph
-from app.agent.model import CompatibleChatModel
+from app.agent.json_capabilities import chat_json_object_enabled
+from app.agent.model import CompatibleChatModel, completion_url
 from app.agent.product_locale import final_report_error, stream_error
 from app.agent.protocol_errors import protocol_code
 from app.agent.tools import RunTools
@@ -75,7 +76,8 @@ def _frame(task_id: str, kind: str, content: object, step: int) -> bytes:
 @observe_chat
 async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatRequest,
                    history: list[BaseMessage], locale: str, model: CompatibleChatModel,
-                   context_window: int | None, cancel_event: threading.Event) -> None:
+                   context_window: int | None, cancel_event: threading.Event, *,
+                   chat_json_object: bool = False) -> None:
     task_id = accounting().task_id
     usage = Usage(contextWindow=context_window)
     conversation_id: int | None = None
@@ -110,7 +112,8 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
 
     try:
         conversation_id = await persist(task_id, "prepare", chat_store.prepare, user_id, body)
-        stream = ObservedModelStream(model, emit, usage, cancel_event, task_id=task_id)
+        stream = ObservedModelStream(model, emit, usage, cancel_event, task_id=task_id,
+                                     chat_json_object=chat_json_object)
         compression_message: str | None = None
         if body.conversation_id is not None:
             compression = await context_compress.compress_if_needed(
@@ -125,7 +128,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
         await emit("conversation", conversation_id)
         if compression_message is not None:
             await emit("step", compression_message)
-        context = RunContext(body, history, locale, stream, tools, emit, cancel_event)
+        context = RunContext(body, history, locale, stream, tools, emit, cancel_event, task_id=task_id)
         with span("chat.graph", task_id=task_id):
             result = await run_graph(context)
         check_cancelled(cancel_event)
@@ -215,13 +218,17 @@ async def chat(body: ChatRequest, request: Request, user: CurrentUser,
     active = model_config.resolve_active_model(session, user.id)
     model = CompatibleChatModel(base_url=active.base_url, api_key=active.api_key,
                                 model_name=active.model_name)
+    json_enabled = chat_json_object_enabled(get_settings().model_chat_json_capabilities,
+                                           completion_endpoint=completion_url(model.base_url),
+                                           model_name=model.model_name)
     locale = request.headers.get("accept-language", "en")
     queue: asyncio.Queue[bytes | None] = asyncio.Queue()
     cancel_event = threading.Event()
 
     async def events() -> AsyncIterator[bytes]:
         producer = asyncio.create_task(_produce(queue, user.id, body, previous, locale,
-                                                model, active.context_window, cancel_event))
+                                                model, active.context_window, cancel_event,
+                                                chat_json_object=json_enabled))
         _active_producers.add(producer)
         producer.add_done_callback(_active_producers.discard)
         last_sent = monotonic()

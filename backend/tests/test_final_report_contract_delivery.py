@@ -55,8 +55,8 @@ async def test_contract_is_final_only_and_every_character_fragment_decodes(
         assert [item["content"] for item in sent] == (
             [message.content for message in messages] + ([REPORT_CONTRACT] if index == 2 else [])
         )
-    example = REPORT_CONTRACT.split("Formatting-only example: ", 1)[1].split(". Replace", 1)[0]
-    assert json.loads(example) == {"report": "A short Markdown report.\nNext paragraph.", "complete": True}
+    example = REPORT_CONTRACT.split("Format only: ", 1)[1].split(". Replace", 1)[0]
+    assert json.loads(example) == {"report": "A short report.\nNext paragraph.", "complete": True}
 
 
 @pytest.mark.parametrize(("value", "partial"), [

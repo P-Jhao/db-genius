@@ -46,6 +46,8 @@ class ProtocolCode(Enum):
     TOOL_NOT_OBJECT = ("tool_arguments_not_object", ProtocolStage.TOOL_AGGREGATE)
     TOOL_IDS_DUPLICATED = ("tool_ids_duplicated", ProtocolStage.TOOL_AGGREGATE)
     TOOL_SCHEMA_INVALID = ("tool_arguments_schema_invalid", ProtocolStage.SCHEMA_VALIDATION)
+    INTENT_CLASSIFICATION_VALIDATION_FAILED = ("intent_classification_validation_failed", ProtocolStage.SCHEMA_VALIDATION)
+    INTENT_CLASSIFICATION_CONTENT_TYPE = ("intent_classification_content_type", ProtocolStage.SCHEMA_VALIDATION)
     DSML_ARGUMENT_UNKNOWN = ("dsml_argument_unknown", ProtocolStage.DSML_RECONCILE)
     DSML_ALIAS_CONFLICT = ("dsml_argument_alias_conflict", ProtocolStage.DSML_RECONCILE)
     DSML_ATTRIBUTE_DUPLICATED = ("dsml_attribute_duplicated", ProtocolStage.DSML_PARSE)

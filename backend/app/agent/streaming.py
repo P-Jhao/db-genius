@@ -24,6 +24,7 @@ from pydantic import BaseModel, ValidationError
 from app.agent.cancellation import check_cancelled
 from app.agent.dsml import AllowedTool, StructuredCall, SummaryFilter, reconcile, strip
 from app.agent.final_report import REPORT_CONTRACT, IncompleteFinalReport, ReportDecoder
+from app.agent.json_capabilities import JsonContract, json_contract_options
 from app.agent.protocol_errors import ProtocolCode, mark
 from app.agent.types import EventSink, Usage
 
@@ -52,13 +53,14 @@ def _collect_calls(calls: dict[int, StructuredCall], chunk: AIMessageChunk) -> N
 
 class ModelStream:
     def __init__(self, model: BaseChatModel, emit: EventSink, usage: Usage,
-                 cancel_event: threading.Event | None = None) -> None:
+                 cancel_event: threading.Event | None = None, *, chat_json_object: bool = False) -> None:
         self.model = model
         self.emit = emit
         self.usage = usage
         self.partial = ""
         self.reasoning = ""
         self.cancel_event = cancel_event
+        self.chat_json_object = chat_json_object
 
     async def call(
         self,
@@ -86,6 +88,8 @@ class ModelStream:
         )
         if tools:
             options["tools"] = [convert_to_openai_tool(tool) for tool in tools]
+        contract: JsonContract | None = "classification" if classification else "final_report" if final_report else None
+        options.update(json_contract_options(self.chat_json_object, contract, tools_present=bool(tools)))
         check_cancelled(self.cancel_event)
         iterator = self.model.astream(messages, **options).__aiter__()  # type: ignore[arg-type]
 

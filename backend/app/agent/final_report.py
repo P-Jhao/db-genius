@@ -6,24 +6,18 @@ import re
 from dataclasses import dataclass
 
 from app.agent.dsml import summary_cleanup
+from app.agent.json_shape_diagnostics import safe_observe_json_shape
 
 REPORT_CONTRACT = (
-    "For this final-report call only, return exactly one JSON object. Its top-level fields "
-    'must be exactly "report" and "complete", both required, with report first and complete '
-    "last. Do not add, rename, duplicate or nest these fields. Do not copy a tool-result "
-    "object as the envelope. report must be a nonempty JSON string containing the entire "
-    "user-facing Markdown report in the user's language. Put all titles, status, verified "
-    "successes, failures, unfinished work, limitations, comparison details and migration "
-    "SQL inside report; none belong in additional top-level fields. complete must be the "
-    "literal JSON boolean true: it means the entire report was transmitted, not that "
-    "every requested operation succeeded. Describe failures or unfinished work inside "
-    "report while keeping complete true when the report is fully transmitted. Escape "
-    "quotes, backslashes and newlines in report as JSON; Markdown code fences may appear "
-    "inside that string. Do not wrap the JSON object in a code fence or add surrounding "
-    "prose. Formatting-only example: "
-    '{"report":"A short Markdown report.\\nNext paragraph.","complete":true}. '
-    "Replace the example text with a report grounded in the supplied verified evidence. "
-    "Do not call tools."
+    "For this final-report call, output one JSON object with exactly two unique top-level "
+    "fields in this order: report, complete. report is a nonempty JSON string containing "
+    "the entire user-facing Markdown answer, including results, failures, unfinished work, "
+    "limitations and SQL. complete is the JSON boolean true and means transmission is "
+    "complete, not that every task succeeded. JSON-escape the string. Put no other fields, "
+    "envelopes, tool-result objects, surrounding prose or outer code fences in the output. "
+    "Do not call tools. Format only: "
+    '{"report":"A short report.\\nNext paragraph.","complete":true}. '
+    "Replace the example with the entire evidence-grounded answer in the user's language."
 )
 
 _PREFIX = re.compile(r'\A\s*\{\s*"report"\s*:\s*"')
@@ -192,6 +186,7 @@ class ReportDecoder:
             "structuredToolCallCount": tool_calls, "protocolCleanup": protocol,
             "envelopeComplete": envelope_complete, "framingVerified": error is None,
             "errorCode": error, "envelopeIssue": envelope_issue,
+            "jsonShape": safe_observe_json_shape(self.wire, "final_report"),
         }
         if reason is not None and reason not in _FINISH_REASONS:
             observation["finishReasonUtf8Sha256"] = _digest(reason)

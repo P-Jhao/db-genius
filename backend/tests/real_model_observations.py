@@ -5,6 +5,7 @@ import re
 from typing import cast
 
 from app.agent.final_report import ENVELOPE_ISSUES, REPORT_CONTRACT, ReportDecoder
+from app.agent.json_shape_diagnostics import safe_json_shape
 
 FINISH_REASONS = {"stop", "length", "tool_calls", "function_call", "content_filter"}
 COUNTS = {"wireCharacters", "rawReportCharacters", "cleanedReportCharacters", "structuredToolCallCount"}
@@ -53,6 +54,8 @@ def safe_observation(raw: dict[str, object]) -> dict[str, object]:
         elif key == "envelopeIssue":
             if value is not None and (not isinstance(value, str) or value not in ENVELOPE_ISSUES):
                 raise ValueError("Unknown summary envelope issue")
+        elif key == "jsonShape":
+            value = safe_json_shape(value)
         else:
             continue
         safe[str(key)] = value

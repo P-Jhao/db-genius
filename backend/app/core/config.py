@@ -8,9 +8,12 @@ from urllib.parse import urlsplit
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+from app.agent.json_capabilities import ChatJsonCapabilityRule, parse_capability_allowlist
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="SQLCHAT_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="SQLCHAT_", env_file=".env", extra="ignore",
+                                     hide_input_in_errors=True)
 
     database_url: str = "postgresql+psycopg://sqlchat:sqlchat@localhost:5432/sqlchat"
     encrypt_key: str = Field(default="", validation_alias=AliasChoices("SQLCHAT_ENCRYPT_KEY", "DB_GENIUS_ENCRYPT_KEY"))
@@ -32,6 +35,7 @@ class Settings(BaseSettings):
         default="", validation_alias=AliasChoices("SQLCHAT_DEFAULT_MODEL_API_KEY", "DEEPSEEK_API_KEY")
     )
     default_model_name: str = "deepseek-flash"
+    model_chat_json_capabilities: Annotated[tuple[ChatJsonCapabilityRule, ...], NoDecode] = ()
     trial_enabled: bool = False
     trial_builtin_db_name: str = "db-genius"
     trial_builtin_host: str = ""
@@ -82,6 +86,15 @@ class Settings(BaseSettings):
         if value and not Path(value).is_absolute():
             raise ValueError("Shared metric root must be an absolute path")
         return value
+
+    @field_validator("model_chat_json_capabilities", mode="before")
+    @classmethod
+    def explicit_chat_json_capabilities(cls, value: object) -> tuple[ChatJsonCapabilityRule, ...]:
+        if isinstance(value, str):
+            return parse_capability_allowlist(value)
+        if isinstance(value, tuple) and not value:
+            return ()
+        raise ValueError("Model JSON capabilities require an explicit JSON array")
 
     @field_validator("otlp_endpoint")
     @classmethod

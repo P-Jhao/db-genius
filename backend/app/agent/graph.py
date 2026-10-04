@@ -1,5 +1,8 @@
 """S07 chat graph: classification, clarification, answering, and SQL tools."""
 
+import json
+import logging
+import re
 import threading
 from dataclasses import dataclass
 from typing import Literal, TypedDict, cast
@@ -11,13 +14,17 @@ from pydantic import ValidationError
 
 from app.agent.cancellation import check_cancelled
 from app.agent.graph_sql import SQLNodes
+from app.agent.json_shape_diagnostics import safe_observe_json_shape
 from app.agent.product_locale import clarification, intent_label, missing_database, product_text
 from app.agent.prompts import classification_prompt, classification_user_prompt, system_prompt
+from app.agent.protocol_errors import ProtocolCode, mark
 from app.agent.streaming import ModelStream
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Classification, EventSink, Intent
 from app.core.config import get_settings
 from app.services.trial import require_intent_available
+
+logger = logging.getLogger(__name__)
 
 
 class RunState(TypedDict):
@@ -39,6 +46,11 @@ class RunContext:
     tools: RunTools
     emit: EventSink
     cancel_event: threading.Event | None = None
+    task_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.task_id is not None and re.fullmatch(r"[0-9a-f]{32}", self.task_id) is None:
+            raise ValueError("Run context task ID must be a fixed hexadecimal identity")
 
 
 def _clarification(intent: Intent, reason: str, locale: str, request: ChatRequest) -> dict[str, object]:
@@ -80,11 +92,16 @@ def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunSt
         )
         check_cancelled(context.cancel_event)
         if not isinstance(response.content, str):
-            raise TypeError("Intent classification must be a JSON object")
+            raise mark(TypeError("Intent classification must be a JSON object"),
+                       ProtocolCode.INTENT_CLASSIFICATION_CONTENT_TYPE)
         try:
             value = Classification.model_validate_json(response.content)
         except (ValidationError, ValueError) as error:
-            raise ValueError("Invalid intent classification JSON") from error
+            code = ProtocolCode.INTENT_CLASSIFICATION_VALIDATION_FAILED
+            logger.info("Intent classification validation " + json.dumps(
+                {"code": code.text, "stage": code.stage.value, "taskId": context.task_id,
+                 "jsonShape": safe_observe_json_shape(response.content, "classification")}, sort_keys=True))
+            raise mark(ValueError("Invalid intent classification JSON"), code) from error
         await context.emit("classified", value.model_dump(), 0)
         require_intent_available(value.intent)
         if value.needsClarification or value.confidence < 0.7:

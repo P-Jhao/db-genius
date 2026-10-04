@@ -33,8 +33,9 @@ from app.core.observability_tracing import span
 
 class ObservedModelStream(ModelStream):
     def __init__(self, model: BaseChatModel, emit: EventSink, usage: Usage,
-                 cancel_event: threading.Event | None = None, *, task_id: str) -> None:
-        super().__init__(model, emit, usage, cancel_event)
+                 cancel_event: threading.Event | None = None, *, task_id: str,
+                 chat_json_object: bool = False) -> None:
+        super().__init__(model, emit, usage, cancel_event, chat_json_object=chat_json_object)
         self.task_id = task_id
 
     async def call(self, messages: list[BaseMessage], step: int = 0, event: str | None = "content",

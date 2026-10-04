@@ -21,6 +21,8 @@ FINAL_REPORT_SOURCES = {
     "backend/app/agent/compare_preflight.py",
     "backend/app/agent/protocol_errors.py", "backend/app/core/observability_logging.py",
     "backend/tests/real_model_relay.py", "backend/tests/real_model_metadata_evidence.py",
+    "backend/app/core/config.py", "backend/app/agent/json_capabilities.py",
+    "backend/app/agent/json_shape_diagnostics.py",
 }
 IMAGE = "sha256:" + "a" * 64
 

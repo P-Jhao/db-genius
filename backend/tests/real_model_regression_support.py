@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import threading
@@ -37,6 +38,8 @@ SOURCE_FILES = (
     "backend/app/resources/prompts/intent-classifier_zh_CN.md",
     "backend/app/resources/prompts/intent-classifier_en.md",
     "backend/app/agent/protocol_errors.py", "backend/app/core/observability_logging.py",
+    "backend/app/core/config.py", "backend/app/agent/json_capabilities.py",
+    "backend/app/agent/json_shape_diagnostics.py",
 )
 
 
@@ -60,7 +63,8 @@ def identity(variants: tuple[Variant, ...]) -> dict[str, object]:
 
 @contextmanager
 def regression_relay() -> Iterator[RealProviderRelay]:
-    relay = RealProviderRelay(provider_key(), capture_synthetic=True)
+    port = relay_bind_port()
+    relay = RealProviderRelay(provider_key(), capture_synthetic=True, bind_port=port)
     thread = threading.Thread(target=relay.serve_forever, daemon=True)
     thread.start()
     try:
@@ -69,6 +73,15 @@ def regression_relay() -> Iterator[RealProviderRelay]:
         relay.shutdown()
         relay.server_close()
         thread.join(3)
+
+
+def relay_bind_port() -> int:
+    raw = os.environ.get("SQLCHAT_REAL_RELAY_PORT")
+    if raw is None:
+        return 0
+    if re.fullmatch(r"[1-9][0-9]{0,4}", raw) is None or int(raw) > 65535:
+        raise ValueError("SQLCHAT_REAL_RELAY_PORT must be a decimal port from 1 to 65535")
+    return int(raw)
 
 
 def options(description: str | None, *, affected: bool = False) -> argparse.Namespace:

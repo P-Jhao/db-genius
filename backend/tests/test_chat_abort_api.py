@@ -40,7 +40,9 @@ async def test_transport_disconnect_sets_shared_event(monkeypatch: pytest.Monkey
 
     async def fake_produce(queue: asyncio.Queue[bytes | None], _user_id: int, _body: ChatRequest,
                            _history: list[object], _locale: str, _model: object,
-                           _context_window: int | None, cancel_event: threading.Event) -> None:
+                           _context_window: int | None, cancel_event: threading.Event, *,
+                           chat_json_object: bool = False) -> None:
+        assert chat_json_object is False
         await queue.put(b'data: {"type":"thinking"}\n\n')
         while not cancel_event.is_set():
             await asyncio.sleep(0.01)

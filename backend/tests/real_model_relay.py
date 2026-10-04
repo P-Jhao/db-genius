@@ -62,7 +62,9 @@ class RealProviderRelay(ThreadingHTTPServer):
     daemon_threads = True
 
     def __init__(self, key: SecretStr, upstream: str = "https://api.deepseek.com", *,
-                 capture_synthetic: bool = False) -> None:
+                 capture_synthetic: bool = False, bind_port: int = 0) -> None:
+        if type(bind_port) is not int or not 0 <= bind_port <= 65535:
+            raise ValueError("Relay bind port must be an integer between zero and 65535")
         if not key.get_secret_value():
             raise ValueError("The actual provider key is required")
         self.upstream_key = key
@@ -73,7 +75,8 @@ class RealProviderRelay(ThreadingHTTPServer):
         self.requests: list[dict[str, object]] = []
         self.label = "unassigned"
         self.lock = threading.Lock()
-        super().__init__(("0.0.0.0", 0), RelayHandler)
+        self.allow_reuse_address = bind_port == 0
+        super().__init__(("0.0.0.0", bind_port), RelayHandler)
 
     def begin(self, label: str) -> int:
         with self.lock:
