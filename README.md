@@ -1,6 +1,8 @@
 # SQLChat
 
-SQLChat reuses the DB-Genius Vue interface and provides a Python/FastAPI API, a Celery worker, PostgreSQL system storage, and RabbitMQ task delivery. The isolated S14 Compose stack serves the UI and `/api` through one Nginx entry point on `http://localhost:8109`.
+SQLChat reuses the DB-Genius Vue interface and provides a Python/FastAPI API, a Celery worker, PostgreSQL system storage, and RabbitMQ task delivery. The isolated S14 Compose stack serves the UI and `/api` through one Nginx entry point on `http://localhost:8109` by default. This machine’s acceptance stack uses host port `18109`; this is a local test setting, not the default.
+
+当前中文交付范围、验收结果和模型/外部环境限制见[交付说明](docs/phase-15-acceptance/交付说明.md)。
 
 ## Local container stack
 
