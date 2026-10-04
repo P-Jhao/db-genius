@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FileUploader contract fixture</title>
+  </head>
+  <body>
+    <div id="upload-contract-test"></div>
+    <script type="module">
+      import { createApp } from 'vue'
+      import { createPinia } from 'pinia'
+      import ArcoVue from '@arco-design/web-vue'
+      import ArcoVueIcon from '@arco-design/web-vue/es/icon'
+      import '@arco-design/web-vue/dist/arco.css'
+      import FileUploader from '/src/components/chat/FileUploader.vue'
+      import { i18n } from '/src/i18n/index.ts'
+
+      createApp(FileUploader)
+        .use(createPinia())
+        .use(i18n)
+        .use(ArcoVue)
+        .use(ArcoVueIcon)
+        .mount('#upload-contract-test')
+    </script>
+  </body>
+</html>
