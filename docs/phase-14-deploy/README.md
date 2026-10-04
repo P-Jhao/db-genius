@@ -42,6 +42,18 @@ Copy .env.example to a local ignored .env.s14 file and replace all placeholders.
 
 The supported frontend/database families remain enabled. No dedicated live TiDB, Doris, StarRocks, or OceanBase instance was available in this validation window; keep these as implemented, with protocol/adapter evidence separate from real-instance acceptance. Real OSS and OCR services also remain unverified without service credentials; mock or local-storage tests do not prove those external services.
 
+## Server-only Chat JSON capability
+
+`SQLCHAT_MODEL_CHAT_JSON_CAPABILITIES` is an operator-side exact endpoint/model allowlist. Its default JSON string is `[]`, so the capability stays off. Compose passes the value as a string to the shared backend environment; an unset variable defaults to `[]`, while an explicitly empty string remains invalid and is rejected by Settings.
+
+Each JSON array entry must contain exactly `endpoint`, `model`, and `capability`; the supported capability is `chat_json_object`. For an explicitly reviewed official endpoint/model pair:
+
+    SQLCHAT_MODEL_CHAT_JSON_CAPABILITIES='[{"endpoint":"https://api.deepseek.com/v1/chat/completions","model":"deepseek-flash","capability":"chat_json_object"}]'
+
+The endpoint must equal the final completion URL derived from the active model base URL. For this example, the corresponding model base URL is `https://api.deepseek.com/v1` and the model name is exactly `deepseek-flash`. A different path, endpoint, or model does not inherit this entry. The endpoint is a complete HTTP(S) Chat Completions URL without credentials, query, or fragment; duplicate keys and duplicate endpoint/model entries are rejected.
+
+Only matching classification and final-report calls opt into the JSON-object response contract. Ordinary chat and compression keep their existing request behavior. This server-only setting adds no field to the model configuration API or UI and contains no provider key. Keep the allowlist off until the exact pair has been reviewed.
+
 ## Run, upgrade, and rollback
 
 For an isolated local run, copy the env example, set a local storage root, then use the same project name and env file for all commands. Validate config before starting:
