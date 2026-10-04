@@ -3,7 +3,7 @@
 import json
 
 import pytest
-from compare_preflight_helpers import context
+from compare_preflight_helpers import complete_preparation_estimates, context
 from real_model_evidence import tool_results
 from test_compare_graph import answer, call
 from test_compare_risk_guidance import report
@@ -25,6 +25,23 @@ def configure_large_diff(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
     monkeypatch.setattr(get_settings(), "tool_output_per_tool_max_characters",
                         {"compareDatabases": 4000, "readToolOutput": 4000})
     return observed
+
+
+def read_pages(events: list[tuple[str, object, int]]) -> tuple[str, dict[str, object], int]:
+    parsed = tool_results([{"type": kind, "content": content} for kind, content, _ in events])
+    assert parsed[0].name == "compareDatabases"
+    text = ""
+    last: dict[str, object] = {}
+    for item in parsed[1:]:
+        assert item.name == "readToolOutput" and isinstance(item.value, dict)
+        page = item.value
+        assert page["offset"] == len(text) and isinstance(page["content"], str)
+        text += page["content"]
+        assert page["nextOffset"] == len(text) and isinstance(page["totalCharacters"], int)
+        assert isinstance(page["hasMore"], bool) and page["hasMore"] == (len(text) < page["totalCharacters"])
+        last = page
+    assert last
+    return text, last, len(parsed)
 
 
 @pytest.mark.asyncio
@@ -111,16 +128,46 @@ async def test_governance_trigger_thresholds_do_not_reject_preparation_that_fits
 async def test_context_limit_after_all_pages_were_read_reports_capacity_instead_of_unread_pages(
     provider: Provider, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    configure_large_diff(monkeypatch)
+    observed = configure_large_diff(monkeypatch)
+    estimates = await complete_preparation_estimates(provider)
     run, events = context(provider)
-    run.model_stream.usage.contextWindow = 7000
+    # Admit the last page, then stop before the report decision; prompt growth does
+    # not change this case into an earlier stop with unread evidence.
+    window = estimates[-2] + 1
+    run.model_stream.usage.contextWindow = window
     result = await run_graph(run)
     assert "context budget" in result["answer"] and "truncated" not in result["answer"]
     assert "incomplete" not in result["answer"] and provider.requests == []
-    parsed = tool_results([{"type": kind, "content": content} for kind, content, _ in events])
-    page = parsed[-1].value
-    assert parsed[-1].name == "readToolOutput" and isinstance(page, dict) and page["hasMore"] is False
-    assert result["step"] == 6
+    text, page, observations = read_pages(events)
+    assert text == json.dumps(observed, ensure_ascii=False, allow_nan=False)
+    assert page["hasMore"] is False and page["nextOffset"] == page["totalCharacters"]
+    assert result["step"] == observations == len(estimates) == 6
+    assert _estimated_tokens(result["messages"]) == estimates[-1] >= window
+    assert run.model_stream.usage.callCount == 0 and events[-1] == ("summary", result["answer"], 6)
+    assert "no report model reviewed the full evidence" in result["answer"]
+
+
+@pytest.mark.asyncio
+async def test_context_limit_equal_to_penultimate_input_keeps_unread_last_page_truncated(
+    provider: Provider, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed = configure_large_diff(monkeypatch)
+    estimates = await complete_preparation_estimates(provider)
+    run, events = context(provider)
+    window = estimates[-2]
+    run.model_stream.usage.contextWindow = window
+    result = await run_graph(run)
+    text, page, observations = read_pages(events)
+    expected = json.dumps(observed, ensure_ascii=False, allow_nan=False)
+    assert expected.startswith(text) and len(text) < len(expected)
+    end, total = page["nextOffset"], page["totalCharacters"]
+    assert page["hasMore"] is True and isinstance(end, int) and isinstance(total, int) and end < total
+    assert result["step"] == observations == len(estimates) - 1 == 5
+    assert _estimated_tokens(result["messages"]) == window
+    assert "context budget" in result["answer"] and "truncated" in result["answer"]
+    assert "no report model reviewed the full evidence" in result["answer"] and "incomplete" not in result["answer"]
+    assert provider.requests == [] and run.model_stream.usage.callCount == 0
+    assert events[-1] == ("summary", result["answer"], 5)
 
 
 @pytest.mark.asyncio
