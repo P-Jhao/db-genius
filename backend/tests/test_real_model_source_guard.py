@@ -24,11 +24,15 @@ FINAL_REPORT_SOURCES = {
     "backend/app/core/config.py", "backend/app/agent/json_capabilities.py",
     "backend/app/agent/json_shape_diagnostics.py",
 }
+SUPPLEMENTAL_SOURCES = {
+    "backend/tests/real_model_import_structure.py", "backend/tests/real_model_supplemental_import_group.py",
+    "backend/tests/real_model_supplemental_effects.py", "scripts/acceptance/supplemental_effects.py",
+}
 IMAGE = "sha256:" + "a" * 64
 
 
 def test_source_binding_covers_final_report_and_comparison_preflight() -> None:
-    assert FINAL_REPORT_SOURCES.issubset(support.SOURCE_FILES)
+    assert (FINAL_REPORT_SOURCES | SUPPLEMENTAL_SOURCES).issubset(support.SOURCE_FILES)
     assert len(support.SOURCE_FILES) == len(set(support.SOURCE_FILES))
 
 
@@ -76,7 +80,7 @@ def test_identity_binds_exact_bytes_for_every_source_without_real_commands(
     assert ("sqlchat-s15-java" in containers) == ("java" in variants)
 
 
-@pytest.mark.parametrize("changed_source", sorted(FINAL_REPORT_SOURCES))
+@pytest.mark.parametrize("changed_source", sorted(FINAL_REPORT_SOURCES | SUPPLEMENTAL_SOURCES))
 def test_changed_final_report_source_fails_runtime_guard_and_retains_row_status(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, changed_source: str,
 ) -> None:

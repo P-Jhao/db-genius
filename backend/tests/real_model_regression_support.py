@@ -40,6 +40,8 @@ SOURCE_FILES = (
     "backend/app/agent/protocol_errors.py", "backend/app/core/observability_logging.py",
     "backend/app/core/config.py", "backend/app/agent/json_capabilities.py",
     "backend/app/agent/json_shape_diagnostics.py",
+    "backend/tests/real_model_import_structure.py", "backend/tests/real_model_supplemental_import_group.py",
+    "backend/tests/real_model_supplemental_effects.py", "scripts/acceptance/supplemental_effects.py",
 )
 
 
