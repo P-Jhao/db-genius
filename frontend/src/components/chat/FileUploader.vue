@@ -1,15 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Message } from '@arco-design/web-vue'
 import { useI18n } from 'vue-i18n'
 import { uploadFile } from '../../api/file'
 import type { UploadedFile } from '../../types'
+import { useTrialStore } from '../../stores/trial'
 
 const SUPPORTED_FILE_EXTENSIONS = [
   '.xlsx', '.xls', '.csv', '.docx', '.pdf', '.md',
   '.png', '.jpg', '.jpeg', '.webp', '.bmp',
 ] as const
-const supportedFileExtensions = new Set<string>(SUPPORTED_FILE_EXTENSIONS)
+const EXCEL_FILE_EXTENSIONS = ['.xlsx', '.xls'] as const
+const trialStore = useTrialStore()
+const allowedFileExtensions = computed(() => trialStore.isReady && !trialStore.isTrial
+  ? SUPPORTED_FILE_EXTENSIONS : EXCEL_FILE_EXTENSIONS)
+const supportedFileExtensions = computed(() => new Set<string>(allowedFileExtensions.value))
 const maximumFileSizeBytes = 20 * 1024 * 1024
 
 const { t } = useI18n()
@@ -33,9 +38,9 @@ async function handleUpload(event: Event) {
 
   const extensionSeparator = file.name.lastIndexOf('.')
   const extension = extensionSeparator < 0 ? '' : file.name.slice(extensionSeparator).toLowerCase()
-  if (!supportedFileExtensions.has(extension)) {
+  if (!supportedFileExtensions.value.has(extension)) {
     Message.warning(t('chat.uploader.unsupportedType', {
-      extensions: SUPPORTED_FILE_EXTENSIONS.join(', '),
+      extensions: allowedFileExtensions.value.join(', '),
     }))
     input.value = ''
     return
@@ -113,7 +118,7 @@ function formatSize(bytes: number | null): string {
       <input
         ref="fileInput"
         type="file"
-        :accept="SUPPORTED_FILE_EXTENSIONS.join(',')"
+        :accept="allowedFileExtensions.join(',')"
         @change="handleUpload"
       />
       <a-button size="small" :loading="uploading" :disabled="uploading" @click="triggerUpload">

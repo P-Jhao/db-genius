@@ -4,6 +4,7 @@ from uuid import uuid4
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.errors import BusinessError
 from app.models import UploadedFile
@@ -39,9 +40,12 @@ def _upload_bytes(file: UploadFile) -> bytes:
 def upload_file(session: Session, user_id: int, file: UploadFile) -> UploadedFile:
     filename = file.filename
     extension = _extension(filename)
-    if extension not in DOC_EXTENSIONS | IMAGE_EXTENSIONS:
+    trial_enabled = get_settings().trial_enabled
+    allowed_documents = frozenset({"xlsx", "xls"}) if trial_enabled else DOC_EXTENSIONS
+    allowed_images = frozenset() if trial_enabled else IMAGE_EXTENSIONS
+    if extension not in allowed_documents | allowed_images:
         raise BusinessError(400, "error.file.typeNotAllowed", 200,
-                            ", ".join(sorted(DOC_EXTENSIONS)), ", ".join(sorted(IMAGE_EXTENSIONS)))
+                            ", ".join(sorted(allowed_documents)), ", ".join(sorted(allowed_images)))
     if filename is None or len(filename) > 256 or any(char in filename for char in "\x00\r\n/\\"):
         raise BusinessError(400, "Invalid upload filename")
     data = _upload_bytes(file)

@@ -2,7 +2,6 @@ from collections.abc import Iterator
 from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
-from types import SimpleNamespace
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
@@ -15,7 +14,6 @@ from sqlalchemy.pool import StaticPool
 from app import main
 from app.api import auth as api_auth
 from app.core import auth as core_auth
-from app.core import errors
 from app.core.auth import utc_now
 from app.core.config import Settings
 from app.core.database import Base
@@ -44,6 +42,7 @@ def app_client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[tupl
         session.commit()
     monkeypatch.setattr(core_auth, "SessionLocal", factory)
     monkeypatch.setattr(file_upload, "SessionLocal", factory)
+    monkeypatch.setattr(file_upload, "get_settings", lambda: Settings(trial_enabled=False))
     monkeypatch.setattr(backend, "get_settings",
                         lambda: Settings(storage_backend="local", storage_root=str(tmp_path / "uploads")))
 
@@ -159,11 +158,13 @@ def test_high_expansion_office_upload_is_rejected_before_decompression(
         assert session.query(UploadedFile).count() == 0
 
 
+@pytest.mark.parametrize("extension", ["xlsx", "xls"])
 def test_trial_upload_is_owned_and_unconfigured_oss_fails_explicitly(
     app_client: tuple[TestClient, sessionmaker[Session]], monkeypatch: pytest.MonkeyPatch,
+    extension: str,
 ) -> None:
     client, _ = app_client
-    monkeypatch.setattr(errors, "get_settings", lambda: SimpleNamespace(trial_enabled=True))
+    monkeypatch.setattr(file_upload, "get_settings", lambda: Settings(trial_enabled=True))
     workbook = Workbook()
     sheet = workbook.active
     assert sheet is not None
@@ -171,18 +172,41 @@ def test_trial_upload_is_owned_and_unconfigured_oss_fails_explicitly(
     sheet.append([1, "Alice"])
     stream = BytesIO()
     workbook.save(stream)
-    payload = stream.getvalue()
-    result = _upload(client, "sample.xlsx", payload)
+    payload = (stream.getvalue() if extension == "xlsx" else
+               (Path(__file__).parent / "fixtures" / "s10_sample.xls").read_bytes())
+    result = _upload(client, f"sample.{extension}", payload)
     assert result.json()["code"] == 200
     record, content = file_upload.read_owned_bytes(1, result.json()["data"]["id"])
-    assert record.original_name == "sample.xlsx" and content == payload
+    assert record.original_name == f"sample.{extension}" and content == payload
     with pytest.raises(BusinessError) as denied:
         file_upload.read_owned_bytes(2, record.id)
     assert denied.value.code == 403
     monkeypatch.setattr(backend, "get_settings", lambda: Settings(storage_backend="oss"))
-    result = _upload(client, "a.csv", b"a,b\n")
+    result = _upload(client, f"sample.{extension}", payload)
     assert result.json()["code"] == 500
     assert "configured" in result.json()["message"]
+
+
+@pytest.mark.parametrize("extension", ["csv", "pdf", "png", "jpg", "jpeg", "webp", "bmp", "docx", "md"])
+def test_trial_rejects_non_excel_before_read_storage_or_metadata(
+    app_client: tuple[TestClient, sessionmaker[Session]], monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, extension: str,
+) -> None:
+    client, factory = app_client
+    monkeypatch.setattr(file_upload, "get_settings", lambda: Settings(trial_enabled=True))
+
+    def forbidden_side_effect(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("Rejected file must not reach payload reading or storage")
+
+    monkeypatch.setattr(file_upload, "_upload_bytes", forbidden_side_effect)
+    monkeypatch.setattr(file_upload, "get_storage", forbidden_side_effect)
+    result = _upload(client, f"sample.{extension}", b"non-excel data")
+    assert result.status_code == 200
+    assert result.json()["code"] == 400
+    assert "xls, xlsx" in result.json()["message"]
+    with factory() as session:
+        assert session.query(UploadedFile).count() == 0
+    assert not (tmp_path / "uploads").exists()
 
 
 def test_local_storage_blocks_escape_and_symlink(tmp_path: Path) -> None:

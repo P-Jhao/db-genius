@@ -35,8 +35,10 @@ test('upload stays available while unknown and trial statuses retain other restr
         if (pathname === '/api/file/upload') {
           assert.equal(request.method(), 'POST')
           assert.match(request.headers()['content-type'], /^multipart\/form-data; boundary=/)
-          assert.match(request.postData() ?? '', /name="file"; filename="sample.xlsx"/)
-          data = { id: 41, originalName: 'sample.xlsx', fileSize: 6,
+          const uploadedName = (request.postData() ?? '').match(/name="file"; filename="([^"]+)"/)?.[1]
+          assert.ok(['sample.xlsx', 'sample.xls', 'formal.csv'].includes(uploadedName))
+          data = { id: 41 + apiCalls.filter(({ pathname }) => pathname === '/api/file/upload').length,
+            originalName: uploadedName, fileSize: 6,
             contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             createdAt: '2026-10-05T10:00:00' }
         } else if (pathname === '/api/db-config') {
@@ -67,6 +69,13 @@ test('upload stays available while unknown and trial statuses retain other restr
     await navigate('/admin/chat')
     await page.locator('.chat-page').waitFor()
     assert.equal(await page.locator('.file-uploader').count(), 1, 'upload is available independently of trial status')
+    const uploadInput = page.locator('.file-uploader input[type="file"]')
+    assert.equal(await uploadInput.getAttribute('accept'), '.xlsx,.xls')
+    await Promise.all([
+      page.getByText('Supported formats: .xlsx, .xls', { exact: true }).waitFor(),
+      uploadInput.setInputFiles({ name: 'unknown.csv', mimeType: 'text/csv', buffer: Buffer.from('id\n1') }),
+    ])
+    assert.equal(apiCalls.filter(({ pathname }) => pathname === '/api/file/upload').length, 0)
     assert.equal(await page.getByRole('button', { name: 'Compare', exact: true }).count(), 0,
       'unknown status must not expose database comparison')
 
@@ -89,6 +98,12 @@ test('upload stays available while unknown and trial statuses retain other restr
     assert.equal(await modelPage.locator('.page-header button').count(), 0, 'trial model page must not offer create')
 
     assert.equal(await page.locator('.file-uploader').count(), 1, 'trial mode retains upload')
+    assert.equal(await uploadInput.getAttribute('accept'), '.xlsx,.xls')
+    await Promise.all([
+      page.getByText('Supported formats: .xlsx, .xls', { exact: true }).waitFor(),
+      uploadInput.setInputFiles({ name: 'trial.pdf', mimeType: 'application/pdf', buffer: Buffer.from('sample') }),
+    ])
+    assert.equal(apiCalls.filter(({ pathname }) => pathname === '/api/file/upload').length, 0)
     await page.locator('.file-uploader input[type="file"]').setInputFiles({
       name: 'sample.xlsx',
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -97,11 +112,23 @@ test('upload stays available while unknown and trial statuses retain other restr
     await page.locator('.file-list').getByText('sample.xlsx', { exact: false }).waitFor()
     assert.equal(apiCalls.filter(({ pathname }) => pathname === '/api/file/upload').length, 1,
       'trial chat upload reaches the existing API')
+    await uploadInput.setInputFiles({ name: 'sample.xls', mimeType: 'application/vnd.ms-excel', buffer: Buffer.from('sample') })
+    await page.locator('.file-list').getByText('sample.xls', { exact: false }).waitFor()
+    assert.equal(apiCalls.filter(({ pathname }) => pathname === '/api/file/upload').length, 2)
     assert.equal(await page.getByRole('button', { name: 'Compare', exact: true }).count(), 0,
       'trial mode must hide comparison')
     assert.equal(apiCalls.some(({ method, pathname }) => method !== 'GET' &&
       /\/(db-config|model-config\/configs|model-config\/context-window\/lookup)(\/|$)/.test(pathname)), false,
     'other restricted mutation and lookup calls remain blocked')
+    await page.evaluate(async () => {
+      const { useTrialStore } = await import('/src/stores/trial.ts')
+      useTrialStore().trialEnabled = false
+    })
+    assert.equal(await uploadInput.getAttribute('accept'), '.xlsx,.xls,.csv,.docx,.pdf,.md,.png,.jpg,.jpeg,.webp,.bmp')
+    await uploadInput.setInputFiles({ name: 'formal.csv', mimeType: 'text/csv', buffer: Buffer.from('id\n1') })
+    await page.locator('.file-list').getByText('formal.csv', { exact: false }).waitFor()
+    assert.equal(apiCalls.filter(({ pathname }) => pathname === '/api/file/upload').length, 3,
+      'resolved formal mode restores CSV uploads')
   } finally {
     await stopS13Frontend(vite, browser)
   }

@@ -14,9 +14,13 @@
       import '@arco-design/web-vue/dist/arco.css'
       import FileUploader from '/src/components/chat/FileUploader.vue'
       import { i18n } from '/src/i18n/index.ts'
+      import { useTrialStore } from '/src/stores/trial.ts'
+
+      const pinia = createPinia()
+      useTrialStore(pinia).trialEnabled = false
 
       createApp(FileUploader)
-        .use(createPinia())
+        .use(pinia)
         .use(i18n)
         .use(ArcoVue)
         .use(ArcoVueIcon)
