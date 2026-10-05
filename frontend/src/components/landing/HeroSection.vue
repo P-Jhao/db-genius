@@ -49,7 +49,7 @@ function fallbackImg(e: Event) {
         <figure class="browser-frame">
           <div class="browser-bar" aria-hidden="true">
             <span class="dot red" /><span class="dot yellow" /><span class="dot green" />
-            <span class="browser-url">db-genius.com/admin/chat</span>
+            <span class="browser-url">db-genius.pjhao.xyz/admin/chat</span>
           </div>
           <img
             :src="heroImg"
