@@ -68,6 +68,45 @@ x-backend-environment: &backend-environment
   SQLCHAT_OTLP_SAMPLE_RATE: ${SQLCHAT_OTLP_SAMPLE_RATE:-0.1}
 
 services:
+  trial-mysql:
+    image: mysql:8.4
+    profiles: [trial-demo]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${SQLCHAT_TRIAL_MYSQL_ROOT_PASSWORD:-}
+      MYSQL_ROOT_HOST: localhost
+      MYSQL_INITDB_SKIP_TZINFO: "1"
+      TRIAL_DATABASE: ${SQLCHAT_TRIAL_BUILTIN_DB_NAME:-db-genius}
+      TRIAL_USERNAME: ${SQLCHAT_TRIAL_BUILTIN_USERNAME:-}
+      TRIAL_PASSWORD: ${SQLCHAT_TRIAL_BUILTIN_PASSWORD:-}
+    command:
+      - --innodb-buffer-pool-size=32M
+      - --innodb-log-buffer-size=8M
+      - --performance-schema=OFF
+      - --max-connections=12
+      - --table-open-cache=128
+      - --table-definition-cache=400
+      - --thread-cache-size=2
+      - --tmp-table-size=4M
+      - --max-heap-table-size=4M
+      - --key-buffer-size=4M
+      - --skip-log-bin
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.50
+    volumes:
+      - trial_mysql_data:/var/lib/mysql
+      - ./trial-mysql/10-demo.sh:/docker-entrypoint-initdb.d/10-demo.sh:ro
+      - ./trial-mysql/demo.sql:/opt/sqlchat-demo.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$${TRIAL_PASSWORD}\" mysql --protocol=TCP -h 127.0.0.1 -u \"$${TRIAL_USERNAME}\" -D \"$${TRIAL_DATABASE}\" -Nse 'SELECT COUNT(*) = 10 FROM orders' | grep -qx 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+    logging: *bounded-logging
+    networks: [backend]
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -206,6 +245,7 @@ services:
         aliases: [sqlchat-frontend]
 
 volumes:
+  trial_mysql_data:
   postgres_data:
   rabbitmq_data:
   uploads_data:

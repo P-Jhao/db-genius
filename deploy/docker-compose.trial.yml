@@ -1,0 +1,10 @@
+# Used by deploy-on-server.sh only for the local trial-demo profile.
+services:
+  api:
+    depends_on:
+      trial-mysql:
+        condition: service_healthy
+  worker:
+    depends_on:
+      trial-mysql:
+        condition: service_healthy

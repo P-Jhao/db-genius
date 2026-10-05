@@ -110,6 +110,10 @@ jobs:
           [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]
           test -f deploy/docker-compose.prod.yml
           test -f deploy/deploy-on-server.sh
+          test -f deploy/trial-mode.py
+          test -f deploy/docker-compose.trial.yml
+          test -f deploy/trial-mysql/10-demo.sh
+          test -f deploy/trial-mysql/demo.sql
 
           umask 077
           ssh_directory=$(mktemp -d "$RUNNER_TEMP/sqlchat-ssh.XXXXXX")
@@ -131,10 +135,13 @@ jobs:
           )
           target="$ECS_USER@$ECS_HOST"
           ssh "${ssh_options[@]}" -p "$ecs_port" "$target" \
-            'set -eu; install -d -m 700 "$HOME/sqlchat-deploy"; test -f "$HOME/sqlchat-deploy/.env.production"'
+            'set -eu; install -d -m 700 "$HOME/sqlchat-deploy" "$HOME/sqlchat-deploy/trial-mysql"; test -f "$HOME/sqlchat-deploy/.env.production"'
           scp "${ssh_options[@]}" -P "$ecs_port" \
-            deploy/docker-compose.prod.yml deploy/deploy-on-server.sh \
+            deploy/docker-compose.prod.yml deploy/deploy-on-server.sh deploy/trial-mode.py deploy/docker-compose.trial.yml \
             "$target:sqlchat-deploy/"
+          scp "${ssh_options[@]}" -P "$ecs_port" \
+            deploy/trial-mysql/10-demo.sh deploy/trial-mysql/demo.sql \
+            "$target:sqlchat-deploy/trial-mysql/"
 
           # This is static shell source. Credentials are sent only on SSH stdin.
           # Keep this heredoc free of single quotes for the remote bash -c wrapper.

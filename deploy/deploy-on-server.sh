@@ -12,7 +12,7 @@ readonly env_file="${deploy_dir}/.env.production"
 readonly compose_file="${deploy_dir}/docker-compose.prod.yml"
 export SQLCHAT_IMAGE_TAG="$1"
 
-for executable in docker curl gzip flock; do
+for executable in docker curl gzip flock python3; do
     command -v "$executable" >/dev/null || { echo "Missing executable: $executable" >&2; exit 1; }
 done
 [[ -f "$env_file" && -f "$compose_file" ]] || {
@@ -31,6 +31,16 @@ flock -n 9 || { echo 'Another SQLChat deployment is running.' >&2; exit 1; }
 compose=(docker compose -p sqlchat-prod -f "$compose_file" --env-file "$env_file")
 "${compose[@]}" version >/dev/null
 "${compose[@]}" config --quiet
+# Compose parses dotenv values; never source the operator's configuration as shell code.
+[[ -f "${deploy_dir}/trial-mode.py" ]] || { echo 'Missing trial-mode.py' >&2; exit 1; }
+trial_mode=$("${compose[@]}" --profile trial-demo config --format json | python3 "${deploy_dir}/trial-mode.py")
+if [[ "$trial_mode" == local ]]; then
+    for asset in docker-compose.trial.yml trial-mysql/10-demo.sh trial-mysql/demo.sql; do
+        [[ -f "${deploy_dir}/$asset" ]] || { echo "Missing deployment asset: $asset" >&2; exit 1; }
+    done
+    compose+=(-f "${deploy_dir}/docker-compose.trial.yml" --profile trial-demo)
+    "${compose[@]}" config --quiet
+fi
 
 deployment_failed() {
     local exit_code=$?
@@ -81,8 +91,27 @@ if ! docker network inspect --format '{{.Name}}' promptforge_promptforge >/dev/n
     echo 'Required external network promptforge_promptforge is missing or inaccessible; SQLChat services have not been stopped.' >&2
     exit 1
 fi
+# Cold-start the capped demo database before interrupting the current application.
+# Failure must leave the old frontend/API/Worker running. Only stop a newly created
+# demo container on failure; never remove its volume or stop an existing demo here.
+if [[ "$trial_mode" == local ]]; then
+    existing_demo=$("${compose[@]}" ps --all -q trial-mysql)
+    if ! "${compose[@]}" up -d --no-build --no-deps trial-mysql || ! wait_healthy trial-mysql; then
+        echo 'Demo MySQL failed pre-maintenance; existing application services have not been stopped.' >&2
+        if [[ -z "$existing_demo" ]]; then
+            "${compose[@]}" stop -t 60 trial-mysql
+        fi
+        exit 1
+    fi
+fi
 echo 'Entering maintenance: active requests/tasks may be interrupted; API/Worker get 180 seconds to stop.'
 "${compose[@]}" stop -t 180 frontend api worker
+
+# Profile changes do not stop already-created services automatically. Retain the volume.
+if [[ "$trial_mode" != local ]]; then
+    docker compose -p sqlchat-prod -f "$compose_file" --env-file "$env_file" \
+        --profile trial-demo stop -t 60 trial-mysql
+fi
 
 if [[ -n "$existing_postgres" ]]; then
     # Start the existing container, preserving its original image and configured credentials.
@@ -115,6 +144,11 @@ verify_one_shot metrics-init
 
 # docker exec does not inherit URLs constructed in the entrypoint process.
 "${compose[@]}" exec -T api python deploy/connection_env.py python -m app.services.bootstrap
+if [[ "$trial_mode" != off ]]; then
+    # On a fresh install the API lifespan ran before the bootstrap account existed.
+    "${compose[@]}" exec -T api python deploy/connection_env.py python -c \
+        'from app.core.database import SessionLocal; from app.services.db_config_init import initialize_trial_database; session = SessionLocal(); initialize_trial_database(session); session.close()'
+fi
 "${compose[@]}" exec -T frontend sh -c 'wget -q -O /dev/null http://127.0.0.1/api/health/ready'
 published_address=$("${compose[@]}" port frontend 80)
 [[ "$published_address" =~ ^127\.0\.0\.1:[0-9]+$ ]] || {
