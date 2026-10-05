@@ -30,6 +30,7 @@ export default {
     success: 'Muat naik berjaya',
     failed: 'Muat naik gagal',
     button: 'Muat Naik Fail',
+    excelButton: 'Muat Naik Excel',
   },
   message: {
     me: 'Saya',

@@ -30,6 +30,7 @@ export default {
     success: '上傳成功',
     failed: '上傳失敗',
     button: '上傳檔案',
+    excelButton: '上傳Excel',
   },
   message: {
     me: '我',

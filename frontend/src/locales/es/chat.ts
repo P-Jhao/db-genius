@@ -30,6 +30,7 @@ export default {
     success: 'Subida completada',
     failed: 'Error al subir',
     button: 'Subir archivo',
+    excelButton: 'Subir Excel',
   },
   message: {
     me: 'Yo',

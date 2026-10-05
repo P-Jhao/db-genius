@@ -30,6 +30,7 @@ export default {
     success: 'Téléversement réussi',
     failed: 'Échec du téléversement',
     button: 'Téléverser un fichier',
+    excelButton: 'Téléverser Excel',
   },
   message: {
     me: 'Moi',

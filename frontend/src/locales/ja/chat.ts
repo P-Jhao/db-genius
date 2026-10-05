@@ -30,6 +30,7 @@ export default {
     success: 'アップロードに成功しました',
     failed: 'アップロードに失敗しました',
     button: 'ファイルをアップロード',
+    excelButton: 'Excelをアップロード',
   },
   message: {
     me: '自分',

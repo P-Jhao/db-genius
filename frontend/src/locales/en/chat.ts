@@ -30,6 +30,7 @@ export default {
     success: 'Upload successful',
     failed: 'Upload failed',
     button: 'Upload file',
+    excelButton: 'Upload Excel',
   },
   message: {
     me: 'Me',

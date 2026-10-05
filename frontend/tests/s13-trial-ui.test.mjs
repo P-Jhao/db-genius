@@ -71,6 +71,7 @@ test('upload stays available while unknown and trial statuses retain other restr
     assert.equal(await page.locator('.file-uploader').count(), 1, 'upload is available independently of trial status')
     const uploadInput = page.locator('.file-uploader input[type="file"]')
     assert.equal(await uploadInput.getAttribute('accept'), '.xlsx,.xls')
+    assert.equal(await page.locator('.file-uploader').getByRole('button', { name: 'Upload Excel', exact: true }).count(), 1)
     await Promise.all([
       page.getByText('Supported formats: .xlsx, .xls', { exact: true }).waitFor(),
       uploadInput.setInputFiles({ name: 'unknown.csv', mimeType: 'text/csv', buffer: Buffer.from('id\n1') }),
@@ -99,6 +100,7 @@ test('upload stays available while unknown and trial statuses retain other restr
 
     assert.equal(await page.locator('.file-uploader').count(), 1, 'trial mode retains upload')
     assert.equal(await uploadInput.getAttribute('accept'), '.xlsx,.xls')
+    assert.equal(await page.locator('.file-uploader').getByRole('button', { name: 'Upload Excel', exact: true }).count(), 1)
     await Promise.all([
       page.getByText('Supported formats: .xlsx, .xls', { exact: true }).waitFor(),
       uploadInput.setInputFiles({ name: 'trial.pdf', mimeType: 'application/pdf', buffer: Buffer.from('sample') }),
@@ -125,6 +127,7 @@ test('upload stays available while unknown and trial statuses retain other restr
       useTrialStore().trialEnabled = false
     })
     assert.equal(await uploadInput.getAttribute('accept'), '.xlsx,.xls,.csv,.docx,.pdf,.md,.png,.jpg,.jpeg,.webp,.bmp')
+    assert.equal(await page.locator('.file-uploader').getByRole('button', { name: 'Upload file', exact: true }).count(), 1)
     await uploadInput.setInputFiles({ name: 'formal.csv', mimeType: 'text/csv', buffer: Buffer.from('id\n1') })
     await page.locator('.file-list').getByText('formal.csv', { exact: false }).waitFor()
     assert.equal(apiCalls.filter(({ pathname }) => pathname === '/api/file/upload').length, 3,

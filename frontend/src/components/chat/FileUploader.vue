@@ -12,8 +12,11 @@ const SUPPORTED_FILE_EXTENSIONS = [
 ] as const
 const EXCEL_FILE_EXTENSIONS = ['.xlsx', '.xls'] as const
 const trialStore = useTrialStore()
-const allowedFileExtensions = computed(() => trialStore.isReady && !trialStore.isTrial
+const allowsAllFileTypes = computed(() => trialStore.isReady && !trialStore.isTrial)
+const allowedFileExtensions = computed(() => allowsAllFileTypes.value
   ? SUPPORTED_FILE_EXTENSIONS : EXCEL_FILE_EXTENSIONS)
+const uploadButtonKey = computed(() => allowsAllFileTypes.value
+  ? 'chat.uploader.button' : 'chat.uploader.excelButton')
 const supportedFileExtensions = computed(() => new Set<string>(allowedFileExtensions.value))
 const maximumFileSizeBytes = 20 * 1024 * 1024
 
@@ -123,7 +126,7 @@ function formatSize(bytes: number | null): string {
       />
       <a-button size="small" :loading="uploading" :disabled="uploading" @click="triggerUpload">
         <template #icon><icon-plus /></template>
-        {{ $t('chat.uploader.button') }}
+        {{ $t(uploadButtonKey) }}
       </a-button>
     </div>
   </div>
