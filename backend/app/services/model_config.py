@@ -189,7 +189,9 @@ def resolve_active_model(session: Session, user_id: int) -> ResolvedModel:
         id=None, provider_code="system", provider_type="openai_compatible",
         display_name="系统默认", base_url=settings.default_model_base_url,
         api_key=SecretStr(settings.default_model_api_key), model_name=settings.default_model_name,
-        context_window=known_context_window(settings.default_model_name),
+        context_window=(settings.default_model_context_window
+                        if settings.default_model_context_window is not None
+                        else known_context_window(settings.default_model_name)),
         is_default=True, status=1, created_at=None,
     )
 

@@ -35,6 +35,7 @@ class Settings(BaseSettings):
         default="", validation_alias=AliasChoices("SQLCHAT_DEFAULT_MODEL_API_KEY", "DEEPSEEK_API_KEY")
     )
     default_model_name: str = "deepseek-flash"
+    default_model_context_window: int | None = Field(default=None, gt=0)
     model_chat_json_capabilities: Annotated[tuple[ChatJsonCapabilityRule, ...], NoDecode] = ()
     trial_enabled: bool = False
     trial_builtin_db_name: str = "db-genius"
@@ -86,6 +87,17 @@ class Settings(BaseSettings):
         if value and not Path(value).is_absolute():
             raise ValueError("Shared metric root must be an absolute path")
         return value
+
+    @field_validator("default_model_context_window", mode="before")
+    @classmethod
+    def optional_model_context_window(cls, value: object) -> int | None:
+        if value is None or value == "":
+            return None
+        if isinstance(value, str) and re.fullmatch(r"[0-9]+", value) is not None:
+            return int(value)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+        raise ValueError("Default model context window must be a positive integer or empty")
 
     @field_validator("model_chat_json_capabilities", mode="before")
     @classmethod

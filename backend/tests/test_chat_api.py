@@ -14,10 +14,12 @@ from test_model_protocol import Provider, frame
 
 from app.api.auth import database_session
 from app.core.auth import current_user
+from app.core.config import Settings
 from app.core.database import Base
 from app.main import app
 from app.models import DbConfig, User
 from app.services import chat_store, database_tools, model_config
+from app.services.model_config import resolve_active_model
 
 
 @pytest.fixture
@@ -162,3 +164,34 @@ def test_tool_internal_error_is_not_exposed(chat_client: tuple[object, User, Use
     conversation_id = stream_events[0]["content"]
     history = client.get(f"/api/chat/conversations/{conversation_id}/messages").json()["data"]
     assert "secret-driver-diagnostic" not in json.dumps(history)
+
+
+def test_builtin_window_matches_active_response_sse_and_governance(
+    chat_client: tuple[object, User, User, DbConfig], provider: Provider, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.api import chat
+
+    client, _user, _second, _foreign = chat_client
+    assert isinstance(client, TestClient)
+    host, port = provider.server_address
+    monkeypatch.setenv("SQLCHAT_DEFAULT_MODEL_API_KEY", "synthetic-key")
+    settings = Settings(_env_file=None, default_model_base_url=f"http://{host}:{port}",
+                        default_model_context_window=16384)
+    monkeypatch.setattr(model_config, "get_settings", lambda: settings)
+    monkeypatch.setattr(model_config, "resolve_active_model", resolve_active_model)
+    original_graph = chat.run_graph
+    observed_windows: list[int | None] = []
+
+    async def observe_graph(context: chat.RunContext):
+        observed_windows.append(context.model_stream.usage.contextWindow)
+        return await original_graph(context)
+
+    monkeypatch.setattr(chat, "run_graph", observe_graph)
+    active = client.get("/api/model-config/active").json()["data"]
+    assert active["id"] is None and active["contextWindow"] == 16384
+    provider.replies = [reply("Configured window answer.")]
+    response = client.post("/api/chat", json={"message": "hello", "confirmedIntent": "simple_chat"})
+    events = parse_events(response.text)
+    assert events[-1]["type"] == "done"
+    assert events[-2]["content"]["contextWindow"] == active["contextWindow"]
+    assert observed_windows == [active["contextWindow"]]
