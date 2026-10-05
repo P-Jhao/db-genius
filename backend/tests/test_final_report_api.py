@@ -6,6 +6,7 @@ import logging
 import threading
 
 import pytest
+from task_goal_fixtures import goal_reply
 from test_model_parameters import tool_reply
 from test_model_protocol import Provider, frame, model
 
@@ -14,6 +15,7 @@ from app.agent.types import ChatRequest, Usage
 from app.api import chat
 from app.core.config import get_settings
 from app.services import chat_store, database_tools
+from app.services.chat_records import ReplayRecord
 
 pytest_plugins = ["test_model_protocol"]
 
@@ -46,7 +48,8 @@ async def test_api_terminal_preserves_one_write_and_original_public_events(
         return {"success": True, "affectedRows": 1}
 
     def finalize(_user: int, _conversation: int, _task: str, usage: Usage,
-                 status: str, content: str, kind: str, details: dict[str, object]) -> bool:
+                 status: str, content: str, kind: str, details: dict[str, object],
+                 records: list[ReplayRecord] | None = None) -> bool:
         finalized.append((status, content, kind, details, usage))
         return True
 
@@ -56,7 +59,7 @@ async def test_api_terminal_preserves_one_write_and_original_public_events(
     monkeypatch.setattr(chat_store, "save", lambda *_args: None)
     monkeypatch.setattr(chat_store, "set_intent", lambda *_args: None)
     monkeypatch.setattr(chat_store, "finalize_run", finalize)
-    provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": "INSERT INTO t VALUES (1)"}),
+    provider.replies = [goal_reply(), tool_reply("executeSql", {"db_id": 12, "statement": "INSERT INTO t VALUES (1)"}),
                         tool_reply("doTerminate", {"reason": "done"}), final_reply(wire, reason)]
     queue: asyncio.Queue[bytes | None] = asyncio.Queue()
     with caplog.at_level(logging.INFO, logger="app.agent.streaming"):
@@ -67,10 +70,10 @@ async def test_api_terminal_preserves_one_write_and_original_public_events(
     while (packet := await queue.get()) is not None:
         events.append(json.loads(packet.decode().removeprefix("data: ")))
     kinds = [event["type"] for event in events]
-    assert statements == ["INSERT INTO t VALUES (1)"] and len(provider.requests) == 3
+    assert statements == ["INSERT INTO t VALUES (1)"] and len(provider.requests) == 4
     assert len(finalized) == 1 and finalized[0][0] == expected
     assert finalized[0][3] == {"completedWriteCount": 1}
-    assert finalized[0][4].callCount == 3 and finalized[0][4].totalTokens == 18
+    assert finalized[0][4].callCount == 4 and finalized[0][4].totalTokens == 24
     assert kinds.count("usage") == kinds.count("done") == 1 and kinds[-1] == "done"
     assert "summary_observation" not in kinds
     usage_event = next(event["content"] for event in events if event["type"] == "usage")
@@ -78,7 +81,8 @@ async def test_api_terminal_preserves_one_write_and_original_public_events(
     assert "test-secret-value" not in caplog.text
     assert provider.requests[-1]["messages"][-1]["content"] == REPORT_CONTRACT
     assert all(payload["temperature"] == 0.7 and "response_format" not in payload
-               for payload in provider.requests)
+               for payload in provider.requests[1:])
+    assert provider.requests[0]["thinking"] == {"type": "disabled"}
     if expected == "done":
         text = json.loads(wire)["report"]
         assert [event["content"] for event in events if event["type"] == "summary"] == [text]
@@ -114,7 +118,8 @@ async def test_api_cancellation_keeps_decoded_partial_without_replaying_write(
         return {"success": True, "affectedRows": 1}
 
     def finalize(_user: int, _conversation: int, _task: str, usage: Usage,
-                 status: str, content: str, kind: str, details: dict[str, object]) -> bool:
+                 status: str, content: str, kind: str, details: dict[str, object],
+                 records: list[ReplayRecord] | None = None) -> bool:
         finalized.append((status, content, kind, details, usage))
         return True
 
@@ -125,7 +130,7 @@ async def test_api_cancellation_keeps_decoded_partial_without_replaying_write(
     monkeypatch.setattr(chat_store, "finalize_run", finalize)
     monkeypatch.setattr(chat, "_frame", frame_and_cancel)
     wire = '{"report":"Verified insert. '
-    provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": "INSERT INTO t VALUES (1)"}),
+    provider.replies = [goal_reply(), tool_reply("executeSql", {"db_id": 12, "statement": "INSERT INTO t VALUES (1)"}),
                         tool_reply("doTerminate", {"reason": "done"}), final_reply(wire)]
     queue: asyncio.Queue[bytes | None] = asyncio.Queue()
     await chat._produce(queue, 7, ChatRequest(message="insert", dbConfigIds=[12],
@@ -134,10 +139,10 @@ async def test_api_cancellation_keeps_decoded_partial_without_replaying_write(
     while (packet := await queue.get()) is not None:
         events.append(json.loads(packet.decode().removeprefix("data: ")))
     kinds = [event["type"] for event in events]
-    assert statements == ["INSERT INTO t VALUES (1)"] and len(provider.requests) == 3
+    assert statements == ["INSERT INTO t VALUES (1)"] and len(provider.requests) == 4
     assert len(finalized) == 1 and finalized[0][:3] == ("aborted", "Verified insert. ", "aborted")
     assert finalized[0][3] == {"reason": "cancelled", "completedWriteCount": 1}
-    assert finalized[0][4].callCount == 3 and finalized[0][4].totalTokens == 18
+    assert finalized[0][4].callCount == 4 and finalized[0][4].totalTokens == 24
     assert kinds[-1] == "aborted" and kinds.count("usage") == 1
     assert "summary" not in kinds and "done" not in kinds and "summary_observation" not in kinds
 
@@ -164,7 +169,8 @@ async def test_step_limit_prefix_matches_final_or_is_retained_on_api_cancel(
         return {"success": True, "affectedRows": 1}
 
     def finalize(_user: int, _conversation: int, _task: str, usage: Usage,
-                 status: str, content: str, _kind: str, details: dict[str, object]) -> bool:
+                 status: str, content: str, _kind: str, details: dict[str, object],
+                 records: list[ReplayRecord] | None = None) -> bool:
         finalized.append((status, content, details, usage))
         return True
 
@@ -176,7 +182,7 @@ async def test_step_limit_prefix_matches_final_or_is_retained_on_api_cancel(
     monkeypatch.setattr(chat_store, "set_intent", lambda *_args: None)
     monkeypatch.setattr(chat_store, "finalize_run", finalize)
     monkeypatch.setattr(chat, "_frame", frame_and_cancel)
-    provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": "INSERT INTO t VALUES (1)"}),
+    provider.replies = [goal_reply(), tool_reply("executeSql", {"db_id": 12, "statement": "INSERT INTO t VALUES (1)"}),
                         final_reply(json.dumps({"report": "Verified insert.", "complete": True}))]
     queue: asyncio.Queue[bytes | None] = asyncio.Queue()
     await chat._produce(queue, 7, ChatRequest(message="insert", dbConfigIds=[12],
@@ -189,10 +195,10 @@ async def test_step_limit_prefix_matches_final_or_is_retained_on_api_cancel(
     status, content, details, usage = finalized[0]
     assert details["completedWriteCount"] == 1
     if cancel_on_prefix:
-        assert len(provider.requests) == usage.callCount == 1 and usage.totalTokens == 6
+        assert len(provider.requests) == usage.callCount == 2 and usage.totalTokens == 12
         assert status == "aborted" and deltas == content == prefix
         assert events[-1]["type"] == "aborted" and not any(event["type"] == "summary" for event in events)
     else:
-        assert len(provider.requests) == usage.callCount == 2 and usage.totalTokens == 12
+        assert len(provider.requests) == usage.callCount == 3 and usage.totalTokens == 18
         assert status == "done" and deltas == content == prefix + "Verified insert."
         assert [event["content"] for event in events if event["type"] == "summary"] == [content]

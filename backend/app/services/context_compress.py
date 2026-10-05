@@ -63,7 +63,7 @@ async def _summarize(model: CompatibleChatModel, rows: list[Message],
     })
     messages = [SystemMessage(content=system), HumanMessage(content=prompt)]
     if stream is not None:
-        answer = await stream.call(messages, event=None)
+        answer = await stream.call(messages, event=None, emit_reasoning=False)
         if answer.tool_calls or not isinstance(answer.content, str):
             raise ValueError("Compression model must return text without tools")
         summary = answer.content.strip()

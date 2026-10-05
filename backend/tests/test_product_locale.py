@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from fastapi.testclient import TestClient
+from task_goal_fixtures import goal_value
 from test_chat_api import parse_events, reply
 from test_model_protocol import Provider
 
@@ -30,7 +31,9 @@ def test_trial_errors_and_clarification_keep_request_locale(
     assert provider.requests == []
     monkeypatch.setattr(get_settings(), "trial_enabled", False)
     provider.replies = [reply(json.dumps({"intent": "sql_query", "confidence": 0.99,
-        "reasoning": "reason in " + locale, "needsClarification": False}))]
+        "reasoning": "reason in " + locale, "needsClarification": False,
+        "taskGoal": {**goal_value([], clarify=True),
+                     "reasoning": translate("error.chat.sqlQueryNoDbConfig", locale)}}))]
     response = client.post("/api/chat", headers={"Accept-Language": locale}, json={"message": "query"})
     events = parse_events(response.text)
     clarification = next(event["content"] for event in events if event["type"] == "clarify")
@@ -58,7 +61,7 @@ def test_low_confidence_classified_trial_intent_is_still_rejected(
     client, _, _, _ = chat_client
     monkeypatch.setattr(get_settings(), "trial_enabled", True)
     provider.replies = [reply(json.dumps({"intent": intent, "confidence": 0.2,
-                                         "reasoning": "uncertain", "needsClarification": True}))]
+                                         "reasoning": "uncertain", "needsClarification": True, "taskGoal": None}))]
     events = parse_events(client.post("/api/chat", headers={"Accept-Language": "ja"},
                                      json={"message": "run"}).text)
     assert [event["type"] for event in events][-3:] == ["usage", "error", "done"]

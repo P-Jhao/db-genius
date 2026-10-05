@@ -6,6 +6,7 @@ from collections.abc import Iterator
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from task_goal_fixtures import goal_reply, goal_value
 from test_model_protocol import Provider, frame, model
 
 from app.agent.final_report import REPORT_CONTRACT
@@ -35,7 +36,8 @@ def answer(content: str) -> list[bytes]:
 
 def classify(intent: str, clarify: bool) -> list[bytes]:
     return answer(json.dumps({"intent": intent, "confidence": 0.98,
-                              "reasoning": "Task details reviewed", "needsClarification": clarify}))
+                              "reasoning": "Task details reviewed", "needsClarification": clarify,
+                              "taskGoal": goal_value() if intent == "sql_query" else None}))
 
 
 def call(name: str, args: dict[str, object]) -> list[bytes]:
@@ -185,9 +187,9 @@ async def test_confirmed_intent_still_enforces_selected_database(
     provider: Provider, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(database_tools, "get_schema", lambda _user, _db: {"tables": []})
-    provider.replies = [call("executeSql", {"db_id": 99, "statement": "SELECT 1"})]
+    provider.replies = [goal_reply(), call("executeSql", {"db_id": 99, "statement": "SELECT 1"})]
     request = ChatRequest.model_validate({"message": "Read the selected database", "dbConfigIds": [12],
                                           "confirmedIntent": "sql_query"})
     with pytest.raises(BusinessError, match="not selected"):
         await run(provider, request, "en")
-    assert len(provider.requests) == 1
+    assert len(provider.requests) == 2

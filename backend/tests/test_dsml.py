@@ -7,6 +7,7 @@ from collections.abc import Iterator
 import pytest
 from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_core.tools import BaseTool
+from task_goal_fixtures import goal_reply
 from test_model_protocol import Provider, frame, model
 
 from app.agent.dsml import AllowedTool, StructuredCall, parse, reconcile, strip
@@ -248,6 +249,7 @@ async def test_graph_executes_recovered_legacy_call_once_and_checks_selection(
         pass
 
     provider.replies = [_reply(_sql_text()), _reply("one row")]
+    provider.replies.insert(0, goal_reply())
     request = ChatRequest.model_validate({"message": "query", "confirmedIntent": "sql_query", "dbConfigIds": [12]})
     context = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
                          RunTools(7, request), emit)
@@ -259,12 +261,14 @@ async def test_graph_executes_recovered_legacy_call_once_and_checks_selection(
         "name": "executeSql", "arguments": '{"db_id":12,"statement":"SELECT 1"}',
     }}
     provider.replies = [_reply(_sql_text(), calls=[structured]), _reply("one row")]
+    provider.replies.insert(0, goal_reply())
     duplicate = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
                            RunTools(7, request), emit)
     assert (await run_graph(duplicate))["answer"] == "one row"
     assert executions == [(7, 12, "SELECT 1"), (7, 12, "SELECT 1")]
 
     provider.replies = [_reply(_sql_text(db_id="13"))]
+    provider.replies.insert(0, goal_reply())
     unauthorized = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
                               RunTools(7, request), emit)
     with pytest.raises(BusinessError, match="not selected"):

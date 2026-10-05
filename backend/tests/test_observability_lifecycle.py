@@ -15,6 +15,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.types import Message, Receive, Scope, Send
+from task_goal_fixtures import goal_reply
 from test_db_config_partial import metadata
 from test_model_protocol import Provider, frame
 
@@ -92,7 +93,7 @@ def test_http_model_tool_persistence_parent_chain(
     adapter.extract_metadata.return_value = metadata(False)
     adapter.execute.return_value = {"success": True, "rowCount": 1, "data": [{"id": 1}], "truncated": False}
     monkeypatch.setattr(database_tools, "get_adapter", lambda _type: adapter)
-    provider.replies = [
+    provider.replies = [goal_reply([target.id]),
         [frame({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "synthetic-call",
             "function": {"name": "executeSql", "arguments": json.dumps({"db_id": target.id,
                                                         "statement": "SELECT id FROM items"})}}]}}]}),
@@ -123,7 +124,9 @@ def test_http_model_tool_persistence_parent_chain(
         assert item.parent in [tool.context for tool in tool_spans]
         assert item.attributes is not None and item.attributes["outcome"] == "done"
     assert adapter.extract_metadata.call_count == adapter.execute.call_count == 1
-    assert len(provider.requests) == 2 and all(request["temperature"] == 0.7 for request in provider.requests)
+    assert len(provider.requests) == 3
+    assert provider.requests[0]["thinking"] == {"type": "disabled"}
+    assert all(request["temperature"] == 0.7 for request in provider.requests[1:])
 
 
 @pytest.mark.parametrize("locale", ["fr", "ja", None])

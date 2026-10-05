@@ -13,6 +13,7 @@ from app.agent.model import CompatibleChatModel
 from app.agent.types import ChatRequest, Usage
 from app.api import chat
 from app.services import chat_store
+from app.services.chat_records import ReplayRecord
 
 
 @pytest.mark.parametrize(("locale", "prefix", "retained", "review"), [
@@ -35,7 +36,8 @@ async def test_api_incomplete_report_public_message_and_persistence(
         raise IncompleteFinalReport("test-secret-value")
 
     def finalize(_user: int, _conversation: int, _task: str, _usage: Usage,
-                 status: str, content: str, kind: str, details: dict[str, object]) -> bool:
+                 status: str, content: str, kind: str, details: dict[str, object],
+                 records: list[ReplayRecord] | None = None) -> bool:
         finalized.append((status, content, kind, details))
         return True
 

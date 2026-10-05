@@ -114,7 +114,7 @@ async def test_import_reads_writes_and_selects(provider: Provider, monkeypatch: 
     ]
     if classified:
         provider.replies.insert(0, answer(json.dumps({"intent": "workflow", "confidence": 0.99,
-                                                      "reasoning": "import", "needsClarification": False})))
+                                                      "reasoning": "import", "needsClarification": False, "taskGoal": None})))
     request = workflow_request(classified=classified)
     result, events = await run(provider, request)
     assert result == "Imported and verified Ada."

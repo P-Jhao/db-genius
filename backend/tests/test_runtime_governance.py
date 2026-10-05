@@ -6,6 +6,7 @@ from typing import cast
 
 import pytest
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
+from task_goal_fixtures import goal_value
 
 from app.agent import context_runtime, output_guard
 from app.agent.context_runtime import RepeatedCalls, govern_messages, summary_request
@@ -174,6 +175,8 @@ class RepeatingModel:
         self.messages: list[list[BaseMessage]] = []
         self.usage = Usage()
     async def call(self, messages: list[BaseMessage], **kwargs: object) -> AIMessage:
+        if kwargs.get("json_contract") == "task_goal":
+            return AIMessage(content=json.dumps(goal_value()))
         self.calls += 1
         self.messages.append(messages)
         if kwargs.get("event") == "summary_delta":
@@ -193,6 +196,8 @@ class CompactingModel:
         self.summary_messages: list[list[BaseMessage]] = []
         self.usage = Usage(contextWindow=200)
     async def call(self, messages: list[BaseMessage], **kwargs: object) -> AIMessage:
+        if kwargs.get("json_contract") == "task_goal":
+            return AIMessage(content=json.dumps(goal_value()))
         if kwargs.get("tools") is None:
             self.summaries += 1
             self.summary_messages.append(messages)

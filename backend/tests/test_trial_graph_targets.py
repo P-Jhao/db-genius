@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session, sessionmaker
+from task_goal_fixtures import goal_reply
 from test_dsml import _invoke, _parameter, _reply, _wrapper
 from test_model_protocol import Provider, model
 from test_trial_targets import _target
@@ -64,7 +65,7 @@ async def test_trial_graph_reads_rejects_writes_and_normal_graph_commits_allowed
 
     try:
         monkeypatch.setattr(get_settings(), "trial_enabled", True)
-        provider.replies = [dsml(f"SELECT id, label FROM {quoted}"), _reply("One original row.")]
+        provider.replies = [goal_reply(), dsml(f"SELECT id, label FROM {quoted}"), _reply("One original row.")]
         read = context()
         assert (await run_graph(read))["answer"] == "One original row."
         assert read.tools.last_result == {"success": True, "data": [{"id": 1, "label": "original"}],
@@ -72,7 +73,7 @@ async def test_trial_graph_reads_rejects_writes_and_normal_graph_commits_allowed
         assert read.tools.completed_write_count == 0
         masked = database_tools.get_schema(1, 12)
         assert masked["databaseName"] == "*" and masked["host"] == "*" and masked["port"] == 0
-        provider.replies = [dsml(f"UPDATE {quoted} SET label = 'forbidden' WHERE id = 1")]
+        provider.replies = [goal_reply(), dsml(f"UPDATE {quoted} SET label = 'forbidden' WHERE id = 1")]
         denied = context()
         with pytest.raises(UnsafeStatement):
             await run_graph(denied)
@@ -80,7 +81,7 @@ async def test_trial_graph_reads_rejects_writes_and_normal_graph_commits_allowed
         assert adapter.execute(target, f"SELECT label FROM {quoted}", trial_mode=True)["data"] == [
             {"label": "original"}]
         monkeypatch.setattr(get_settings(), "trial_enabled", False)
-        provider.replies = [dsml(f"UPDATE {quoted} SET label = 'committed' WHERE id = 1"), _reply("Updated one row.")]
+        provider.replies = [goal_reply(), dsml(f"UPDATE {quoted} SET label = 'committed' WHERE id = 1"), _reply("Updated one row.")]
         ordinary = context()
         assert (await run_graph(ordinary))["answer"] == "Updated one row."
         assert ordinary.tools.completed_write_count == 1 and ordinary.tools.statements_executed == 1

@@ -3,6 +3,7 @@
 import json
 
 import pytest
+from task_goal_fixtures import goal_reply
 from test_model_protocol import Provider, frame, model
 
 from app.agent.graph import RunContext, run_graph
@@ -27,6 +28,7 @@ async def run_sql(provider: Provider, message: str, locale: str = "en") -> tuple
     async def emit(_kind: str, _content: object, _step: int) -> None:
         pass
 
+    provider.replies.insert(0, goal_reply())
     request = ChatRequest.model_validate({"message": message, "dbConfigIds": [12],
                                           "confirmedIntent": "sql_query"})
     tools = RunTools(1, request)
@@ -59,11 +61,12 @@ async def test_termination_without_success_has_authoritative_unfinished_report(
     request = ChatRequest(message="Query orders", dbConfigIds=[12], confirmedIntent="sql_query")
     usage = Usage()
     tools = RunTools(1, request)
+    provider.replies.insert(0, goal_reply())
     result = await run_graph(RunContext(request, [], "en", ModelStream(model(provider), emit, usage), tools, emit))
     assert "No database statement was successfully executed" in result["answer"]
     assert "was not completed" in result["answer"]
     assert "All requested work completed" not in result["answer"]
-    assert len(provider.requests) == (2 if failed_statement else 1)
+    assert len(provider.requests) == (3 if failed_statement else 2)
     assert len(executions) == (1 if failed_statement else 0)
     assert tools.statements_executed == 0
     assert events[-1] == ("summary", result["answer"])
@@ -96,7 +99,7 @@ async def test_explicit_forbidden_request_is_refused_without_execution(
     assert "DROP" in answer and "TRUNCATE" in answer
     assert "All requested work completed" not in answer
     assert tools.statements_executed == 0 and tools.completed_write_count == 0
-    assert executions == [] and len(provider.requests) == 1
+    assert executions == [] and len(provider.requests) == 2
 
 
 @pytest.mark.asyncio
@@ -126,7 +129,7 @@ async def test_explicit_alter_or_complete_sql_command_is_refused(
     answer, tools = await run_sql(provider, message)
     assert "forbidden by the database safety rules" in answer
     assert tools.statements_attempted == tools.statements_executed == 0
-    assert len(provider.requests) == 1
+    assert len(provider.requests) == 2
 
 
 @pytest.mark.parametrize("message", [
@@ -225,7 +228,7 @@ async def test_join_projection_instruction_reaches_http_model_and_exact_result(
     provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": statement}),
                         text_reply("Ada: 15")]
     answer, tools = await run_sql(provider, "Return customer_name and total_amount only; order by customers.id")
-    messages = provider.requests[0]["messages"]
+    messages = provider.requests[1]["messages"]
     assert isinstance(messages, list)
     system = "\n".join(str(item["content"]) for item in messages if item["role"] == "system")
     assert "exactly those columns" in system

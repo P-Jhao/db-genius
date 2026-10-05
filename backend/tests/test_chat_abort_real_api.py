@@ -21,6 +21,7 @@ from pydantic import SecretStr
 from sqlalchemy import create_engine, event, select
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session, sessionmaker
+from task_goal_fixtures import goal_reply
 from test_model_protocol import Provider, frame
 
 from app.adapters import DbConnectionConfig, get_adapter
@@ -184,7 +185,7 @@ async def test_client_disconnect_cancels_real_slow_sql_and_keeps_committed_write
         insert = f"INSERT INTO {qualified} (id, label) VALUES (1, 'committed')"
         sleeper = "pg_sleep" if db_type == "postgresql" else "SLEEP"
         slow = f"SELECT {sleeper}(20) AS slept, '{marker}' AS marker"
-        provider.replies = [_tool("executeSql", {"db_id": db_id, "statement": insert}),
+        provider.replies = [goal_reply([db_id]), _tool("executeSql", {"db_id": db_id, "statement": insert}),
                             _tool("executeSql", {"db_id": db_id, "statement": slow}),
                             _tool("executeSql", {"db_id": db_id, "statement": f"SELECT * FROM {qualified}"})]
         port = _free_port()
@@ -213,7 +214,7 @@ async def test_client_disconnect_cancels_real_slow_sql_and_keeps_committed_write
                 await response.aclose()  # Close the real TCP response while SQL is active.
             assert await _until(lambda: _terminal(factory, user_id) is not None, timeout=10)
             assert await _until(lambda: active_ids.isdisjoint(_active_sql(target, marker)), timeout=5)
-            assert len(provider.requests) == 2  # No follow-on SELECT or summary model call.
+            assert len(provider.requests) == 3  # Goal analysis precedes execution; no follow-on SELECT or summary model call.
             terminal_pair = _terminal(factory, user_id)
             assert terminal_pair is not None
             conversation, terminal = terminal_pair

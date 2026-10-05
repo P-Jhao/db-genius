@@ -5,6 +5,7 @@ import threading
 from collections.abc import Iterator
 
 import pytest
+from task_goal_fixtures import goal_reply, goal_value
 from test_model_protocol import Provider, frame, model
 
 from app.agent.graph import RunContext, run_graph
@@ -35,7 +36,7 @@ def response(content: str) -> list[bytes]:
 async def test_classification_and_simple_chat(provider: Provider) -> None:
     provider.replies = [
         response(json.dumps({"intent": "simple_chat", "confidence": 0.96,
-                             "reasoning": "general", "needsClarification": False})),
+                             "reasoning": "general", "needsClarification": False, "taskGoal": None})),
         response("The answer is 42."),
     ]
     events: list[tuple[str, object, int]] = []
@@ -58,7 +59,8 @@ async def test_classification_and_simple_chat(provider: Provider) -> None:
 @pytest.mark.asyncio
 async def test_low_confidence_clarifies_without_executing(provider: Provider) -> None:
     provider.replies = [response(json.dumps({"intent": "sql_query", "confidence": 0.4,
-                                              "reasoning": "ambiguous", "needsClarification": False}))]
+                                              "reasoning": "ambiguous", "needsClarification": False,
+                                              "taskGoal": goal_value([], clarify=True)}))]
     events: list[str] = []
 
     async def emit(kind: str, _content: object, _step: int) -> None:
@@ -121,14 +123,15 @@ async def test_confirmed_sql_reads_schema_then_executes(provider: Provider,
     request = ChatRequest(message="Count orders", dbConfigIds=[12], confirmedIntent="sql_query")
     context = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
                          RunTools(7, request), emit)
+    provider.replies.insert(0, goal_reply())
     result = await run_graph(context)
     assert calls == ["schema", "execute"]
     assert result["answer"] == "There are 3 orders."
     assert [event[0] for event in events] == ["routing", "step", "thinking", "step", "thinking", "summary"]
-    first_messages = provider.requests[0]["messages"]
+    first_messages = provider.requests[1]["messages"]
     assert isinstance(first_messages, list)
     assert "orders" in json.dumps(first_messages)
-    next_messages = provider.requests[1]["messages"]
+    next_messages = provider.requests[2]["messages"]
     assert isinstance(next_messages, list)
     assert any(message["role"] == "tool" and "count" in message["content"] for message in next_messages)
 
@@ -182,8 +185,10 @@ async def test_sql_text_without_execution_is_rejected(provider: Provider,
     request = ChatRequest(message="Count rows", dbConfigIds=[12], confirmedIntent="sql_query")
     context = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
                          RunTools(7, request), emit)
-    with pytest.raises(RuntimeError, match="without executing"):
-        await run_graph(context)
+    provider.replies.insert(0, goal_reply())
+    result = await run_graph(context)
+    assert "No database statement was successfully executed" in result["answer"]
+    assert context.tools.statements_executed == 0
 
 
 @pytest.mark.asyncio
@@ -211,9 +216,10 @@ async def test_terminate_summarizes_after_tool(provider: Provider,
     request = ChatRequest(message="Select one", dbConfigIds=[12], confirmedIntent="sql_query")
     context = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
                          RunTools(7, request), emit)
+    provider.replies.insert(0, goal_reply())
     result = await run_graph(context)
     assert result["answer"] == "The value is 1."
     assert [(kind, content) for kind, content in events if kind in ("summary_delta", "summary")] == [
         ("summary_delta", "The value is 1."), ("summary", "The value is 1."),
     ]
-    assert len(provider.requests) == 3
+    assert len(provider.requests) == 4

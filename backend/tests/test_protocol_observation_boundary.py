@@ -22,6 +22,7 @@ from app.agent.protocol_errors import ProtocolCode, protocol_code
 from app.agent.types import ChatRequest, Usage
 from app.core import config
 from app.core import observability_logging as safe_logging
+from app.services.chat_records import ReplayRecord
 
 PRIVATE = "SYNTHETIC_PROTOCOL_BOUNDARY_PRIVATE_20261004"
 WRAPPER = ('<｜DSML｜tool_calls><invoke name="doTerminate">'
@@ -191,7 +192,8 @@ async def test_actual_producer_public_terminal_persistence_and_accounting(
         saved.append(args)
 
     def finalize(_user: int, _conversation: int, _task: str, usage: Usage,
-                 status: str, content: str, kind: str, details: dict[str, object]) -> bool:
+                 status: str, content: str, kind: str, details: dict[str, object],
+                 records: list[ReplayRecord] | None = None) -> bool:
         operations.append("finalize")
         finalized.append((status, content, kind, details, usage.model_copy(deep=True)))
         return True

@@ -101,7 +101,7 @@ async def test_compare_pre_to_test_with_real_diff(
                                            "complete": True}))]
     if classified:
         provider.replies.insert(0, answer(json.dumps({"intent": "db_compare", "confidence": 0.99,
-                                                      "reasoning": "schemas", "needsClarification": False})))
+                                                      "reasoning": "schemas", "needsClarification": False, "taskGoal": None})))
     result, events = await run(provider, request(classified=classified))
     assert result == "pre→test: create orders, remove retired, add users.email."
     steps = [content for kind, content in events if kind == "step"]

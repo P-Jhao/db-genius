@@ -38,6 +38,7 @@ from app.core.observability_tracing import span
 from app.models import DbConfig, UploadedFile
 from app.schemas.context_compress import CompressOptions
 from app.services import chat_store, context_compress, model_config
+from app.services.chat_records import RunReplay
 from app.services.trial import require_intent_available
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
     tools = RunTools(user_id, body, cancel_event, task_id=task_id)
     timeout_fired = False
     user_saved = False
+    replay = RunReplay()
 
     async def expire() -> None:
         nonlocal timeout_fired
@@ -99,6 +101,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
     async def emit(kind: str, content: object, step: int = 0) -> None:
         nonlocal partial_content, partial_summary, complete_summary
         check_cancelled(cancel_event)
+        packet = _frame(task_id, kind, content, step)
         visible_chunk(kind, content)
         if kind == "content" and isinstance(content, str):
             partial_content += content
@@ -106,9 +109,8 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
             partial_summary += content
         elif kind == "summary" and isinstance(content, str):
             complete_summary = content
-        if kind == "step" and conversation_id is not None:
-            await persist(task_id, "save", chat_store.save, conversation_id, "tool", str(content), "step", step)
-        await queue.put(_frame(task_id, kind, content, step))
+        replay.append(kind, content, step, stream.call_id)
+        queue.put_nowait(packet)
 
     try:
         conversation_id = await persist(task_id, "prepare", chat_store.prepare, user_id, body)
@@ -143,7 +145,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
         check_cancelled(cancel_event)
         await persist(task_id, "finalize", chat_store.finalize_run, user_id, conversation_id, task_id,
                                 usage, "done", content, kind,
-                                {"completedWriteCount": tools.completed_write_count})
+                                {"completedWriteCount": tools.completed_write_count}, records=replay.records)
         await queue.put(_frame(task_id, "usage", usage.model_dump(), 0))
         await queue.put(_frame(task_id, "done", None, 0))
         accounting().outcome = "done"
@@ -162,7 +164,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
                 if not user_saved:
                     await persist(task_id, "save", chat_store.save, conversation_id, "user", body.message, "user")
                 await persist(task_id, "finalize", chat_store.finalize_run, user_id, conversation_id, task_id,
-                                        usage, "aborted", content, kind, details)
+                                        usage, "aborted", content, kind, details, records=replay.records)
                 await queue.put(_frame(task_id, "usage", usage.model_dump(), 0))
             except Exception as persistence_error:  # noqa: BLE001 - terminal SSE must still be sent
                 logger.error("Chat abort persistence failed taskId=%s errorType=%s",
@@ -192,7 +194,7 @@ async def _produce(queue: asyncio.Queue[bytes | None], user_id: int, body: ChatR
             try:
                 await persist(task_id, "finalize", chat_store.finalize_run, user_id, conversation_id, task_id,
                                         usage, "error", public_error, "error",
-                                        {"completedWriteCount": tools.completed_write_count})
+                                        {"completedWriteCount": tools.completed_write_count}, records=replay.records)
                 await queue.put(_frame(task_id, "usage", usage.model_dump(), 0))
             except Exception as persistence_error:  # noqa: BLE001 - terminal SSE must still be sent
                 logger.error("Chat failure persistence failed taskId=%s errorType=%s",

@@ -5,6 +5,7 @@ import threading
 
 import pytest
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from task_goal_fixtures import goal_reply
 from test_chat_graph import response
 from test_model_protocol import Provider, frame, model
 
@@ -50,7 +51,7 @@ def tool_reply(name: str, arguments: dict[str, object]) -> list[bytes]:
 @pytest.mark.asyncio
 async def test_classification_then_simple_answer_have_separate_parameters(provider: Provider) -> None:
     provider.replies = [response(json.dumps({"intent": "simple_chat", "confidence": 0.96,
-        "reasoning": "general", "needsClarification": False})), response("The answer is 42.")]
+        "reasoning": "general", "needsClarification": False, "taskGoal": None})), response("The answer is 42.")]
     request = ChatRequest(message="What is 42?")
     usage = Usage()
     result = await run_graph(RunContext(request, [], "en", ModelStream(model(provider), emit, usage),
@@ -92,7 +93,7 @@ async def test_sql_tool_followup_and_final_summary_use_ordinary_parameters(
         return {"success": True, "rowCount": 1, "data": [{"value": 1}]}
 
     monkeypatch.setattr(database_tools, "execute_statement", execute)
-    provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": "SELECT 1"}),
+    provider.replies = [goal_reply(), tool_reply("executeSql", {"db_id": 12, "statement": "SELECT 1"}),
                         tool_reply("doTerminate", {"reason": "Done"}),
                         response(json.dumps({"report": "The value is 1.", "complete": True}))]
     request = ChatRequest(message="Select one", dbConfigIds=[12], confirmedIntent="sql_query")
@@ -101,16 +102,17 @@ async def test_sql_tool_followup_and_final_summary_use_ordinary_parameters(
                                        RunTools(7, request), emit))
     assert result["answer"] == "The value is 1."
     assert statements == ["SELECT 1"]
-    assert len(provider.requests) == 3
-    for payload in provider.requests:
+    assert len(provider.requests) == 4
+    assert_parameters(provider.requests[0], classification=True)
+    for payload in provider.requests[1:]:
         assert_parameters(payload)
-    assert "tools" in provider.requests[0] and "tools" in provider.requests[1]
-    assert "tools" not in provider.requests[2]
-    followup = provider.requests[1]["messages"]
+    assert "tools" in provider.requests[1] and "tools" in provider.requests[2]
+    assert "tools" not in provider.requests[3]
+    followup = provider.requests[2]["messages"]
     assert isinstance(followup, list)
     assert any(item["role"] == "tool" and item["tool_call_id"] == "executeSql"
                and json.loads(item["content"])["data"] == [{"value": 1}] for item in followup)
-    assert (usage.callCount, usage.totalTokens) == (3, 18)
+    assert (usage.callCount, usage.totalTokens) == (4, 24)
 
 
 @pytest.mark.asyncio

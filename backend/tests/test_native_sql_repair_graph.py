@@ -41,10 +41,10 @@ async def test_native_known_parse_failure_reaches_http_model_and_is_corrected(
     monkeypatch.setattr(database_tools, "execute_statement", execute)
     provider.replies = [call(bad, "bad"), call("SELECT name FROM records", "fixed"), answer("Ada is present.")]
     result, tools, events = await run(provider)
-    assert result == "Ada is present." and len(provider.requests) == 3
+    assert result == "Ada is present." and len(provider.requests) == 4
     assert executed == [bad, "SELECT name FROM records"]
     assert tools.statements_executed == 1 and tools.completed_write_count == 0
-    observations = [json.loads(message["content"]) for message in provider.requests[1]["messages"]
+    observations = [json.loads(message["content"]) for message in provider.requests[2]["messages"]
                     if message.get("role") == "tool"]
     assert any(value.get("success") is False and value.get("errorCode") == code for value in observations)
     assert any(kind == "step" and '"success": false' in str(value) for kind, value in events)
@@ -71,7 +71,7 @@ async def test_native_unsafe_driver_diagnostic_stops_before_another_model_call(
     provider.replies = [call(statement, "uncertain"), call(statement, "must_not_repeat")]
     with pytest.raises(type(error)):
         await run(provider)
-    assert len(provider.requests) == 1 and executions == [statement]
+    assert len(provider.requests) == 2 and executions == [statement]
 
 
 @pytest.mark.asyncio
@@ -93,4 +93,4 @@ async def test_native_unknown_side_effect_or_interruption_never_replays(
     provider.replies = [call(statement, "first"), call(statement, "must_not_repeat")]
     with pytest.raises(RunAborted):
         await run(provider)
-    assert len(provider.requests) == 1 and side_effects == [statement]
+    assert len(provider.requests) == 2 and side_effects == [statement]

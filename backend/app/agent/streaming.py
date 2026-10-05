@@ -61,6 +61,7 @@ class ModelStream:
         self.reasoning = ""
         self.cancel_event = cancel_event
         self.chat_json_object = chat_json_object
+        self.call_id = 0
 
     async def call(
         self,
@@ -70,12 +71,24 @@ class ModelStream:
         tools: list[BaseTool] | None = None,
         classification: bool = False,
         final_report: bool = False,
+        emit_reasoning: bool | None = None,
+        json_contract: JsonContract | None = None,
     ) -> AIMessage:
         self.partial = ""
         self.reasoning = ""
         aggregate: AIMessageChunk | None = None
         latest_usage: dict[str, int] | None = None
         call_fragments: dict[int, StructuredCall] = {}
+        if emit_reasoning is not None and type(emit_reasoning) is not bool:
+            raise TypeError("Reasoning visibility must be boolean or None")
+        if json_contract is not None and (classification or final_report or tools):
+            raise ValueError("Explicit JSON contracts cannot be combined with flags or tools")
+        if json_contract not in {None, "task_goal"}:
+            raise ValueError("Explicit JSON contracts only support internal task goals")
+        internal = classification or json_contract == "task_goal"
+        if internal:
+            event = None
+        reasoning_visible = not internal and (event is not None if emit_reasoning is None else emit_reasoning)
         if final_report and (tools or classification):
             raise ValueError("Final-report framing cannot be used for a tool or classification call")
         report_decoder = ReportDecoder() if final_report else None
@@ -83,14 +96,16 @@ class ModelStream:
         if final_report:
             messages = [*messages, SystemMessage(content=REPORT_CONTRACT)]
         options: dict[str, object] = (
-            {"thinking": {"type": "disabled"}} if classification
+            {"thinking": {"type": "disabled"}} if internal
             else {"temperature": DEFAULT_TEMPERATURE}
         )
         if tools:
             options["tools"] = [convert_to_openai_tool(tool) for tool in tools]
-        contract: JsonContract | None = "classification" if classification else "final_report" if final_report else None
+        contract: JsonContract | None = ("classification" if classification else
+                                        "final_report" if final_report else json_contract)
         options.update(json_contract_options(self.chat_json_object, contract, tools_present=bool(tools)))
         check_cancelled(self.cancel_event)
+        self.call_id += 1
         iterator = self.model.astream(messages, **options).__aiter__()  # type: ignore[arg-type]
 
         async def next_chunk(source: AsyncIterator[AIMessageChunk]) -> AIMessageChunk:
@@ -123,6 +138,11 @@ class ModelStream:
                     }
                 content_chunk = chunk.model_copy(update={"usage_metadata": None})
                 aggregate = content_chunk if aggregate is None else aggregate + content_chunk
+                reasoning = chunk.additional_kwargs.get("reasoning_content")
+                if isinstance(reasoning, str) and not internal:
+                    self.reasoning += reasoning
+                    if reasoning and reasoning_visible:
+                        await self.emit("reasoning", reasoning, step)
                 if isinstance(chunk.content, str):
                     decoded = (report_decoder.push(chunk.content) if report_decoder is not None
                                else chunk.content)
@@ -130,11 +150,6 @@ class ModelStream:
                     self.partial += text
                     if text and event is not None:
                         await self.emit(event, text, step)
-                reasoning = chunk.additional_kwargs.get("reasoning_content")
-                if isinstance(reasoning, str):
-                    self.reasoning += reasoning
-                    if event is not None:
-                        await self.emit("reasoning", reasoning, step)
                 check_cancelled(self.cancel_event)
         finally:
             if pending is not None:
@@ -146,6 +161,8 @@ class ModelStream:
                     await iterator.aclose()
             self.usage.record(latest_usage)
         check_cancelled(self.cancel_event)
+        if internal and call_fragments:
+            raise ValueError("Internal JSON analysis cannot return tool calls")
         if aggregate is None:
             raise mark(RuntimeError("Model returned an empty stream"), ProtocolCode.STREAM_EMPTY)
         report_observation: dict[str, object] | None = None
@@ -192,7 +209,7 @@ class ModelStream:
                     except ValidationError as error:
                         mark(error, ProtocolCode.TOOL_SCHEMA_INVALID)
                         raise
-        elif not classification and event != "content" and isinstance(content, str):
+        elif not internal and event != "content" and isinstance(content, str):
             content = strip(content)
         validated: list[ToolCall] = []
         for call in structured:
@@ -217,6 +234,8 @@ class ModelStream:
         if not message.content and not message.tool_calls:
             raise mark(RuntimeError("Model returned no content or tool calls"), ProtocolCode.RESPONSE_EMPTY)
         additional = dict(message.additional_kwargs)
+        if internal:
+            additional.pop("reasoning_content", None)
         if self.reasoning:
             additional["reasoning_content"] = self.reasoning
         response_metadata: dict[str, object] = dict(message.response_metadata)

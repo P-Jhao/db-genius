@@ -6,6 +6,7 @@ from importlib.resources import files
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
+from app.agent.task_goal import GOAL_RULE
 from app.agent.types import ChatRequest, Intent
 
 _RESOURCE_NAME = re.compile(r"[a-z0-9_-]+\Z")
@@ -175,7 +176,12 @@ def classification_prompt(request: ChatRequest, locale: str) -> str:
             "a missing operation or target. A concrete prior goal may ground a follow-up, and an "
             "explicit multi-step database task may be workflow without an attachment."
         )
-    return f"{system}\n\n{actionability}\n\nWrite reasoning in {language(locale)}."
+    contract = (
+        "Return the four classification fields plus required taskGoal. For sql_query, taskGoal "
+        "is the strict goal object below, derived in this same call. For all other intents taskGoal "
+        "must be null. The goal is internal and does not add a public intent.\n" + GOAL_RULE
+    )
+    return f"{system}\n\n{actionability}\n\n{contract}\n\nWrite reasoning in {language(locale)}."
 
 
 def classification_user_prompt(request: ChatRequest, history: Sequence[BaseMessage], locale: str) -> str:
@@ -201,4 +207,24 @@ def classification_user_prompt(request: ChatRequest, history: Sequence[BaseMessa
                 raise TypeError("Unsupported classification history message")
             lines.append(f"{role}: {message.content}")
         history_text = "\n".join(lines)
-    return render_prompt_template(sections[1], {"history": history_text, "message": request.message})
+    result = render_prompt_template(sections[1], {"history": history_text, "message": request.message})
+    return result + "\n\nSelected database IDs: " + _format_ids(request.db_config_ids)
+
+
+def task_goal_prompt(locale: str) -> str:
+    return GOAL_RULE + f"\nWrite reasoning in {language(locale)}."
+
+
+def summary_prompt_messages(history: Sequence[BaseMessage], request: ChatRequest,
+                            locale: str, intent: Intent | None = None) -> list[BaseMessage]:
+    """Assemble source summary system/user sections around the execution history."""
+    sections = split_prompt_sections(load_prompt_template("tool-call-summary", locale))
+    if len(sections) != 2:
+        raise ValueError("Tool summary prompt requires a user section")
+    execution_history = list(history)
+    if (intent is not None and execution_history and isinstance(execution_history[0], SystemMessage)
+            and execution_history[0].content == system_prompt(intent, request, locale)):
+        execution_history = execution_history[1:]
+    return [SystemMessage(content=sections[0] + f"\nRespond in {language(locale)}."),
+            *execution_history,
+            HumanMessage(content=render_prompt_template(sections[1], {"message": request.message}))]

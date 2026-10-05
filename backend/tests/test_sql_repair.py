@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError, OperationalError
+from task_goal_fixtures import goal_reply
 from test_model_protocol import Provider, frame, model
 
 from app.adapters.cancellation import DatabaseWriteOutcomeUnknown
@@ -79,6 +80,7 @@ async def run(provider: Provider) -> tuple[str, RunTools, list[tuple[str, object
     async def emit(kind: str, content: object, _step: int) -> None:
         events.append((kind, content))
 
+    provider.replies.insert(0, goal_reply())
     chat_request = request()
     tools = RunTools(7, chat_request)
     context = RunContext(chat_request, [], "en", ModelStream(model(provider), emit, Usage()),
@@ -98,7 +100,7 @@ async def test_model_repairs_missing_table_and_reads_actual_rows(
     result, tools, events = await run(provider)
     assert result == "Ada is present."
     assert tools.statements_executed == 1
-    messages = provider.requests[1]["messages"]
+    messages = provider.requests[2]["messages"]
     assert isinstance(messages, list)
     observations = [json.loads(message["content"]) for message in messages
                     if isinstance(message, dict) and message.get("role") == "tool" and

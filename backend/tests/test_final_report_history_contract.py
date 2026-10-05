@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
+from task_goal_fixtures import goal_reply
 from test_chat_api import parse_events
 from test_final_report_api import final_reply
 from test_model_parameters import tool_reply
@@ -52,7 +53,7 @@ def test_fieldset_failures_keep_one_write_once_usage_and_safe_stored_terminal(
         del envelope["report"]
     elif variant == "renamed":
         envelope["answer"] = envelope.pop("report")
-    provider.replies = [
+    provider.replies = [goal_reply([db_id]),
         tool_reply("executeSql", {"db_id": db_id, "statement": "INSERT INTO t VALUES (1)"}),
         tool_reply("doTerminate", {"reason": "Done"}), final_reply(json.dumps(envelope)),
     ]
@@ -62,10 +63,10 @@ def test_fieldset_failures_keep_one_write_once_usage_and_safe_stored_terminal(
     events = parse_events(response.text)
     kinds = [event["type"] for event in events]
     assert kinds[-1] == "done" and kinds.count("done") == kinds.count("usage") == 1
-    assert statements == ["INSERT INTO t VALUES (1)"] and len(provider.requests) == 3
+    assert statements == ["INSERT INTO t VALUES (1)"] and len(provider.requests) == 4
     usage = next(event["content"] for event in events if event["type"] == "usage")
     assert isinstance(usage, dict) and set(usage) == set(Usage().model_dump())
-    assert usage["callCount"] == 3 and usage["totalTokens"] == usage["conversationTotalTokens"] == 18
+    assert usage["callCount"] == 4 and usage["totalTokens"] == usage["conversationTotalTokens"] == 24
     conversation_id = events[0]["content"]
     assert isinstance(conversation_id, int)
     history = client.get(f"/api/chat/conversations/{conversation_id}/messages").json()["data"]
@@ -75,13 +76,13 @@ def test_fieldset_failures_keep_one_write_once_usage_and_safe_stored_terminal(
             Message.conversation_id == conversation_id, Message.step == -1, Message.role == "assistant",
         )))
         conversation = session.get(Conversation, conversation_id)
-        assert conversation is not None and conversation.total_tokens == 18
+        assert conversation is not None and conversation.total_tokens == 24
         finalized_ids = conversation.metadata_json["finalizedTaskIds"]
         assert isinstance(finalized_ids, list) and len(finalized_ids) == len(terminal) == 1
         details = terminal[0].metadata_json
         stored_usage = details["usage"]
         assert isinstance(stored_usage, dict)
-        assert details["completedWriteCount"] == 1 and stored_usage["callCount"] == 3
+        assert details["completedWriteCount"] == 1 and stored_usage["callCount"] == 4
         assert details["runStatus"] == ("done" if variant == "valid" else "error")
     stored_terminal = [item for item in history if item["role"] == "assistant" and item["step"] == -1]
     assert len(stored_terminal) == 1

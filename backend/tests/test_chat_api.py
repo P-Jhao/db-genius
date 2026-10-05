@@ -91,7 +91,7 @@ def test_sse_history_continue_ownership_and_delete(chat_client: tuple[object, Us
     assert isinstance(client, TestClient)
     provider.replies = [
         reply(json.dumps({"intent": "simple_chat", "confidence": 0.95,
-                          "reasoning": "general", "needsClarification": False})),
+                          "reasoning": "general", "needsClarification": False, "taskGoal": None})),
         reply("First answer."),
         reply("Second answer."),
     ]
@@ -152,7 +152,10 @@ def test_tool_internal_error_is_not_exposed(chat_client: tuple[object, User, Use
         raise RuntimeError("secret-driver-diagnostic")
 
     monkeypatch.setattr(database_tools, "execute_statement", fail)
-    provider.replies = [[frame({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_1",
+    provider.replies = [reply(json.dumps({"mode": "statement_execution", "dbIds": [db_id],
+        "tableScope": [{"dbId": db_id, "tables": None}], "confidence": 0.95,
+        "needsClarification": False, "reasoning": "query"})),
+        [frame({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_1",
         "function": {"name": "executeSql", "arguments": json.dumps({"db_id": db_id,
                                                                  "statement": "SELECT 1"})}}]}}]}),
         frame("[DONE]")]]

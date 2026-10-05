@@ -107,7 +107,7 @@ def test_actual_chat_classifier_only_gets_explicit_json_capability(
              "relay-override": [entry("https://api.deepseek.com/v1/chat/completions")]}[scenario]
     configure(monkeypatch, wire_relay, rules)
     provider.replies = [reply(json.dumps({"intent": "simple_chat", "confidence": 0.95,
-        "reasoning": "general", "needsClarification": False})), reply("answer")]
+        "reasoning": "general", "needsClarification": False, "taskGoal": None})), reply("answer")]
     response = client.post("/api/chat", json={"message": "question"})
     assert response.status_code == 200 and parse_events(response.text)[-1]["type"] == "done"
     assert_wire(wire_relay, provider, [{"type": "json_object"} if scenario == "matched" else None, None])
@@ -136,15 +136,18 @@ def test_actual_write_and_termination_keep_tools_then_one_json_report_without_re
     report: dict[str, object] = {"report": "Verified one write.", "complete": True}
     if not valid_report:
         report["SYNTHETIC_PRIVATE_FIELD"] = "SYNTHETIC_PRIVATE_VALUE"
-    provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": "INSERT INTO demo (value) VALUES (1)"}),
+    from task_goal_fixtures import goal_reply
+
+    provider.replies = [goal_reply(),
+                        tool_reply("executeSql", {"db_id": 12, "statement": "INSERT INTO demo (value) VALUES (1)"}),
                         tool_reply("doTerminate", {"reason": "done"}), reply(json.dumps(report))]
     response = client.post("/api/chat", json={"message": "Insert one", "dbConfigIds": [12], "confirmedIntent": "sql_query"})
     assert response.status_code == 200
     assert statements == ["INSERT INTO demo (value) VALUES (1)"]
-    assert_wire(wire_relay, provider, [None, None, {"type": "json_object"}])
+    assert_wire(wire_relay, provider, [{"type": "json_object"}, None, None, {"type": "json_object"}])
     assert any(event["type"] == "error" for event in parse_events(response.text)) is not valid_report
     assert "jsonShape" not in response.text and "SYNTHETIC_PRIVATE" not in response.text
-    assert len(provider.requests) == 3
+    assert len(provider.requests) == 4
 
 
 def test_failed_api_classifier_keeps_private_shape_with_its_public_task_identity(

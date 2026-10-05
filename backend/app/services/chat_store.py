@@ -9,6 +9,7 @@ from app.agent.types import ChatRequest, Usage
 from app.core.database import SessionLocal
 from app.core.errors import BusinessError
 from app.models import Conversation, Message
+from app.services.chat_records import ReplayRecord
 
 
 def owned(session: Session, user_id: int, conversation_id: int) -> Conversation:
@@ -138,8 +139,9 @@ def update_usage(user_id: int, conversation_id: int, usage: Usage) -> None:
 
 def finalize_run(user_id: int, conversation_id: int, task_id: str, usage: Usage,
                  status: str, content: str, kind: str,
-                 details: dict[str, object] | None = None) -> bool:
-    """Write one terminal message and apply known provider usage once per task."""
+                 details: dict[str, object] | None = None,
+                 records: list[ReplayRecord] | None = None) -> bool:
+    """Flush replay and terminal message in the ledger transaction once per task."""
     if status not in {"done", "error", "aborted"}:
         raise ValueError(f"Unsupported chat run status: {status}")
     with SessionLocal() as session:
@@ -156,6 +158,15 @@ def finalize_run(user_id: int, conversation_id: int, task_id: str, usage: Usage,
         terminal_details = dict(details or {})
         terminal_details.update({"taskId": task_id, "runStatus": status,
                                  "usage": usage.model_dump(exclude={"conversationTotalTokens"})})
+        for record in [] if records is None else records:
+            if record.kind not in {"reasoning", "step"}:
+                raise ValueError("Unsupported run replay record")
+            replay_metadata: dict[str, object] = {"taskId": task_id, "runStatus": status}
+            if record.call_id is not None:
+                replay_metadata["modelCallId"] = record.call_id
+            session.add(Message(conversation_id=conversation_id, role=record.role,
+                                content=record.content, type=record.kind, step=record.step,
+                                metadata_json=replay_metadata))
         session.add(Message(conversation_id=conversation_id, role="assistant", content=content,
                             type=kind, step=-1, metadata_json=terminal_details))
         row.total_tokens += usage.totalTokens

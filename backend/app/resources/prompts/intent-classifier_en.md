@@ -36,7 +36,8 @@ Return JSON with the following fields:
   "intent": "one of the enum codes (simple_chat/sql_query/workflow/db_compare)",
   "confidence": 0.0-1.0,
   "reasoning": "brief justification",
-  "needsClarification": false
+  "needsClarification": false,
+  "taskGoal": null
 }
 
 Rules:
@@ -44,6 +45,7 @@ Rules:
 2. If the intent genuinely cannot be determined, set confidence < 0.7 and needsClarification=true.
 3. If the conversation history is a continuous run of the same type of operation, an ambiguous current message should lean toward continuing that intent.
 4. Do NOT return enum names (e.g. SQL_QUERY); you must return the code value (e.g. sql_query).
+taskGoal is required: for sql_query use the internal strict goal contract supplied below; for other intents it must be null.
 ===USER===
 {history}
 

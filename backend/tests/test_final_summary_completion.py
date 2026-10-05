@@ -2,12 +2,14 @@
 
 import pytest
 from langchain_core.messages import HumanMessage, ToolMessage
+from task_goal_fixtures import goal_value
 from test_model_protocol import Provider, frame, model
 
 from app.agent.graph import RunContext
 from app.agent.graph_sql import SQLNodes
 from app.agent.model import CompatibleChatModel
 from app.agent.streaming import ModelStream
+from app.agent.task_goal import TaskGoal
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, Usage
 
@@ -48,6 +50,7 @@ async def test_invalid_final_report_is_not_marked_complete(
     request = ChatRequest(message="Report the already verified insert", dbConfigIds=[12],
                           confirmedIntent="sql_query")
     tools = RunTools(7, request)
+    tools.task_goal = TaskGoal.model_validate(goal_value())
     tools.statements_executed = 1
     tools.statements_attempted = 1
     tools.terminated = True

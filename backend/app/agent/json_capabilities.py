@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Literal
 from urllib.parse import urlsplit, urlunsplit
 
-JsonContract = Literal["classification", "final_report"]
+JsonContract = Literal["classification", "final_report", "task_goal"]
 
 
 @dataclass(frozen=True)
@@ -75,7 +75,7 @@ def json_contract_options(enabled: bool, contract: JsonContract | None,
     """None covers every ordinary call, including all forms of compression/summarizing."""
     if type(enabled) is not bool:
         raise TypeError("JSON capability state must be boolean")
-    if contract not in {None, "classification", "final_report"}:
+    if contract not in {None, "classification", "final_report", "task_goal"}:
         raise ValueError("Unknown JSON contract call")
     if contract is None or not enabled:
         return {}

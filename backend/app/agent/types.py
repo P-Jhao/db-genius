@@ -22,6 +22,7 @@ class ChatRequest(BaseModel):
 
 
 class Classification(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
     intent: Intent
     confidence: float = Field(ge=0, le=1)
     reasoning: str

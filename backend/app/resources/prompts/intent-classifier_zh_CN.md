@@ -36,7 +36,8 @@
   "intent": "枚举值之一（simple_chat/sql_query/workflow/db_compare）",
   "confidence": 0.0-1.0,
   "reasoning": "判断依据（简洁）",
-  "needsClarification": false
+  "needsClarification": false,
+  "taskGoal": null
 }
 
 规则：
@@ -44,6 +45,7 @@
 2. 如果真正无法确定意图，设 confidence < 0.7 且 needsClarification=true。
 3. 对话历史中如果连续是同一类型的操作，当前模糊消息应倾向于延续该意图。
 4. 不要返回枚举名（如 SQL_QUERY），必须返回 code 值（如 sql_query）。
+taskGoal is required: for sql_query use the internal strict goal contract supplied below; for other intents it must be null.
 ===USER===
 {history}
 

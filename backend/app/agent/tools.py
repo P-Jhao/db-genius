@@ -14,7 +14,9 @@ from sqlalchemy.exc import DBAPIError
 from app.adapters.cancellation import DatabaseExecutionInterrupted, DatabaseWriteOutcomeUnknown
 from app.agent.cancellation import RunAborted, check_cancelled
 from app.agent.output_guard import OutputArtifacts, bound_json
+from app.agent.schema_evidence import SchemaEvidence
 from app.agent.sql_errors import failure, repairable
+from app.agent.task_goal import TaskGoal
 from app.agent.types import ChatRequest, Intent
 from app.core.errors import BusinessError
 from app.core.observability_runtime import observe_tool
@@ -68,10 +70,14 @@ class RunTools:
         self.last_result: object = None
         self.last_output: str | None = None
         self.statement_errors: list[str] = []
+        self.task_goal: TaskGoal | None = None
+        self.schema_evidence = SchemaEvidence()
 
     def require_database(self, db_id: int) -> None:
         if db_id not in self.database_ids:
             raise BusinessError(403, "Database was not selected for this request", 403)
+        if self.task_goal is not None and db_id not in self.task_goal.dbIds:
+            raise BusinessError(403, "Database is outside the task goal scope", 403)
 
     def require_file(self, file_id: int) -> None:
         if file_id not in self.file_ids:
@@ -97,13 +103,17 @@ class RunTools:
         self.require_database(db_id)
         result = await asyncio.to_thread(database_tools.get_schema, self.user_id, db_id)
         check_cancelled(self.cancel_event)
-        return self.bound(result, "getDatabaseSchema")
+        output = self.bound(result, "getDatabaseSchema")
+        self.schema_evidence.register(db_id, self.last_result, output)
+        return output
 
     async def execute(self, db_id: int, statement: str, *, comparison: bool = False) -> str:
         from app.services import database_tools
 
         check_cancelled(self.cancel_event)
         self.require_database(db_id)
+        if self.task_goal is not None and self.task_goal.mode == "metadata_only":
+            raise BusinessError(403, "Metadata-only task cannot execute database statements", 403)
         if comparison and db_id not in self.comparison_ids:
             raise BusinessError(403, "Database is not a selected comparison target", 403)
         execute = database_tools.execute_comparison_read if comparison else database_tools.execute_statement
@@ -191,6 +201,7 @@ class RunTools:
                                    offset=offset, length=length)
         self.last_output = page
         self.last_result = json.loads(page)
+        self.schema_evidence.observe_page(artifact_id, self.last_result)
         return page
 
     def close(self) -> None:
@@ -208,6 +219,8 @@ class RunTools:
             ("readToolOutput", "Page a large output using its artifactId.", OutputInput, self.read_output),
             ("doTerminate", "Finish tool execution and summarize results.", TerminateInput, self.terminate),
         ]
+        if intent == "sql_query" and self.task_goal is not None and self.task_goal.mode == "metadata_only":
+            definitions = [definition for definition in definitions if definition[0] != "executeSql"]
         if intent == "workflow":
             definitions.extend([
                 ("readFile", "Read an attached document, spreadsheet, CSV or PDF.", FileInput, self.document),

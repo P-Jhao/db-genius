@@ -3,6 +3,7 @@
 import json
 
 import pytest
+from task_goal_fixtures import goal_reply
 from test_final_report_api import final_reply
 from test_model_parameters import tool_reply
 from test_model_protocol import Provider, model
@@ -37,7 +38,7 @@ async def test_sql_fact_rules_preserve_string_zero_without_extra_branch_probe(
     monkeypatch.setattr(database_tools, "get_schema", lambda *_args: {"tables": []})
     monkeypatch.setattr(database_tools, "execute_statement", execute)
     report = "North: 0. The returned JSON value is the string \"0\"; no fallback cause was verified."
-    provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": statement})]
+    provider.replies = [goal_reply(), tool_reply("executeSql", {"db_id": 12, "statement": statement})]
     provider.replies.extend(
         [tool_reply("doTerminate", {"reason": "Done"}),
          final_reply(json.dumps({"report": report, "complete": True}))]
@@ -56,9 +57,9 @@ async def test_sql_fact_rules_preserve_string_zero_without_extra_branch_probe(
                                         tools, emit))
     assert result["answer"] == report and events[-1] == ("summary", report)
     assert statements == [statement] and tools.statements_attempted == 1 and tools.completed_write_count == 0
-    assert len(provider.requests) == usage.callCount == (3 if framed else 2)
+    assert len(provider.requests) == usage.callCount == (4 if framed else 3)
     assert usage.totalTokens == 6 * usage.callCount
-    for payload in provider.requests:
+    for payload in provider.requests[1:]:
         messages = payload["messages"]
         assert isinstance(messages, list)
         assert any(item["role"] == "system" and item["content"] == SQL_EVIDENCE_RULE for item in messages)

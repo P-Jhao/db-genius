@@ -6,6 +6,7 @@ from typing import cast
 import pytest
 from langchain_core.messages import AIMessage, BaseMessage
 from pydantic import ValidationError
+from task_goal_fixtures import goal_value
 
 from app.agent import output_guard
 from app.agent.graph import RunContext, run_graph
@@ -54,7 +55,9 @@ class QueryModel:
         self.usage = Usage()
         self.calls: list[list[BaseMessage]] = []
 
-    async def call(self, messages: list[BaseMessage], **_kwargs: object) -> AIMessage:
+    async def call(self, messages: list[BaseMessage], **kwargs: object) -> AIMessage:
+        if kwargs.get("json_contract") == "task_goal":
+            return AIMessage(content=json.dumps(goal_value()))
         self.calls.append(messages)
         if len(self.calls) == 1:
             return AIMessage(content="", tool_calls=[{"name": "executeSql", "id": "query",

@@ -12,10 +12,11 @@ from app.agent.compare import prepare_compare
 from app.agent.compare_preflight import PreparedComparison, limited_context_report, prepare_comparison
 from app.agent.context_runtime import RepeatedCalls, govern_messages, summary_request
 from app.agent.final_report import REPORT_CONTRACT
-from app.agent.prompts import system_prompt
+from app.agent.product_locale import product_text
+from app.agent.prompts import summary_prompt_messages, system_prompt
 from app.agent.report_rules import COMPARE_REPORT_RULE
 from app.agent.report_rules import SQL_EVIDENCE_RULE as EVIDENCE_RULE
-from app.agent.sql_outcome import explicit_forbidden_request, zero_execution_summary
+from app.agent.sql_completion import completion_override
 from app.agent.workflow import WorkflowProgress
 from app.agent.workflow_rows import schema_mutation
 from app.core.errors import BusinessError
@@ -47,7 +48,9 @@ class SQLNodes:
         if intent not in ("sql_query", "workflow"):
             raise BusinessError(501, f"{intent} workflow is scheduled for a later phase")
         schemas: list[str] = []
-        for db_id in context.request.db_config_ids or []:
+        goal = context.tools.task_goal if intent == "sql_query" else None
+        database_ids = goal.dbIds if goal is not None else context.request.db_config_ids or []
+        for db_id in database_ids:
             check_cancelled(context.cancel_event)
             schema = await context.tools.schema(db_id)
             if intent == "workflow":
@@ -61,6 +64,16 @@ class SQLNodes:
             SystemMessage(content=EVIDENCE_RULE),
         ]
         if intent == "sql_query":
+            if goal is None:
+                raise RuntimeError("SQL preparation requires a task goal")
+            messages.append(SystemMessage(content=(
+                "Internal analyzed task goal: " + goal.model_dump_json() + "\n"
+                "metadata_only permits only schema inspection, artifact paging and termination; "
+                "no statement may be executed. statement_execution requires actual statement results. "
+                "Schema metadata is evidence of structure only, never of statement execution. "
+                "An omitted property is unknown; explicit null is an observed null. "
+                "Partial or truncated schema cannot prove the full requested structure."
+            )))
             messages.append(SystemMessage(content=(
                 "Honor the user's requested output projection exactly. If the user names output "
                 "columns or aliases, the result you execute and report must contain exactly those "
@@ -86,7 +99,7 @@ class SQLNodes:
 
         async def summarize_steps(old: list[BaseMessage]) -> str:
             answer = await context.model_stream.call(summary_request(old, context.locale),
-                                                     step=state["step"], event=None)
+                                                     step=state["step"], event=None, emit_reasoning=False)
             if answer.tool_calls:
                 raise ValueError("Step summary model returned a tool call")
             if not isinstance(answer.content, str):
@@ -103,20 +116,19 @@ class SQLNodes:
             safe = await limited_context_report(context, self.comparison, messages, state["step"])
             if safe is not None:
                 return {"messages": messages, "answer": safe, "finished": True}
-        await context.emit("thinking", "Planning database step", state["step"])
+        await context.emit("thinking", product_text("chat.planning", context.locale), state["step"])
         decision = await context.model_stream.call(
             messages, step=state["step"], event=None, tools=context.tools.for_intent(intent),
+            emit_reasoning=True,
         )
         check_cancelled(context.cancel_event)
         if not decision.tool_calls:
-            if intent == "sql_query" and context.tools.statements_executed == 0:
-                if (context.tools.statements_attempted == 0 and
-                        explicit_forbidden_request(context.request.message)):
-                    content = zero_execution_summary(context.request.message, context.locale, [])
+            if intent == "sql_query":
+                content = completion_override(context.tools, context.request.message, context.locale)
+                if content is not None:
                     await context.emit("summary", content, state["step"])
                     return {"messages": messages, "decision": decision,
                             "answer": content, "finished": True}
-                raise RuntimeError("SQL agent answered without executing a statement")
             if not isinstance(decision.content, str):
                 raise TypeError("Database answer must be text")
             status = (self.workflow.status() if intent == "workflow" else
@@ -205,13 +217,11 @@ class SQLNodes:
                 await context.emit("summary", safe, state["step"])
                 return {"answer": safe, "finished": True}
         workflow_status = self.workflow.status() if state["intent"] == "workflow" else None
-        if state["intent"] == "sql_query" and context.tools.statements_executed == 0:
-            content = zero_execution_summary(
-                context.request.message if context.tools.statements_attempted == 0 else "",
-                context.locale, context.tools.statement_errors,
-            )
-            await context.emit("summary", content, state["step"])
-            return {"answer": content, "finished": True}
+        if state["intent"] == "sql_query":
+            content = completion_override(context.tools, context.request.message, context.locale)
+            if content is not None:
+                await context.emit("summary", content, state["step"])
+                return {"answer": content, "finished": True}
         unfinished = context.tools.loop_stop_reason
         limit = self.max_steps
         if state["intent"] == "workflow":
@@ -227,7 +237,9 @@ class SQLNodes:
         warning = (f"{workflow_status}; report only verified facts." if workflow_status else
                    f"{unfinished}; report unfinished work." if unfinished else "Summarize completed work.")
         warning += " " + (COMPARE_REPORT_RULE if state["intent"] == "db_compare" else EVIDENCE_RULE)
-        summary_messages = [*state["messages"], SystemMessage(content=warning)]
+        summary_messages = [*summary_prompt_messages(state["messages"], context.request,
+                                                     context.locale, state["intent"]),
+                            SystemMessage(content=warning)]
         if state["intent"] == "db_compare":
             safe = await limited_context_report(
                 context, self.comparison,
@@ -243,6 +255,7 @@ class SQLNodes:
             summary_messages, step=state["step"],
             event=None if workflow_status else "summary_delta",
             final_report=True,
+            emit_reasoning=True,
         )
         check_cancelled(context.cancel_event)
         if not isinstance(answer.content, str):

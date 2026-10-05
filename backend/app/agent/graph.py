@@ -16,11 +16,17 @@ from app.agent.cancellation import check_cancelled
 from app.agent.graph_sql import SQLNodes
 from app.agent.json_shape_diagnostics import safe_observe_json_shape
 from app.agent.product_locale import clarification, intent_label, missing_database, product_text
-from app.agent.prompts import classification_prompt, classification_user_prompt, system_prompt
+from app.agent.prompts import (
+    classification_prompt,
+    classification_user_prompt,
+    system_prompt,
+    task_goal_prompt,
+)
 from app.agent.protocol_errors import ProtocolCode, mark
 from app.agent.streaming import ModelStream
+from app.agent.task_goal import ClassifiedTask, TaskGoal
 from app.agent.tools import RunTools
-from app.agent.types import ChatRequest, Classification, EventSink, Intent
+from app.agent.types import ChatRequest, EventSink, Intent
 from app.core.config import get_settings
 from app.services.trial import require_intent_available
 
@@ -35,6 +41,7 @@ class RunState(TypedDict):
     decision: AIMessage | None
     answer: str
     finished: bool
+    task_goal: TaskGoal | None
 
 
 @dataclass
@@ -88,26 +95,35 @@ def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunSt
             [SystemMessage(content=classification_prompt(context.request, context.locale)),
              HumanMessage(content=classification_user_prompt(context.request, context.history,
                                                               context.locale))],
-            event=None, classification=True,
+            event=None, classification=True, emit_reasoning=False,
         )
         check_cancelled(context.cancel_event)
         if not isinstance(response.content, str):
             raise mark(TypeError("Intent classification must be a JSON object"),
                        ProtocolCode.INTENT_CLASSIFICATION_CONTENT_TYPE)
         try:
-            value = Classification.model_validate_json(response.content)
+            value = ClassifiedTask.model_validate_json(response.content)
         except (ValidationError, ValueError) as error:
             code = ProtocolCode.INTENT_CLASSIFICATION_VALIDATION_FAILED
             logger.info("Intent classification validation " + json.dumps(
                 {"code": code.text, "stage": code.stage.value, "taskId": context.task_id,
                  "jsonShape": safe_observe_json_shape(response.content, "classification")}, sort_keys=True))
             raise mark(ValueError("Invalid intent classification JSON"), code) from error
-        await context.emit("classified", value.model_dump(), 0)
+        await context.emit("classified", value.model_dump(exclude={"taskGoal"}), 0)
         require_intent_available(value.intent)
+        if value.taskGoal is not None:
+            value.taskGoal.require_authorized(context.tools.database_ids)
+            context.tools.task_goal = value.taskGoal
         if value.needsClarification or value.confidence < 0.7:
             return {"intent": value.intent,
                     "clarification": _clarification(value.intent, value.reasoning, context.locale, context.request)}
-        return {"intent": value.intent}
+        if value.taskGoal is not None and (
+            value.taskGoal.needsClarification or value.taskGoal.confidence < 0.7
+        ):
+            return {"intent": value.intent, "task_goal": value.taskGoal,
+                    "clarification": _clarification(value.intent, value.taskGoal.reasoning,
+                                                     context.locale, context.request)}
+        return {"intent": value.intent, "task_goal": value.taskGoal}
 
     async def prerequisites(state: RunState) -> dict[str, object]:
         check_cancelled(context.cancel_event)
@@ -117,9 +133,29 @@ def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunSt
         missing = _missing_resources(intent, context.request, context.locale)
         if missing:
             return {"clarification": _clarification(intent, missing, context.locale, context.request)}
+        if intent == "sql_query" and context.request.confirmed_intent is not None:
+            response = await context.model_stream.call(
+                [SystemMessage(content=task_goal_prompt(context.locale)),
+                 HumanMessage(content=classification_user_prompt(context.request, context.history,
+                                                                  context.locale))],
+                event=None, json_contract="task_goal", emit_reasoning=False,
+            )
+            check_cancelled(context.cancel_event)
+            if response.tool_calls or not isinstance(response.content, str):
+                raise ValueError("Task goal analysis must return JSON without tool calls")
+            try:
+                goal = TaskGoal.model_validate_json(response.content)
+            except (ValidationError, ValueError) as error:
+                raise ValueError("Invalid task goal JSON") from error
+            goal.require_authorized(context.tools.database_ids)
+            context.tools.task_goal = goal
+            if goal.needsClarification or goal.confidence < 0.7:
+                return {"task_goal": goal,
+                        "clarification": _clarification(intent, goal.reasoning,
+                                                         context.locale, context.request)}
         await context.emit("routing", product_text("chat.routing", context.locale,
                                                   intent_label(intent, context.locale)), 0)
-        return {}
+        return {"task_goal": context.tools.task_goal}
 
     async def clarify(state: RunState) -> dict[str, object]:
         check_cancelled(context.cancel_event)
@@ -176,7 +212,8 @@ def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunSt
 
 async def run_graph(context: RunContext) -> RunState:
     initial: RunState = {"messages": [], "intent": None, "clarification": None,
-                         "step": 0, "decision": None, "answer": "", "finished": False}
+                         "step": 0, "decision": None, "answer": "", "finished": False,
+                         "task_goal": None}
     try:
         recursion_limit = 2 * max(_max_steps(intent) for intent in
                                   ("sql_query", "workflow", "db_compare")) + 10

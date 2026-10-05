@@ -14,6 +14,7 @@ from langchain_core.messages import AIMessageChunk, BaseMessage
 from langchain_core.outputs import ChatGenerationChunk, ChatResult
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
+from task_goal_fixtures import goal_reply
 from test_model_protocol import Provider, frame, model
 
 from app.adapters.cancellation import DatabaseExecutionInterrupted
@@ -137,7 +138,7 @@ async def test_abort_in_sql_tool_records_uncertain_write_and_skips_summary(
     provider: Provider, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     cancel = threading.Event()
-    provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": "UPDATE t SET a=1"})]
+    provider.replies = [goal_reply(), tool_reply("executeSql", {"db_id": 12, "statement": "UPDATE t SET a=1"})]
     monkeypatch.setattr(database_tools, "get_schema", lambda _user, _db: {"tables": []})
     observed: list[threading.Event | None] = []
 
@@ -163,14 +164,14 @@ async def test_abort_in_sql_tool_records_uncertain_write_and_skips_summary(
     assert cancel.is_set()
     assert tools.interruption is not None
     assert tools.interruption["writeOutcomeUnknown"] is True
-    assert len(provider.requests) == 1
+    assert len(provider.requests) == 2
 
 
 @pytest.mark.asyncio
 async def test_abort_during_summary_preserves_only_partial(provider: Provider,
                                                             monkeypatch: pytest.MonkeyPatch) -> None:
     cancel = threading.Event()
-    provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": "SELECT 1"}),
+    provider.replies = [goal_reply(), tool_reply("executeSql", {"db_id": 12, "statement": "SELECT 1"}),
                         tool_reply("doTerminate", {"reason": "done"}),
                         reply('{"report":"partial conclusion', usage=False)]
     monkeypatch.setattr(database_tools, "get_schema", lambda _user, _db: {"tables": []})
@@ -189,7 +190,7 @@ async def test_abort_during_summary_preserves_only_partial(provider: Provider,
                          RunTools(1, request, cancel), emit, cancel)
     with pytest.raises(RunAborted):
         await run_graph(context)
-    assert len(provider.requests) == 3
+    assert len(provider.requests) == 4
     assert kinds.count("summary_delta") == 1
     assert "summary" not in kinds
 

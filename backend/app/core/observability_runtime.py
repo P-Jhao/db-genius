@@ -17,6 +17,7 @@ from opentelemetry.trace import Status, StatusCode
 
 from app.adapters.cancellation import DatabaseExecutionInterrupted, DatabaseWriteOutcomeUnknown
 from app.agent.cancellation import RunAborted
+from app.agent.json_capabilities import JsonContract
 from app.agent.streaming import ModelStream
 from app.agent.types import EventSink, Usage
 from app.core.observability_metrics import (
@@ -40,7 +41,8 @@ class ObservedModelStream(ModelStream):
 
     async def call(self, messages: list[BaseMessage], step: int = 0, event: str | None = "content",
                    tools: list[BaseTool] | None = None, classification: bool = False,
-                   final_report: bool = False) -> AIMessage:
+                   final_report: bool = False, emit_reasoning: bool | None = None,
+                   json_contract: JsonContract | None = None) -> AIMessage:
         prompt_before = self.usage.promptTokens
         completion_before = self.usage.completionTokens
         outcome = "error"
@@ -48,7 +50,8 @@ class ObservedModelStream(ModelStream):
             with span("model.call", task_id=self.task_id, attributes={"model.step": step}):
                 result = await super().call(messages, step=step, event=event,
                                             tools=tools, classification=classification,
-                                            final_report=final_report)
+                                            final_report=final_report, emit_reasoning=emit_reasoning,
+                                            json_contract=json_contract)
             outcome = "done"
             return result
         except RunAborted as error:
