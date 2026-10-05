@@ -17,6 +17,7 @@ export default {
     compareTooltip: 'データベース比較モードを切り替え',
     compareOn: '比較中',
     compareOff: '比較',
+    trialInputPlaceholder: "要件を入力してください。例：各テーブルの列を確認、カテゴリ別の公開記事数を集計、閲覧数が最も多い記事を検索…",
     inputPlaceholder: '要件を入力してください。例：18 歳以上のユーザーを検索、または 2 つのデータベースを比較...',
     stop: '停止',
     send: '送信',

@@ -17,6 +17,7 @@ export default {
     compareTooltip: 'Basculer en mode comparaison de bases de données',
     compareOn: 'Comparaison',
     compareOff: 'Comparer',
+    trialInputPlaceholder: "Décrivez votre besoin, par ex. : voir les colonnes des tables, compter les articles publiés par catégorie ou trouver les articles les plus consultés…",
     inputPlaceholder: 'Décrivez votre besoin, par ex. : trouver les utilisateurs de plus de 18 ans, ou comparer deux bases de données...',
     stop: 'Arrêter',
     send: 'Envoyer',

@@ -79,6 +79,8 @@ services:
       TRIAL_USERNAME: ${SQLCHAT_TRIAL_BUILTIN_USERNAME:-}
       TRIAL_PASSWORD: ${SQLCHAT_TRIAL_BUILTIN_PASSWORD:-}
     command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
       - --innodb-buffer-pool-size=32M
       - --innodb-log-buffer-size=8M
       - --performance-schema=OFF
@@ -94,11 +96,13 @@ services:
     memswap_limit: 256m
     cpus: 0.50
     volumes:
-      - trial_mysql_data:/var/lib/mysql
+      - trial_mysql_blog_v2_data:/var/lib/mysql
       - ./trial-mysql/10-demo.sh:/docker-entrypoint-initdb.d/10-demo.sh:ro
       - ./trial-mysql/demo.sql:/opt/sqlchat-demo.sql:ro
+      - ./trial-mysql/seed.sql:/opt/sqlchat-seed.sql:ro
+      - ./trial-mysql/healthcheck.sh:/opt/sqlchat-healthcheck.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "MYSQL_PWD=\"$${TRIAL_PASSWORD}\" mysql --protocol=TCP -h 127.0.0.1 -u \"$${TRIAL_USERNAME}\" -D \"$${TRIAL_DATABASE}\" -Nse 'SELECT COUNT(*) = 10 FROM orders' | grep -qx 1"]
+      test: ["CMD", "bash", "/opt/sqlchat-healthcheck.sh"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -245,7 +249,7 @@ services:
         aliases: [sqlchat-frontend]
 
 volumes:
-  trial_mysql_data:
+  trial_mysql_blog_v2_data:
   postgres_data:
   rabbitmq_data:
   uploads_data:

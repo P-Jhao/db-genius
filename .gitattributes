@@ -6,3 +6,6 @@
 /docs/phase-15-classification-report-fix/affected-*.jsonl -text
 /docs/phase-15-classification-report-fix/pytest-compare-preflight-initial.log -text
 /docs/phase-15-classification-report-fix/pytest-compare-preflight-assertion-recheck.log -text
+
+# Shell entrypoints and sourced scripts must work after Windows checkout.
+*.sh text eol=lf

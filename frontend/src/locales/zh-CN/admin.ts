@@ -17,6 +17,7 @@ export default {
     compareTooltip: '切换数据库对比模式',
     compareOn: '对比中',
     compareOff: '对比',
+    trialInputPlaceholder: "输入您的需求，例如：查看各表字段、统计各分类的已发布文章数量，或查询浏览量最高的文章…",
     inputPlaceholder: '输入您的需求，例如：查询年龄大于 18 的用户，或对比两个数据库...',
     stop: '停止',
     send: '发送',

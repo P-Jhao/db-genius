@@ -1,0 +1,92 @@
+[
+  {
+    "id": "published_by_category",
+    "question": "统计各分类的已发布文章数量，包含没有已发布文章的分类",
+    "sql": "SELECT c.name, COUNT(p.id) AS published_count FROM tb_category c LEFT JOIN tb_blog_post p ON p.category_id=c.id AND p.status=1 GROUP BY c.id,c.name ORDER BY c.id",
+    "expected": [
+      {
+        "name": "技术",
+        "published_count": 3
+      },
+      {
+        "name": "生活",
+        "published_count": 1
+      },
+      {
+        "name": "随笔",
+        "published_count": 1
+      },
+      {
+        "name": "公告",
+        "published_count": 0
+      }
+    ]
+  },
+  {
+    "id": "top_posts",
+    "question": "查询浏览量最高的三篇已发布文章",
+    "sql": "SELECT title,view_count FROM tb_blog_post WHERE status=1 ORDER BY view_count DESC,id LIMIT 3",
+    "expected": [
+      {
+        "title": "MySQL 索引入门",
+        "view_count": 1200
+      },
+      {
+        "title": "Python 数据整理",
+        "view_count": 850
+      },
+      {
+        "title": "数据库连接指南",
+        "view_count": 650
+      }
+    ]
+  },
+  {
+    "id": "no_search",
+    "question": "找出没有文档搜索也没有网页搜索的会话",
+    "sql": "SELECT c.id,c.name FROM ai_conversation c WHERE NOT EXISTS (SELECT 1 FROM ai_doc_search d WHERE d.conversation_id=c.id) AND NOT EXISTS (SELECT 1 FROM ai_web_search w WHERE w.conversation_id=c.id) ORDER BY c.id",
+    "expected": [
+      {
+        "id": 3,
+        "name": "普通闲聊"
+      },
+      {
+        "id": 4,
+        "name": "未发送消息"
+      }
+    ]
+  },
+  {
+    "id": "unreplied",
+    "question": "统计未回复咨询数量，包括匿名咨询",
+    "sql": "SELECT COUNT(*) AS unreplied_count FROM tb_consultation WHERE reply_status=0 AND reply_time IS NULL",
+    "expected": [
+      {
+        "unreplied_count": 2
+      }
+    ]
+  },
+  {
+    "id": "tag_counts",
+    "question": "统计每个标签关联的已发布文章数",
+    "sql": "SELECT t.name,COUNT(p.id) AS published_count FROM tb_tag t LEFT JOIN tb_post_tag pt ON pt.tag_id=t.id LEFT JOIN tb_blog_post p ON p.id=pt.post_id AND p.status=1 GROUP BY t.id,t.name ORDER BY t.id",
+    "expected": [
+      {
+        "name": "MySQL",
+        "published_count": 2
+      },
+      {
+        "name": "Python",
+        "published_count": 1
+      },
+      {
+        "name": "阅读",
+        "published_count": 2
+      },
+      {
+        "name": "入门",
+        "published_count": 3
+      }
+    ]
+  }
+]

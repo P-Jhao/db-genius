@@ -17,6 +17,7 @@ export default {
     compareTooltip: 'Toggle database comparison mode',
     compareOn: 'Comparing',
     compareOff: 'Compare',
+    trialInputPlaceholder: "Describe your need, e.g. inspect table columns, count published posts by category, or find the most viewed posts…",
     inputPlaceholder: 'Describe your need, e.g. find users older than 18, or compare two databases...',
     stop: 'Stop',
     send: 'Send',

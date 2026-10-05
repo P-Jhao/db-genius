@@ -17,6 +17,7 @@ export default {
     compareTooltip: 'Tukar mod perbandingan pangkalan data',
     compareOn: 'Membanding',
     compareOff: 'Banding',
+    trialInputPlaceholder: "Terangkan keperluan anda, cth.: lihat lajur jadual, kira artikel diterbitkan mengikut kategori, atau cari artikel paling banyak dilihat…",
     inputPlaceholder: 'Terangkan keperluan anda, cth.: cari pengguna berumur lebih 18 tahun, atau bandingkan dua pangkalan data...',
     stop: 'Henti',
     send: 'Hantar',

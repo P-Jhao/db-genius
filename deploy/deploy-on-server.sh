@@ -35,7 +35,7 @@ compose=(docker compose -p sqlchat-prod -f "$compose_file" --env-file "$env_file
 [[ -f "${deploy_dir}/trial-mode.py" ]] || { echo 'Missing trial-mode.py' >&2; exit 1; }
 trial_mode=$("${compose[@]}" --profile trial-demo config --format json | python3 "${deploy_dir}/trial-mode.py")
 if [[ "$trial_mode" == local ]]; then
-    for asset in docker-compose.trial.yml trial-mysql/10-demo.sh trial-mysql/demo.sql; do
+    for asset in docker-compose.trial.yml trial-mysql/10-demo.sh trial-mysql/demo.sql trial-mysql/seed.sql trial-mysql/healthcheck.sh; do
         [[ -f "${deploy_dir}/$asset" ]] || { echo "Missing deployment asset: $asset" >&2; exit 1; }
     done
     compose+=(-f "${deploy_dir}/docker-compose.trial.yml" --profile trial-demo)

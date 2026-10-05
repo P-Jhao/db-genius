@@ -79,7 +79,7 @@ async def test_classified_trial_intent_denied_before_route_and_tools(
     trial_mode: None, provider: Provider, intent: str,
 ) -> None:
     provider.replies = [_response(json.dumps({
-        "intent": intent, "confidence": 0.99, "reasoning": "requested", "needsClarification": False,
+        "intent": intent, "taskGoal": None, "confidence": 0.99, "reasoning": "requested", "needsClarification": False,
     }))]
     events: list[str] = []
 
@@ -150,6 +150,43 @@ def test_trial_initializer_creates_one_encrypted_builtin(
             assert configs[0].password_encrypted is not None
             assert decrypt(configs[0].password_encrypted) == "secret"
             assert queued == [(configs[0].id, 1)]
+            builtin = configs[0]
+            encrypted_before = builtin.password_encrypted
+            builtin.name = "Display name retained"
+            builtin.status = 1
+            builtin.doc_content = "old schema"
+            builtin.verification_error = "old failure"
+            session.add(DbConfig(user_id=builtin.user_id, name="user-owned", db_type="mysql",
+                                 host="user-host", port=3306, db_name="user-db", username="user",
+                                 builtin=False, verification_version=9, status=1, doc_content="user schema"))
+            session.commit()
+            db_config_init.initialize_trial_database(session)
+            assert builtin.status == 1 and builtin.doc_content == "old schema"
+            assert builtin.password_encrypted == encrypted_before
+            assert len(queued) == 1
+            monkeypatch.setattr(settings, "trial_builtin_host", "sqlchat-demo-mysql")
+            monkeypatch.setattr(settings, "trial_builtin_port", 3307)
+            monkeypatch.setattr(settings, "trial_builtin_db_name", "blog-v2")
+            monkeypatch.setattr(settings, "trial_builtin_username", "reader-v2")
+            monkeypatch.setattr(settings, "trial_builtin_password", "new-secret")
+            db_config_init.initialize_trial_database(session)
+            assert builtin.host == "sqlchat-demo-mysql" and builtin.port == 3307
+            assert builtin.db_name == "blog-v2" and builtin.username == "reader-v2"
+            assert builtin.name == "Display name retained"
+            assert builtin.verification_version == 2 and builtin.status == 0
+            assert builtin.doc_content is None and builtin.doc_generated_at is None
+            assert builtin.verification_error is None
+            assert decrypt(builtin.password_encrypted) == "new-secret"
+            assert queued == [(builtin.id, 1), (builtin.id, 2)]
+            from app.services.db_config import _finish_sync
+            assert not _finish_sync(session, builtin.id, 1, document="stale schema", failure=None)
+            assert builtin.doc_content is None and builtin.verification_version == 2
+            assert _finish_sync(session, builtin.id, 2, document="new schema", failure=None)
+            db_config_init.initialize_trial_database(session)
+            assert len(queued) == 2 and builtin.doc_content == "new schema"
+            custom = session.scalar(select(DbConfig).where(DbConfig.builtin.is_(False)))
+            assert custom is not None
+            assert (custom.host, custom.verification_version, custom.doc_content) == ("user-host", 9, "user schema")
     finally:
         engine.dispose()
 

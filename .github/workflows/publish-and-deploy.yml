@@ -112,6 +112,8 @@ jobs:
           test -f deploy/docker-compose.trial.yml
           test -f deploy/trial-mysql/10-demo.sh
           test -f deploy/trial-mysql/demo.sql
+          test -f deploy/trial-mysql/seed.sql
+          test -f deploy/trial-mysql/healthcheck.sh
 
           umask 077
           ssh_directory=$(mktemp -d "$RUNNER_TEMP/sqlchat-ssh.XXXXXX")
@@ -138,7 +140,7 @@ jobs:
             deploy/docker-compose.prod.yml deploy/deploy-on-server.sh deploy/trial-mode.py deploy/docker-compose.trial.yml \
             "$target:sqlchat-deploy/"
           scp "${ssh_options[@]}" -P "$ecs_port" \
-            deploy/trial-mysql/10-demo.sh deploy/trial-mysql/demo.sql \
+            deploy/trial-mysql/10-demo.sh deploy/trial-mysql/demo.sql deploy/trial-mysql/seed.sql deploy/trial-mysql/healthcheck.sh \
             "$target:sqlchat-deploy/trial-mysql/"
 
           # This is static shell source. Credentials are sent only on SSH stdin.

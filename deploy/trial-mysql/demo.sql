@@ -1,56 +1,145 @@
--- Fictional data only. Loaded once on the first initialization of the demo volume.
-CREATE TABLE customers (
-  id INT PRIMARY KEY,
-  name VARCHAR(50) NOT NULL COMMENT '客户姓名',
-  city VARCHAR(50) NOT NULL COMMENT '所在城市',
-  registered_at DATE NOT NULL COMMENT '注册日期'
-) COMMENT='客户信息';
-CREATE TABLE products (
-  id INT PRIMARY KEY,
-  name VARCHAR(80) NOT NULL COMMENT '商品名称',
-  category VARCHAR(40) NOT NULL COMMENT '商品分类',
-  price DECIMAL(10,2) NOT NULL COMMENT '当前单价'
-) COMMENT='商品目录';
-CREATE TABLE orders (
-  id INT PRIMARY KEY,
-  customer_id INT NOT NULL,
-  order_date DATE NOT NULL COMMENT '下单日期',
-  status VARCHAR(20) NOT NULL COMMENT 'paid/shipped/completed/cancelled',
-  total_amount DECIMAL(10,2) NOT NULL COMMENT '订单总金额',
-  FOREIGN KEY (customer_id) REFERENCES customers(id)
-) COMMENT='订单';
-CREATE TABLE order_items (
-  id INT PRIMARY KEY,
-  order_id INT NOT NULL,
-  product_id INT NOT NULL,
-  quantity INT NOT NULL,
-  unit_price DECIMAL(10,2) NOT NULL COMMENT '成交单价',
-  FOREIGN KEY (order_id) REFERENCES orders(id),
-  FOREIGN KEY (product_id) REFERENCES products(id)
-) COMMENT='订单明细';
-
-INSERT INTO customers VALUES
-(1,'张晓','杭州','2025-01-03'),(2,'李明','上海','2025-01-10'),
-(3,'王芳','北京','2025-02-01'),(4,'赵宇','杭州','2025-02-14'),
-(5,'陈静','广州','2025-03-01'),(6,'刘洋','成都','2025-03-05');
-INSERT INTO products VALUES
-(1,'无线鼠标','办公',99.00),(2,'机械键盘','办公',299.00),
-(3,'保温杯','生活',79.00),(4,'台灯','生活',129.00),
-(5,'蓝牙耳机','数码',199.00),(6,'充电宝','数码',149.00);
-INSERT INTO orders VALUES
-(1,1,'2025-04-02','completed',398.00),
-(2,2,'2025-04-05','completed',158.00),
-(3,3,'2025-04-12','shipped',199.00),
-(4,1,'2025-05-01','completed',278.00),
-(5,4,'2025-05-06','paid',299.00),
-(6,5,'2025-05-10','cancelled',99.00),
-(7,6,'2025-06-01','completed',298.00),
-(8,2,'2025-06-08','completed',328.00),
-(9,4,'2025-06-15','shipped',258.00),
-(10,3,'2025-06-20','paid',477.00);
-INSERT INTO order_items VALUES
-(1,1,1,1,99.00),(2,1,2,1,299.00),(3,2,3,2,79.00),
-(4,3,5,1,199.00),(5,4,4,1,129.00),(6,4,6,1,149.00),
-(7,5,2,1,299.00),(8,6,1,1,99.00),(9,7,6,2,149.00),
-(10,8,4,1,129.00),(11,8,5,1,199.00),(12,9,4,2,129.00),
-(13,10,2,1,299.00),(14,10,1,1,99.00),(15,10,3,1,79.00);
+-- Blog demo v2: fictional data only; empty volume initialization only.
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE TABLE tb_user (
+  id BIGINT NOT NULL COMMENT '用户编号',
+  username VARCHAR(64) NOT NULL COMMENT '登录名',
+  password VARCHAR(255) NOT NULL COMMENT '虚构不可登录密码占位',
+  nickname VARCHAR(64) NULL COMMENT '昵称',
+  email VARCHAR(128) NULL COMMENT '邮箱',
+  avatar VARCHAR(255) NULL COMMENT '头像地址',
+  status TINYINT NOT NULL COMMENT '状态：1启用，0停用',
+  create_time DATETIME NOT NULL COMMENT '创建时间',
+  update_time DATETIME NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_user_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='博客用户';
+CREATE TABLE tb_category (
+  id BIGINT NOT NULL COMMENT '分类编号',
+  name VARCHAR(64) NOT NULL COMMENT '分类名称',
+  description VARCHAR(255) NULL COMMENT '分类说明',
+  sort INT NOT NULL COMMENT '排序值',
+  create_time DATETIME NOT NULL COMMENT '创建时间',
+  update_time DATETIME NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_category_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='博客分类';
+CREATE TABLE tb_tag (
+  id BIGINT NOT NULL COMMENT '标签编号',
+  name VARCHAR(64) NOT NULL COMMENT '标签名称',
+  create_time DATETIME NOT NULL COMMENT '创建时间',
+  update_time DATETIME NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_tag_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文章标签';
+CREATE TABLE tb_blog_post (
+  id BIGINT NOT NULL COMMENT '文章编号',
+  title VARCHAR(200) NOT NULL COMMENT '文章标题',
+  summary VARCHAR(500) NULL COMMENT '摘要',
+  content LONGTEXT NOT NULL COMMENT '文章正文',
+  cover_image VARCHAR(255) NULL COMMENT '封面地址',
+  author_id BIGINT NOT NULL COMMENT '作者编号',
+  category_id BIGINT NULL COMMENT '分类编号',
+  status TINYINT NOT NULL COMMENT '状态：0草稿，1已发布，2归档',
+  view_count INT UNSIGNED NOT NULL COMMENT '浏览量',
+  create_time DATETIME NOT NULL COMMENT '创建时间',
+  update_time DATETIME NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (id),
+  KEY ix_post_category_status (category_id,status),
+  KEY ix_post_author (author_id),
+  KEY ix_post_created (create_time),
+  FOREIGN KEY (author_id) REFERENCES tb_user(id),
+  FOREIGN KEY (category_id) REFERENCES tb_category(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='博客文章';
+CREATE TABLE tb_post_tag (
+  id BIGINT NOT NULL COMMENT '关联编号',
+  post_id BIGINT NOT NULL COMMENT '文章编号',
+  tag_id BIGINT NOT NULL COMMENT '标签编号',
+  create_time DATETIME NOT NULL COMMENT '创建时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_post_tag (post_id,tag_id),
+  KEY ix_post_tag_tag (tag_id),
+  FOREIGN KEY (post_id) REFERENCES tb_blog_post(id),
+  FOREIGN KEY (tag_id) REFERENCES tb_tag(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文章标签多对多关联';
+CREATE TABLE ai_conversation (
+  id BIGINT NOT NULL COMMENT '会话编号',
+  user_id BIGINT NOT NULL COMMENT '用户编号',
+  name VARCHAR(200) NOT NULL COMMENT '会话标题',
+  icon VARCHAR(100) NULL COMMENT '图标',
+  status TINYINT NOT NULL COMMENT '状态：1活跃，0关闭',
+  create_time DATETIME NOT NULL COMMENT '创建时间',
+  update_time DATETIME NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (id),
+  KEY ix_conversation_user (user_id),
+  FOREIGN KEY (user_id) REFERENCES tb_user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI会话';
+CREATE TABLE ai_chat_messages (
+  message_id BIGINT NOT NULL COMMENT '消息编号',
+  content LONGTEXT NULL COMMENT '消息正文',
+  reasoning_content LONGTEXT NULL COMMENT '推理内容',
+  message_type VARCHAR(32) NOT NULL COMMENT '消息类型：text或summary',
+  role VARCHAR(16) NOT NULL COMMENT '角色：user或assistant',
+  parent_message_id BIGINT NULL COMMENT '父消息编号',
+  conversation_id BIGINT NOT NULL COMMENT '所属会话编号',
+  user_id BIGINT NOT NULL COMMENT '消息用户编号',
+  token_count INT UNSIGNED NOT NULL COMMENT 'Token数量',
+  source VARCHAR(32) NOT NULL COMMENT '来源：chat或search',
+  status TINYINT NOT NULL COMMENT '状态：1完成，0中断',
+  version INT NOT NULL COMMENT '消息版本',
+  created_at DATETIME NOT NULL COMMENT '创建时间',
+  updated_at DATETIME NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (message_id),
+  KEY ix_message_conversation_created (conversation_id,created_at),
+  KEY ix_message_user (user_id),
+  FOREIGN KEY (parent_message_id) REFERENCES ai_chat_messages(message_id),
+  FOREIGN KEY (conversation_id) REFERENCES ai_conversation(id),
+  FOREIGN KEY (user_id) REFERENCES tb_user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI聊天消息';
+CREATE TABLE ai_doc_search (
+  id BIGINT NOT NULL COMMENT '搜索编号',
+  conversation_id BIGINT NOT NULL COMMENT '会话编号',
+  message_id BIGINT NOT NULL COMMENT '关联消息编号',
+  query VARCHAR(500) NOT NULL COMMENT '检索词',
+  search_result JSON NULL COMMENT '检索结果',
+  result_count INT UNSIGNED NOT NULL COMMENT '命中数量',
+  status TINYINT NOT NULL COMMENT '状态：1成功，0失败',
+  create_time DATETIME NOT NULL COMMENT '创建时间',
+  update_time DATETIME NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (id),
+  KEY ix_doc_conversation (conversation_id),
+  FOREIGN KEY (conversation_id) REFERENCES ai_conversation(id),
+  FOREIGN KEY (message_id) REFERENCES ai_chat_messages(message_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档搜索记录';
+CREATE TABLE ai_web_search (
+  id BIGINT NOT NULL COMMENT '搜索编号',
+  conversation_id BIGINT NOT NULL COMMENT '会话编号',
+  message_id BIGINT NOT NULL COMMENT '关联消息编号',
+  query VARCHAR(500) NOT NULL COMMENT '检索词',
+  search_result JSON NULL COMMENT '检索结果',
+  provider VARCHAR(32) NOT NULL COMMENT '虚构搜索提供者',
+  status TINYINT NOT NULL COMMENT '状态：1成功，0失败',
+  create_time DATETIME NOT NULL COMMENT '创建时间',
+  update_time DATETIME NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (id),
+  KEY ix_web_conversation (conversation_id),
+  FOREIGN KEY (conversation_id) REFERENCES ai_conversation(id),
+  FOREIGN KEY (message_id) REFERENCES ai_chat_messages(message_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='网页搜索记录';
+CREATE TABLE tb_consultation (
+  id BIGINT NOT NULL COMMENT '咨询编号',
+  user_id BIGINT NULL COMMENT '用户编号，匿名允许空',
+  email VARCHAR(128) NOT NULL COMMENT '联系邮箱',
+  type VARCHAR(32) NOT NULL COMMENT '咨询类型：question或feedback',
+  content TEXT NOT NULL COMMENT '咨询正文',
+  content_type VARCHAR(32) NOT NULL COMMENT '正文格式：text或markdown',
+  reply_status TINYINT NOT NULL COMMENT '回复状态：0未回复，1已回复',
+  reply_content TEXT NULL COMMENT '回复正文',
+  reply_content_type VARCHAR(32) NULL COMMENT '回复格式',
+  create_time DATETIME NOT NULL COMMENT '创建时间',
+  reply_time DATETIME NULL COMMENT '回复时间',
+  update_time DATETIME NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (id),
+  KEY ix_consultation_reply (reply_status,create_time),
+  KEY ix_consultation_user (user_id),
+  FOREIGN KEY (user_id) REFERENCES tb_user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户咨询';

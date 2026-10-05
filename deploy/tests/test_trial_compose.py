@@ -12,7 +12,7 @@ DEPLOY = Path(__file__).resolve().parents[1]
 
 
 class TrialComposeTests(unittest.TestCase):
-    def render(self, trial: str, host: str = "trial-mysql", overlay: bool = False) -> dict:
+    def render(self, trial: str, host: str = "trial-mysql", overlay: bool = False, root: bool = False) -> dict:
         # These are disposable test strings, never production credentials.
         config = "\n".join([
             "POSTGRES_PASSWORD=test-only-postgres", "RABBITMQ_DEFAULT_PASS=test-only-rabbit",
@@ -29,8 +29,10 @@ class TrialComposeTests(unittest.TestCase):
             env_path = Path(directory) / "test.env"
             env_path.write_text(config, encoding="utf-8")
             command = ["docker", "compose", "-p", "sqlchat-config-test",
-                       "-f", str(DEPLOY / "docker-compose.prod.yml"), "--env-file", str(env_path)]
-            if overlay:
+                       "-f", str(DEPLOY.parent / "docker-compose.yml" if root else DEPLOY / "docker-compose.prod.yml"), "--env-file", str(env_path)]
+            if root and overlay:
+                command += ["--profile", "trial-demo"]
+            elif overlay:
                 command += ["-f", str(DEPLOY / "docker-compose.trial.yml"), "--profile", "trial-demo"]
             result = subprocess.run(command + ["config", "--format", "json"], env=process_env,
                                     capture_output=True, text=True, check=False)
@@ -52,7 +54,10 @@ class TrialComposeTests(unittest.TestCase):
         self.assertEqual(set(demo["networks"]), {"backend"})
         self.assertEqual(demo["image"], "mysql:8.4")
         self.assertEqual(demo["environment"]["MYSQL_ROOT_HOST"], "localhost")
-        self.assertTrue(any(volume.get("source") == "trial_mysql_data" for volume in demo["volumes"]))
+        self.assertIn("--character-set-server=utf8mb4", demo["command"])
+        self.assertEqual(demo["healthcheck"]["test"], ["CMD", "bash", "/opt/sqlchat-healthcheck.sh"])
+        self.assertTrue(any(volume.get("target") == "/opt/sqlchat-seed.sql" for volume in demo["volumes"]))
+        self.assertTrue(any(volume.get("source") == "trial_mysql_blog_v2_data" for volume in demo["volumes"]))
         for service in ("api", "worker"):
             self.assertEqual(document["services"][service]["depends_on"]["trial-mysql"]["condition"],
                              "service_healthy")
@@ -61,6 +66,27 @@ class TrialComposeTests(unittest.TestCase):
         decision = subprocess.run([sys.executable, "-B", str(DEPLOY / "trial-mode.py")],
                                   input=json.dumps(document), capture_output=True, text=True, check=False)
         self.assertEqual((decision.returncode, decision.stdout.strip()), (0, "local"), decision.stderr)
+
+    def test_root_profile_reuses_blog_volume_and_private_alias(self) -> None:
+        off = self.render("false", root=True)
+        self.assertNotIn("trial-mysql", off["services"])
+        local = self.render("true", host="sqlchat-demo-mysql", overlay=True, root=True)
+        demo = local["services"]["trial-mysql"]
+        self.assertEqual(demo["networks"]["backend"]["aliases"], ["sqlchat-demo-mysql"])
+        self.assertNotIn("ports", demo)
+        self.assertTrue(any(volume.get("source") == "trial_mysql_blog_v2_data" for volume in demo["volumes"]))
+        self.assertEqual(demo["healthcheck"]["test"], ["CMD", "bash", "/opt/sqlchat-healthcheck.sh"])
+
+
+    def test_server_release_transfers_every_required_init_asset(self) -> None:
+        workflow = (DEPLOY.parent / ".github/workflows/publish-and-deploy.yml").read_text(encoding="utf-8")
+        startup = (DEPLOY / "deploy-on-server.sh").read_text(encoding="utf-8")
+        scp_assets = next(line for line in workflow.splitlines() if "deploy/trial-mysql/10-demo.sh deploy/" in line)
+        for asset in ("10-demo.sh", "demo.sql", "seed.sql", "healthcheck.sh"):
+            self.assertIn("test -f deploy/trial-mysql/" + asset, workflow)
+            self.assertIn("deploy/trial-mysql/" + asset, scp_assets)
+            self.assertIn("trial-mysql/" + asset, startup)
+
 
     def test_external_trial_does_not_enable_local_profile(self) -> None:
         document = self.render("true", host="mysql.example.test")

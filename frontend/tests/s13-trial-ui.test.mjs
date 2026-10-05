@@ -10,7 +10,8 @@ test('upload stays available while unknown and trial statuses retain other restr
   try {
     browser = await launchS13Browser()
     const createPage = async () => {
-      const newPage = await browser.newPage()
+      const context = await browser.newContext({ locale: 'en-US' })
+      const newPage = await context.newPage()
       await newPage.addInitScript(() => {
         localStorage.setItem('app-locale', 'en')
         localStorage.setItem('token', 's13-trial-token')
@@ -58,7 +59,7 @@ test('upload stays available while unknown and trial statuses retain other restr
     }
 
     const page = await createPage()
-    await page.goto(url)
+    await page.goto(`${url}?lang=en`)
     await page.locator('.trial-status-alert').waitFor()
     assert.match(await page.locator('.trial-status-alert').textContent(), /could not|unavailable/i)
     const navigate = async (path) => page.evaluate(async (nextPath) => {
@@ -68,6 +69,7 @@ test('upload stays available while unknown and trial statuses retain other restr
 
     await navigate('/admin/chat')
     await page.locator('.chat-page').waitFor()
+    assert.match(await page.locator('textarea').getAttribute('placeholder'), /inspect table columns.*published posts.*most viewed/iu)
     assert.equal(await page.locator('.file-uploader').count(), 1, 'upload is available independently of trial status')
     const uploadInput = page.locator('.file-uploader input[type="file"]')
     assert.equal(await uploadInput.getAttribute('accept'), '.xlsx,.xls')
@@ -85,6 +87,7 @@ test('upload stays available while unknown and trial statuses retain other restr
     await retryButton.click()
     await page.locator('.trial-status-alert').waitFor({ state: 'detached' })
     assert.equal(statusCalls, 2)
+    assert.match(await page.locator('textarea').getAttribute('placeholder'), /inspect table columns.*published posts.*most viewed/iu)
 
     const dbPage = await createPage()
     await dbPage.goto(`${url}/admin/db-config`)
@@ -112,10 +115,12 @@ test('upload stays available while unknown and trial statuses retain other restr
       buffer: Buffer.from('sample'),
     })
     await page.locator('.file-list').getByText('sample.xlsx', { exact: false }).waitFor()
+    await page.locator('.file-uploader .upload-btn.uploading').waitFor({ state: 'hidden' })
     assert.equal(apiCalls.filter(({ pathname }) => pathname === '/api/file/upload').length, 1,
       'trial chat upload reaches the existing API')
     await uploadInput.setInputFiles({ name: 'sample.xls', mimeType: 'application/vnd.ms-excel', buffer: Buffer.from('sample') })
     await page.locator('.file-list').getByText('sample.xls', { exact: false }).waitFor()
+    await page.locator('.file-uploader .upload-btn.uploading').waitFor({ state: 'hidden' })
     assert.equal(apiCalls.filter(({ pathname }) => pathname === '/api/file/upload').length, 2)
     assert.equal(await page.getByRole('button', { name: 'Compare', exact: true }).count(), 0,
       'trial mode must hide comparison')
@@ -126,6 +131,7 @@ test('upload stays available while unknown and trial statuses retain other restr
       const { useTrialStore } = await import('/src/stores/trial.ts')
       useTrialStore().trialEnabled = false
     })
+    assert.match(await page.locator('textarea').getAttribute('placeholder'), /find users older than 18.*compare two databases/iu)
     assert.equal(await uploadInput.getAttribute('accept'), '.xlsx,.xls,.csv,.docx,.pdf,.md,.png,.jpg,.jpeg,.webp,.bmp')
     assert.equal(await page.locator('.file-uploader').getByRole('button', { name: 'Upload file', exact: true }).count(), 1)
     await uploadInput.setInputFiles({ name: 'formal.csv', mimeType: 'text/csv', buffer: Buffer.from('id\n1') })

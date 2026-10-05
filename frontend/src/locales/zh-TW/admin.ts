@@ -17,6 +17,7 @@ export default {
     compareTooltip: '切換資料庫對比模式',
     compareOn: '對比中',
     compareOff: '對比',
+    trialInputPlaceholder: "輸入您的需求，例如：查看各資料表欄位、統計各分類的已發布文章數量，或查詢瀏覽量最高的文章…",
     inputPlaceholder: '輸入您的需求，例如：查詢年齡大於 18 的使用者，或對比兩個資料庫...',
     stop: '停止',
     send: '傳送',

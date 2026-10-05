@@ -27,6 +27,8 @@ const messagesContainer = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLElement | null>(null)
 
 const isTrial = computed(() => trialStore.isTrial)
+const inputPlaceholder = computed(() => t(trialStore.trialEnabled === false
+  ? 'admin.chat.inputPlaceholder' : 'admin.chat.trialInputPlaceholder'))
 const canUseRestrictedFeatures = computed(() => trialStore.isReady && !isTrial.value)
 
 onMounted(() => {
@@ -220,7 +222,7 @@ const agentCapabilityTooltip = computed(() => t('admin.chat.capabilityTooltip'))
         <a-textarea
           ref="textareaRef"
           v-model="inputText"
-          :placeholder="$t('admin.chat.inputPlaceholder')"
+          :placeholder="inputPlaceholder"
           :auto-size="{ minRows: 1, maxRows: 4 }"
           :disabled="chatStore.isStreaming"
           @keydown="handleKeydown"

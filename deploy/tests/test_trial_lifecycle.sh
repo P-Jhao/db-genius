@@ -8,7 +8,7 @@ trap 'rm -rf -- "$fixture_dir"' EXIT
 mkdir -p "$fixture_dir/bin" "$fixture_dir/trial-mysql"
 cp "$source_dir/deploy-on-server.sh" "$source_dir/trial-mode.py" \
    "$source_dir/docker-compose.prod.yml" "$source_dir/docker-compose.trial.yml" "$fixture_dir/"
-cp "$source_dir/trial-mysql/10-demo.sh" "$source_dir/trial-mysql/demo.sql" "$fixture_dir/trial-mysql/"
+cp "$source_dir/trial-mysql/10-demo.sh" "$source_dir/trial-mysql/demo.sql" "$source_dir/trial-mysql/seed.sql" "$source_dir/trial-mysql/healthcheck.sh" "$fixture_dir/trial-mysql/"
 printf '%s\n' '# Disposable no-secret fixture; never used by a real Docker daemon.' > "$fixture_dir/.env.production"
 cat > "$fixture_dir/bin/docker" <<'STUB'
 #!/usr/bin/env bash
