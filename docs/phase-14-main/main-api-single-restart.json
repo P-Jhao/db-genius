@@ -1,9 +1,0 @@
-{
-  "passed": true,
-  "apiActuallyRestarted": true,
-  "workerStartUnchanged": true,
-  "checkedCounterSeries": 18,
-  "counterDiffs": [],
-  "apiStartedAt": "2026-10-02T14:55:17.765971729Z",
-  "initializerNotInvoked": true
-}

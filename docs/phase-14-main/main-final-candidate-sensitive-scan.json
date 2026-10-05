@@ -1,9 +1,0 @@
-{
-  "candidateManifestSha256": "2998353e3d693224a3758bfcaa4ce31b8f310bcb9a5f78470159e336957b06d6",
-  "filesScanned": 785,
-  "privateSourcesLoaded": 5,
-  "encodedVariantsIncluded": true,
-  "matchingPaths": [],
-  "passed": true,
-  "secretValuesOutput": false
-}

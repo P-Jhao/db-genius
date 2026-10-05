@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+!deploy/.env.production.example
 **/.qoder/
 **/.vscode/
 **/node_modules/
@@ -14,3 +15,11 @@
 **/.ruff_cache/
 **/*.tsbuildinfo
 uploads/
+
+# Keep project documentation local to this checkout.
+/docs/
+/README.md
+/AGENTS.md
+/frontend/README.md
+/frontend/backend-fix-context-loss.md
+!/backend/app/resources/prompts/**/*.md

@@ -1,51 +1,41 @@
 # SQLChat
 
-SQLChat reuses the DB-Genius Vue interface and provides a Python/FastAPI API, a Celery worker, PostgreSQL system storage, and RabbitMQ task delivery. The isolated S14 Compose stack serves the UI and `/api` through one Nginx entry point on `http://localhost:8109` by default. This machine’s acceptance stack uses host port `18109`; this is a local test setting, not the default.
+SQLChat 是一个 DB-Genius 风格的 Text2SQL 项目，使用 Vue 前端和 Python/FastAPI 后端，由 LangChain 与 LangGraph 承担模型查询流程。
 
-当前中文交付范围、验收结果和模型/外部环境限制见[交付说明](docs/phase-15-acceptance/交付说明.md)。
+## 本地部署
 
-## Local container stack
+需要安装 Docker Desktop（包含 Docker Compose），并在 PowerShell 中进入 `sqlchat` 目录。
 
-Copy `.env.example` to a local ignored env file, then replace every `REPLACE_*` value. The backend startup wrapper percent-encodes raw PostgreSQL and RabbitMQ credentials in memory, so passwords may contain reserved URL characters such as `@`, `:`, and `/`. Generate the 32-character encryption key with `python -c "import secrets; print(secrets.token_hex(16))"`; use different generated values for both passwords.
+复制环境配置模板：
 
 ```powershell
-Copy-Item .env.example .env.s14
-# Edit .env.s14 and replace each placeholder.
-# For this local validation stack, set SQLCHAT_STORAGE_BACKEND=local.
-docker compose --project-name sqlchat-s14-test --env-file .env.s14 -f docker-compose.yml up --build -d
-docker compose --project-name sqlchat-s14-test --env-file .env.s14 -f docker-compose.yml exec api python deploy/connection_env.py python -m app.services.bootstrap
+Copy-Item .env.example .env
 ```
 
-The one-shot `migrate` service runs `alembic upgrade head` before the API and worker start. The one-shot `metrics-init` service starts a fresh Prometheus multiprocess epoch before either application process starts. PostgreSQL, RabbitMQ, uploaded files, and process metrics use separate named volumes scoped to the explicit `sqlchat-s14-test` project. The database and broker have no published host ports; the frontend binds to loopback port 8109. To stop the stack without deleting persistent data, run `docker compose --project-name sqlchat-s14-test --env-file .env.s14 -f docker-compose.yml stop`. The named volumes remain while stopped; a later whole-stack `up` runs `metrics-init` again and starts a new metrics epoch.
+编辑 `.env`，为 `POSTGRES_PASSWORD` 和 `RABBITMQ_DEFAULT_PASS` 分别设置不同的随机密码，并将 `SQLCHAT_BOOTSTRAP_PASSWORD` 改为初始管理员密码。可以在 PowerShell 中运行以下命令生成密码（重复运行以获得不同值）：
 
-The legacy `GET /api/health` remains available. `GET /api/health/live` checks that the API process responds; `GET /api/health/ready` returns 200 only when PostgreSQL and RabbitMQ are available, otherwise 503. The external metrics URL is `GET /api/metrics` through Nginx. The backend also serves a direct-container `GET /metrics` alias, which the frontend Nginx does not expose at its root. This metrics layout supports one API container and one Worker container per stack; Worker prefork children share the worker directory. Do not use `docker compose --scale` for API or Worker because distinct containers can reuse PID values in the same service directory. API and worker write to separate subdirectories under the shared metrics volume; active processes hold a shared lifecycle lock, and the initializer refuses to clear files while either is running. Old worker PID files remain within an epoch, so use task-before/task-after counter deltas. A whole-stack plain `stop`/`up` reruns `metrics-init` and starts a new epoch; the S14 runtime observation recorded metric-file removal and a counter reset. Restarting only the API or Worker does not run the initializer. For a deterministic explicit new epoch before an upgrade, stop API and Worker and remove the completed `metrics-init` container before starting the stack; persistent data volumes remain. See [deployment operations](docs/phase-14-deploy/README.md). The model API key is blank in the example; configure `SQLCHAT_DEFAULT_MODEL_API_KEY` or app model settings before using model features.
+```powershell
+$rng = [Security.Cryptography.RandomNumberGenerator]::Create(); $bytes = New-Object byte[] 24; $rng.GetBytes($bytes); [Convert]::ToBase64String($bytes).Replace('+','-').Replace('/','_')
+```
 
-Set `SQLCHAT_DEFAULT_MODEL_CONTEXT_WINDOW` in the env file to a positive integer (tokens) to override the system default model's registry window; leaving it empty keeps the registry value. This affects the active model response, the page's context usage display, SSE usage and context governance. Saved user model configurations retain their own windows. Zero, negative numbers and malformed values fail configuration validation. Automatic conversation compression still requires `SQLCHAT_CONTEXT_AUTO_COMPRESS_ENABLED=true`; setting a window does not guarantee automatic truncation of every prompt. After changing the env file, recreate API and Worker containers with the same Compose project and `--env-file` to apply it; a plain restart does not reload Compose environment values.
+将 `SQLCHAT_ENCRYPT_KEY` 替换为恰好 32 个 UTF-8 字节的随机值；下面的命令会生成 32 个十六进制字符：
 
-## File storage, OCR and trial configuration
+```powershell
+$rng = [Security.Cryptography.RandomNumberGenerator]::Create(); $bytes = New-Object byte[] 16; $rng.GetBytes($bytes); [BitConverter]::ToString($bytes).Replace('-','').ToLowerInvariant()
+```
 
-Compose reads the storage and OCR options from the env file for both API and worker. The default `SQLCHAT_STORAGE_BACKEND=oss` preserves the production file chain. Set `SQLCHAT_OSS_ENDPOINT`, `SQLCHAT_OSS_BUCKET`, `SQLCHAT_OSS_ACCESS_KEY_ID` and `SQLCHAT_OSS_ACCESS_KEY_SECRET` to the bucket endpoint, bucket name and credentials. Missing OSS configuration raises an error on file access; it does not switch storage automatically.
+本地使用建议将 `SQLCHAT_STORAGE_BACKEND` 设为 `local`。如需使用模型功能，可按所用服务配置 `SQLCHAT_DEFAULT_MODEL_API_KEY`。本地 Compose 启动不会提供外部模型 API 或 OSS 服务。
 
-For development or this isolated deployment test, set `SQLCHAT_STORAGE_BACKEND=local` explicitly. Keep `SQLCHAT_STORAGE_ROOT=/app/uploads` to use the shared persistent uploads volume. Changing this path also requires a matching API/worker volume mount.
+启动 SQLChat：
 
-Image text recognition requires `SQLCHAT_OCR_ENABLED=true`, `SQLCHAT_OCR_ENDPOINT`, `SQLCHAT_OCR_ACCESS_KEY_ID` and `SQLCHAT_OCR_ACCESS_KEY_SECRET`. Configure this separate OCR credential group with access to Aliyun RecognizeAdvanced. With OCR disabled, image recognition reports an explicit service error. Actual OSS/OCR acceptance still requires working service credentials; local storage tests do not verify those services.
+```powershell
+docker compose --env-file .env up -d --build
+```
 
-Trial mode is optional: set `SQLCHAT_TRIAL_ENABLED=true` and configure `SQLCHAT_TRIAL_BUILTIN_HOST`, `SQLCHAT_TRIAL_BUILTIN_PORT`, `SQLCHAT_TRIAL_BUILTIN_DB_NAME`, `SQLCHAT_TRIAL_BUILTIN_USERNAME` and `SQLCHAT_TRIAL_BUILTIN_PASSWORD` for the built-in MySQL database. Trial permissions apply to the API and worker, including rejection of writes and file upload.
+Compose 会自动运行数据库迁移服务，然后启动 API、Worker 和前端。默认访问地址为 <http://localhost:8109/admin/chat>。登录用户名和密码分别取自 `.env` 中的 `SQLCHAT_BOOTSTRAP_USERNAME` 与 `SQLCHAT_BOOTSTRAP_PASSWORD`；模板默认用户名为 `admin`，密码应由部署者设置。
 
-## Context and execution limits
+停止服务并保留命名卷中的数据：
 
-The env example exposes cross-turn compression (`SQLCHAT_CONTEXT_AUTO_COMPRESS_*`, `SQLCHAT_CONTEXT_KEEP_LAST_MESSAGES`), observation elision, step summaries, stale reasoning discard, repeated-call limits and tool output/artifact limits. `SQLCHAT_TOOL_OUTPUT_MAX_ROWS` controls result rows; `SQLCHAT_TOOL_OUTPUT_PER_TOOL_MAX_CHARACTERS` optionally accepts `executeSql=1000,readFile=5000` or a JSON object to override individual tools. Leaving it empty preserves the global character limit. Compose forwards these options to API and worker with the Settings defaults. Automatic cross-turn compression is off by default; observation elision and step summaries are on. Session expiry, SQL timeout/row limits and each workflow's maximum steps are also configurable without editing Compose.
-
-Nginx proxies `/api` to the API on port 8109 with response buffering disabled, a one-hour read timeout, a 21 MiB transport limit to leave multipart overhead above the API's 20 MiB file limit, and client-abort propagation. Its access log records the request path without query parameters. API and worker logs use the backend redaction filter, and container logs have rotation limits. This Compose file is an isolated local validation stack; production deployments should use a managed secret store, TLS termination, backups, and an explicitly reviewed exposure policy.
-
-## Upgrade and rollback
-
-Before an upgrade, back up the PostgreSQL system database and the encryption key together; existing saved database/model credentials cannot be recovered without the original key. Keep the PostgreSQL, RabbitMQ, uploads, and metrics named volumes. For a deterministic new metrics epoch, stop API and Worker and remove the completed `metrics-init` container before rebuilding/upgrading; the initializer can then run while persistent data volumes are preserved. A whole-stack plain `stop`/`up` also reruns the initializer; restarting only API or Worker does not. The one-shot migration runs before API and worker startup on `up`; check the API readiness endpoint and worker health before directing users to the stack.
-
-For a temporary stop that preserves data, use the `stop` command above. The current metrics epoch remains in the named volume while the stack is stopped, but the next whole-stack `up` reruns `metrics-init` and starts a new epoch. `docker compose down` also preserves named volumes unless `--volumes` is explicitly supplied. Do not use `down --volumes` as an upgrade or rollback step. If an upgrade fails, stop the affected stack and restore the prior application version with the matching database backup when its schema is incompatible; this project does not promise automatic schema downgrade or data rollback.
-
-## Deployment checks
-
-Run deployment contract tests with `node --test tests/s14-deployment-contract.test.mjs` and the backend boundary tests with `backend/.venv/Scripts/python.exe -m pytest backend/tests/test_deploy_connection_env.py backend/tests/test_deploy_metrics_init.py backend/tests/test_file_upload.py`. Validate Compose with `docker compose --project-name sqlchat-s14-test --env-file .env.example -f docker-compose.yml config --quiet`. Build images with the same `docker compose` prefix followed by `build`; these checks do not start services or remove volumes.
-
-Deployment details and evidence are tracked in [docs/phase-14-deploy/README.md](docs/phase-14-deploy/README.md).
+```powershell
+docker compose --env-file .env down
+```

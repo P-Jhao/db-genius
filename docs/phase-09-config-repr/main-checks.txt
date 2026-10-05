@@ -1,9 +1,0 @@
-python -m ruff check app tests
-All checks passed!
-
-python -m mypy app
-Success: no issues found in 84 source files
-
-python -m pytest -q --tb=short tests/test_connection_config_repr.py tests/test_mongodb_credentials.py tests/test_core_contracts.py
-.................                                                        [100%]
-17 passed in 6.92s

@@ -1,8 +1,0 @@
-..............                                                           [100%]
-=============================== warnings summary ===============================
-.venv/lib/python3.12/site-packages/oss2/api.py:703
-  /app/.venv/lib/python3.12/site-packages/oss2/api.py:703: SyntaxWarning: invalid escape sequence '\&'
-    r'http://your-bucket.oss-cn-hangzhou.aliyuncs.com/logo.jpg?OSSAccessKeyId=YourAccessKeyId\&Expires=1447178011&Signature=UJfeJgvcypWq6Q%2Bm3IJcSHbvSak%3D'
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-14 passed, 1 warning in 14.58s

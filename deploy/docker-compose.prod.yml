@@ -1,3 +1,4 @@
+# Invoke with -p sqlchat-prod; no fixed resource names interfere with other projects.
 x-logging: &bounded-logging
   driver: json-file
   options:
@@ -103,9 +104,7 @@ services:
     networks: [backend]
 
   migrate:
-    build:
-      context: backend
-      dockerfile: Dockerfile
+    image: ghcr.io/p-jhao/sqlchat-backend:${SQLCHAT_IMAGE_TAG:?Set_SQLCHAT_IMAGE_TAG_to_full_commit_SHA}
     environment: *backend-environment
     command: ["alembic", "upgrade", "head"]
     depends_on:
@@ -116,9 +115,7 @@ services:
     networks: [backend]
 
   metrics-init:
-    build:
-      context: backend
-      dockerfile: Dockerfile
+    image: ghcr.io/p-jhao/sqlchat-backend:${SQLCHAT_IMAGE_TAG:?Set_SQLCHAT_IMAGE_TAG_to_full_commit_SHA}
     entrypoint: ["python"]
     command: ["deploy/init_metrics.py"]
     environment:
@@ -130,9 +127,7 @@ services:
     logging: *bounded-logging
 
   api:
-    build:
-      context: backend
-      dockerfile: Dockerfile
+    image: ghcr.io/p-jhao/sqlchat-backend:${SQLCHAT_IMAGE_TAG:?Set_SQLCHAT_IMAGE_TAG_to_full_commit_SHA}
     environment:
       <<: *backend-environment
       SQLCHAT_METRICS_MULTIPROCESS_ROOT: /var/lib/sqlchat/prometheus
@@ -161,9 +156,7 @@ services:
     networks: [web, backend]
 
   worker:
-    build:
-      context: backend
-      dockerfile: Dockerfile
+    image: ghcr.io/p-jhao/sqlchat-backend:${SQLCHAT_IMAGE_TAG:?Set_SQLCHAT_IMAGE_TAG_to_full_commit_SHA}
     environment:
       <<: *backend-environment
       SQLCHAT_METRICS_MULTIPROCESS_ROOT: /var/lib/sqlchat/prometheus
@@ -193,14 +186,9 @@ services:
     networks: [backend]
 
   frontend:
-    build:
-      context: frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: /api
-        VITE_GITHUB_REPO: ${VITE_GITHUB_REPO:-https://github.com/P-Jhao/db-genius}
+    image: ghcr.io/p-jhao/sqlchat-frontend:${SQLCHAT_IMAGE_TAG:?Set_SQLCHAT_IMAGE_TAG_to_full_commit_SHA}
     ports:
-      - "127.0.0.1:${SQLCHAT_HTTP_PORT:-8109}:80"
+      - "127.0.0.1:${SQLCHAT_HTTP_PORT:-18109}:80"
     depends_on:
       api:
         condition: service_healthy
@@ -212,7 +200,10 @@ services:
       start_period: 5s
     restart: unless-stopped
     logging: *bounded-logging
-    networks: [web]
+    networks:
+      web:
+      promptforge_proxy:
+        aliases: [sqlchat-frontend]
 
 volumes:
   postgres_data:
@@ -223,3 +214,6 @@ volumes:
 networks:
   web:
   backend:
+  promptforge_proxy:
+    external: true
+    name: promptforge_promptforge

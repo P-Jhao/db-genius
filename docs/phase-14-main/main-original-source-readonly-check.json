@@ -1,8 +1,0 @@
-{
-  "status": "passed",
-  "filesVerified": 289,
-  "mismatches": [],
-  "originalManifestFileSha256": "0045a2f9e2daa4afb14bcc4e6ddd577259ee4a5a81675f8591032f9a03c3d31d",
-  "originalBootJarSha256": "59d5a78796423de6d93cae041cff2648349bb8243dd42e2f485dee5e3390b46c",
-  "scope": "Original backend source remains byte-identical to pre-copy sourceHashes; no build or mutation"
-}

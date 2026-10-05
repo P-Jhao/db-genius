@@ -1,6 +1,0 @@
-{
-  "diagnosticLength": 1000,
-  "wholeCredentialPresent": false,
-  "credentialPrefixStillPresent": true,
-  "expected": "Redact complete diagnostic before the original 1000-character cap"
-}

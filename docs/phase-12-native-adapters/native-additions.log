@@ -1,5 +1,0 @@
-
-no tests ran in 1.02s
-ERROR: not found: C:\Users\22126\Desktop\web\text2sql\sqlchat\.git\acceptance\s12-native-integration-5e454013ff3f45b888abf0bbdc5e03c3\backend\tests\test_native_adapters_protocol.py::test_oracle_service_name_url_and_select_from_dual
-(no match in any of [<Module test_native_adapters_protocol.py>])
-

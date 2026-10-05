@@ -1,9 +1,0 @@
-........................................................................ [ 25%]
-.......................sss...................................s.......... [ 51%]
-........................................................................ [ 77%]
-..............................................................           [100%]
-=========================== short test summary info ===========================
-SKIPPED [2] tests\test_db_config.py:203: SQLCHAT_TEST_BROKER_URL is required for the live Celery worker
-SKIPPED [1] tests\test_db_config.py:232: Run with SQLCHAT_BROKER_URL pointing to an unused local port
-SKIPPED [1] tests\test_file_upload.py:194: Directory symlinks are unavailable for this test process: [WinError 1314] 客户端没有所需的特权。: 'C:\\Users\\22126\\AppData\\Local\\Temp\\pytest-of-22126\\pytest-556\\test_local_storage_rejects_cro0\\root\\uploads\\2' -> 'C:\\Users\\22126\\AppData\\Local\\Temp\\pytest-of-22126\\pytest-556\\test_local_storage_rejects_cro0\\root\\uploads\\1'
-274 passed, 4 skipped in 312.62s (0:05:12)

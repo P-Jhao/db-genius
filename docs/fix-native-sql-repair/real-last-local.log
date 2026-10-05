@@ -1,3 +1,0 @@
-Actual native repair diagnostic: {'driver_type': 'oracledb.exceptions.DatabaseError', 'code': 904, 'offset': 7, 'full_code': 'ORA-00904', 'rollback_event': True}
-.
-1 passed in 10.81s
