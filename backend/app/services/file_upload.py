@@ -5,7 +5,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
-from app.core.errors import BusinessError, deny_trial
+from app.core.errors import BusinessError
 from app.models import UploadedFile
 from app.storage.backend import StorageLimitExceeded, get_storage
 from app.storage.validation import DOC_EXTENSIONS, IMAGE_EXTENSIONS, MAX_FILE_SIZE, validate_content
@@ -37,7 +37,6 @@ def _upload_bytes(file: UploadFile) -> bytes:
 
 
 def upload_file(session: Session, user_id: int, file: UploadFile) -> UploadedFile:
-    deny_trial("error.trial.fileUpload")
     filename = file.filename
     extension = _extension(filename)
     if extension not in DOC_EXTENSIONS | IMAGE_EXTENSIONS:

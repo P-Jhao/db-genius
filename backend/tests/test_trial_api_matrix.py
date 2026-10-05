@@ -74,9 +74,7 @@ def test_original_restricted_apis_fail_before_external_side_effects(
     assert response.json() == {"code": 403, "message": translate("error.trial." + key, "fr"), "data": None}
 
 
-def test_upload_rejected_and_builtin_views_are_masked(client: TestClient) -> None:
-    response = client.post("/api/file/upload", files={"file": ("fixture.csv", b"id\n1\n", "text/csv")})
-    assert response.json()["code"] == 403
+def test_builtin_views_are_masked(client: TestClient) -> None:
     one = client.get("/api/db-config/12").json()["data"]
     many = client.get("/api/db-config").json()["data"]
     assert many == [one]

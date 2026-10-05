@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { launchS13Browser, startS13Frontend, stopS13Frontend, success } from './fixtures/s13-browser.mjs'
 
-test('unknown trial status fails closed, displays retry, then honors trial read-only UI rules', async () => {
+test('upload stays available while unknown and trial statuses retain other restricted UI rules', async () => {
   const { url, vite } = await startS13Frontend()
   let browser
   let statusCalls = 0
@@ -32,7 +32,14 @@ test('unknown trial status fails closed, displays retry, then honors trial read-
         }
         apiCalls.push({ method: request.method(), pathname })
         let data = null
-        if (pathname === '/api/db-config') {
+        if (pathname === '/api/file/upload') {
+          assert.equal(request.method(), 'POST')
+          assert.match(request.headers()['content-type'], /^multipart\/form-data; boundary=/)
+          assert.match(request.postData() ?? '', /name="file"; filename="sample.xlsx"/)
+          data = { id: 41, originalName: 'sample.xlsx', fileSize: 6,
+            contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            createdAt: '2026-10-05T10:00:00' }
+        } else if (pathname === '/api/db-config') {
           data = [{ id: 1, name: 'Trial database', dbType: 'mysql', host: '127.0.0.1', port: 3306,
             dbName: 'sample', username: 'reader', status: 1, statusDesc: 'Connected', docContent: '',
             docGeneratedAt: null, createdAt: '2026-09-30T10:00:00' }]
@@ -59,7 +66,7 @@ test('unknown trial status fails closed, displays retry, then honors trial read-
 
     await navigate('/admin/chat')
     await page.locator('.chat-page').waitFor()
-    assert.equal(await page.locator('.file-uploader').count(), 0, 'unknown status must not expose upload')
+    assert.equal(await page.locator('.file-uploader').count(), 1, 'upload is available independently of trial status')
     assert.equal(await page.getByRole('button', { name: 'Compare', exact: true }).count(), 0,
       'unknown status must not expose database comparison')
 
@@ -81,12 +88,20 @@ test('unknown trial status fails closed, displays retry, then honors trial read-
     await modelPage.getByText('Built-in Model', { exact: true }).waitFor()
     assert.equal(await modelPage.locator('.page-header button').count(), 0, 'trial model page must not offer create')
 
-    assert.equal(await page.locator('.file-uploader').count(), 0, 'trial mode must hide upload')
+    assert.equal(await page.locator('.file-uploader').count(), 1, 'trial mode retains upload')
+    await page.locator('.file-uploader input[type="file"]').setInputFiles({
+      name: 'sample.xlsx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      buffer: Buffer.from('sample'),
+    })
+    await page.locator('.file-list').getByText('sample.xlsx', { exact: false }).waitFor()
+    assert.equal(apiCalls.filter(({ pathname }) => pathname === '/api/file/upload').length, 1,
+      'trial chat upload reaches the existing API')
     assert.equal(await page.getByRole('button', { name: 'Compare', exact: true }).count(), 0,
       'trial mode must hide comparison')
     assert.equal(apiCalls.some(({ method, pathname }) => method !== 'GET' &&
-      /\/(file\/upload|db-config|model-config\/configs|model-config\/context-window\/lookup)(\/|$)/.test(pathname)), false,
-    'read-only UI must not issue restricted mutation or lookup calls')
+      /\/(db-config|model-config\/configs|model-config\/context-window\/lookup)(\/|$)/.test(pathname)), false,
+    'other restricted mutation and lookup calls remain blocked')
   } finally {
     await stopS13Frontend(vite, browser)
   }

@@ -192,7 +192,7 @@ const agentCapabilityTooltip = computed(() => t('admin.chat.capabilityTooltip'))
       <ContextUsageBar />
 
       <div class="control-row">
-        <FileUploader v-if="canUseRestrictedFeatures" @files-changed="handleFilesChanged" />
+        <FileUploader @files-changed="handleFilesChanged" />
         <DbSelector
           v-if="!compareMode"
           v-model="selectedDbIds"

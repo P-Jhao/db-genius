@@ -7,6 +7,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 from fastapi.testclient import TestClient
+from openpyxl import Workbook
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -158,13 +159,26 @@ def test_high_expansion_office_upload_is_rejected_before_decompression(
         assert session.query(UploadedFile).count() == 0
 
 
-def test_trial_and_unconfigured_oss_fail_explicitly(
+def test_trial_upload_is_owned_and_unconfigured_oss_fails_explicitly(
     app_client: tuple[TestClient, sessionmaker[Session]], monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     client, _ = app_client
     monkeypatch.setattr(errors, "get_settings", lambda: SimpleNamespace(trial_enabled=True))
-    assert _upload(client, "a.csv", b"a,b\n").json()["code"] == 403
-    monkeypatch.setattr(errors, "get_settings", lambda: SimpleNamespace(trial_enabled=False))
+    workbook = Workbook()
+    sheet = workbook.active
+    assert sheet is not None
+    sheet.append(["id", "name"])
+    sheet.append([1, "Alice"])
+    stream = BytesIO()
+    workbook.save(stream)
+    payload = stream.getvalue()
+    result = _upload(client, "sample.xlsx", payload)
+    assert result.json()["code"] == 200
+    record, content = file_upload.read_owned_bytes(1, result.json()["data"]["id"])
+    assert record.original_name == "sample.xlsx" and content == payload
+    with pytest.raises(BusinessError) as denied:
+        file_upload.read_owned_bytes(2, record.id)
+    assert denied.value.code == 403
     monkeypatch.setattr(backend, "get_settings", lambda: Settings(storage_backend="oss"))
     result = _upload(client, "a.csv", b"a,b\n")
     assert result.json()["code"] == 500
