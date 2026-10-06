@@ -56,7 +56,8 @@ async def test_metadata_uses_preparation_evidence_without_sql(
     report = "orders.id is INTEGER; the observed comment is null."
     provider.replies.extend([tool_reply("doTerminate", {"reason": "Schema read"}),
                              response(json.dumps({"report": report, "complete": True}))]
-                            if terminate else [response(report)])
+                            if terminate else [response(report),
+                                               response(json.dumps({"report": report, "complete": True}))])
     request = ChatRequest(message="Describe orders structure, including the word SELECT as a label",
                           dbConfigIds=[12], confirmedIntent="sql_query" if confirmed else None)
     answer, tools, events = await run(provider, request)
@@ -152,7 +153,8 @@ async def test_mixed_structure_and_operation_requires_statement_execution(
     statement = "INSERT INTO orders VALUES (1)" if write else "SELECT COUNT(*) AS n FROM orders"
     report = "orders.id is INTEGER; 1 row inserted." if write else "orders.id is INTEGER; 5 rows."
     provider.replies = [goal_reply(), tool_reply("executeSql", {"db_id": 12,
-        "statement": statement}), response(report)]
+        "statement": statement}), response(report),
+        response(json.dumps({"report": report, "complete": True}))]
     message = "Show orders structure and insert row 1" if write else "Show orders structure and count rows"
     answer, tools, _ = await run(provider, ChatRequest(message=message,
                                    dbConfigIds=[12], confirmedIntent="sql_query"))

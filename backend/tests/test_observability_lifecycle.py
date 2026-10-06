@@ -99,6 +99,8 @@ def test_http_model_tool_persistence_parent_chain(
                                                         "statement": "SELECT id FROM items"})}}]}}]}),
          frame("[DONE]")],
         [frame({"choices": [{"delta": {"content": "One synthetic item."}}]}), frame("[DONE]")],
+        [frame({"choices": [{"delta": {"content": json.dumps({
+            "report": "One synthetic item.", "complete": True})}}]}), frame("[DONE]")],
     ]
     response = client.post("/api/chat", json={"message": "SYNTHETIC_PROMPT",
         "dbConfigIds": [target.id], "confirmedIntent": "sql_query"}, headers={"Accept-Language": "fr",
@@ -124,7 +126,7 @@ def test_http_model_tool_persistence_parent_chain(
         assert item.parent in [tool.context for tool in tool_spans]
         assert item.attributes is not None and item.attributes["outcome"] == "done"
     assert adapter.extract_metadata.call_count == adapter.execute.call_count == 1
-    assert len(provider.requests) == 3
+    assert len(provider.requests) == 4
     assert provider.requests[0]["thinking"] == {"type": "disabled"}
     assert all(request["temperature"] == 0.7 for request in provider.requests[1:])
 

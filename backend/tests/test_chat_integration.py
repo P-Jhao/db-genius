@@ -106,9 +106,11 @@ def test_real_insert_and_select_through_chat(db_type: str, provider: Provider,
         provider.replies = [goal_reply([db_id]),
             tool_reply("insert_1", f"INSERT INTO {qualified} VALUES (1, '真实结果')", db_id),
             model_reply("Inserted one row."),
+            model_reply(json.dumps({"report": "Inserted one row.", "complete": True})),
             goal_reply([db_id]),
             tool_reply("select_1", f"SELECT COUNT(*) AS count FROM {qualified}", db_id),
             model_reply("There is one row."),
+            model_reply(json.dumps({"report": "There is one row.", "complete": True})),
         ]
         client = TestClient(app)
         insert_response = client.post("/api/chat", json={"message": "Insert one row",
@@ -131,7 +133,7 @@ def test_real_insert_and_select_through_chat(db_type: str, provider: Provider,
         assert any(event["type"] == "summary" and event["content"] == "There is one row."
                    for event in select_events)
         assert table in json.dumps(provider.requests[1]["messages"])
-        assert len(provider.requests) == 6
+        assert len(provider.requests) == 8
     finally:
         app.dependency_overrides.clear()
         if user_id != -1:

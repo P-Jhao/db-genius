@@ -96,7 +96,8 @@ async def test_model_repairs_missing_table_and_reads_actual_rows(
     sqlite_service(monkeypatch, tmp_path)
     provider.replies = [call("SELECT name FROM recrods", "bad"),
                         call("SELECT name FROM records", "fixed"),
-                        answer("Ada is present.")]
+                        answer("Ada is present."),
+                        answer(json.dumps({"report": "Ada is present.", "complete": True}))]
     result, tools, events = await run(provider)
     assert result == "Ada is present."
     assert tools.statements_executed == 1
@@ -119,7 +120,8 @@ async def test_model_repairs_write_target_without_repeating_successful_write(
     provider.replies = [call("INSERT INTO recrods VALUES (2, 'Eve')", "bad_write"),
                         call("INSERT INTO records VALUES (2, 'Eve')", "fixed_write"),
                         call("SELECT id, name FROM records WHERE id = 2", "verify"),
-                        answer("Eve was inserted and verified.")]
+                        answer("Eve was inserted and verified."),
+                        answer(json.dumps({"report": "Eve was inserted and verified.", "complete": True}))]
     result, tools, _ = await run(provider)
     assert result == "Eve was inserted and verified."
     assert tools.statements_executed == 2

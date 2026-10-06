@@ -105,9 +105,10 @@ async def test_actual_native_select_error_is_rolled_back_and_model_corrected(
             wait_oracle_ddl(engine, [table.upper()])
         install_target(monkeypatch, config)
         monkeypatch.setattr(database_tools, "execute_statement", execute)
-        provider.replies = [call(bad, "bad"), call(fixed, "fixed"), answer("Ada is present.")]
+        provider.replies = [call(bad, "bad"), call(fixed, "fixed"), answer("Ada is present."),
+                            answer(json.dumps({"report": "Ada is present.", "complete": True}))]
         result, tools, _events = await run(provider)
-        assert result == "Ada is present." and len(provider.requests) == 3
+        assert result == "Ada is present." and len(provider.requests) == 4
         assert executed == [bad, fixed] and len(observed) == 1
         assert tools.statements_executed == 1 and tools.completed_write_count == 0
         values = [json.loads(message["content"]) for message in provider.requests[1]["messages"]
@@ -242,9 +243,10 @@ async def test_actual_oracle_semicolon_is_a_success_not_a_diagnostic(
 ) -> None:
     config, _engine = oracle_target
     install_target(monkeypatch, config)
-    provider.replies = [call("SELECT 1 AS value FROM DUAL;", "valid"), answer("One is present.")]
+    provider.replies = [call("SELECT 1 AS value FROM DUAL;", "valid"), answer("One is present."),
+                        answer(json.dumps({"report": "One is present.", "complete": True}))]
     result, tools, _events = await run(provider)
-    assert result == "One is present." and len(provider.requests) == 2
+    assert result == "One is present." and len(provider.requests) == 3
     assert tools.statements_executed == 1 and tools.statement_errors == []
     observations = [json.loads(message["content"]) for message in provider.requests[1]["messages"]
                     if message.get("role") == "tool"]

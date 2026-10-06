@@ -28,6 +28,7 @@ from app.agent.task_goal import ClassifiedTask, TaskGoal
 from app.agent.tools import RunTools
 from app.agent.types import ChatRequest, EventSink, Intent
 from app.core.config import get_settings
+from app.core.errors import BusinessError
 from app.services.trial import require_intent_available
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,9 @@ def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunSt
             raise mark(ValueError("Invalid intent classification JSON"), code) from error
         await context.emit("classified", value.model_dump(exclude={"taskGoal"}), 0)
         require_intent_available(value.intent)
+        if (value.intent == "sql_query" and not context.request.db_config_ids
+                and not value.needsClarification and value.confidence >= 0.7):
+            raise BusinessError(400, "error.chat.sqlQueryNoDbConfig")
         if value.taskGoal is not None:
             value.taskGoal.require_authorized(context.tools.database_ids)
             context.tools.task_goal = value.taskGoal
@@ -130,6 +134,8 @@ def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunSt
         intent = state["intent"]
         if intent is None:
             raise RuntimeError("Classification did not choose an intent")
+        if intent == "sql_query" and not context.request.db_config_ids:
+            raise BusinessError(400, "error.chat.sqlQueryNoDbConfig")
         missing = _missing_resources(intent, context.request, context.locale)
         if missing:
             return {"clarification": _clarification(intent, missing, context.locale, context.request)}
@@ -184,8 +190,13 @@ def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunSt
             return "clarify"
         return "simple" if state["intent"] == "simple_chat" else "prepare_sql"
 
-    def after_decide(state: RunState) -> Literal["execute_tools", "end"]:
-        return "end" if state["finished"] else "execute_tools"
+    def after_decide(state: RunState) -> Literal["execute_tools", "summarize", "end"]:
+        if state["finished"]:
+            return "end"
+        decision = state["decision"]
+        if state["intent"] == "sql_query" and decision is not None and not decision.tool_calls:
+            return "summarize"
+        return "execute_tools"
 
     def after_tools(state: RunState) -> Literal["decide", "summarize"]:
         intent = state["intent"]
@@ -204,7 +215,8 @@ def build_graph(context: RunContext) -> CompiledStateGraph[RunState, None, RunSt
     graph.add_edge("clarify", END)
     graph.add_edge("simple", END)
     graph.add_conditional_edges("prepare_sql", after_tools)
-    graph.add_conditional_edges("decide", after_decide, {"execute_tools": "execute_tools", "end": END})
+    graph.add_conditional_edges("decide", after_decide,
+                                {"execute_tools": "execute_tools", "summarize": "summarize", "end": END})
     graph.add_conditional_edges("execute_tools", after_tools)
     graph.add_edge("summarize", END)
     return graph.compile()

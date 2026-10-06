@@ -17,6 +17,7 @@ from app.agent.prompts import summary_prompt_messages, system_prompt
 from app.agent.report_rules import COMPARE_REPORT_RULE
 from app.agent.report_rules import SQL_EVIDENCE_RULE as EVIDENCE_RULE
 from app.agent.sql_completion import completion_override
+from app.agent.sql_terminal_diagnostics import TerminalPath, observe_completion
 from app.agent.workflow import WorkflowProgress
 from app.agent.workflow_rows import schema_mutation
 from app.core.errors import BusinessError
@@ -32,6 +33,7 @@ class SQLNodes:
         self.repeated_calls = RepeatedCalls()
         self.workflow = WorkflowProgress(set(context.request.file_ids or []))
         self.comparison = PreparedComparison()
+        self.terminal_path: TerminalPath | None = None
 
     async def prepare(self, state: RunState) -> dict[str, object]:
         context = self.context
@@ -124,11 +126,14 @@ class SQLNodes:
         check_cancelled(context.cancel_event)
         if not decision.tool_calls:
             if intent == "sql_query":
+                self.terminal_path = "direct"
                 content = completion_override(context.tools, context.request.message, context.locale)
+                observe_completion(context.tools, "direct", content is not None)
                 if content is not None:
                     await context.emit("summary", content, state["step"])
                     return {"messages": messages, "decision": decision,
-                            "answer": content, "finished": True}
+                             "answer": content, "finished": True}
+                return {"messages": messages, "decision": decision, "finished": False}
             if not isinstance(decision.content, str):
                 raise TypeError("Database answer must be text")
             status = (self.workflow.status() if intent == "workflow" else
@@ -219,6 +224,11 @@ class SQLNodes:
         workflow_status = self.workflow.status() if state["intent"] == "workflow" else None
         if state["intent"] == "sql_query":
             content = completion_override(context.tools, context.request.message, context.locale)
+            terminal_path = self.terminal_path
+            if terminal_path is None:
+                terminal_path = ("loop_stop" if context.tools.loop_stop_reason is not None else
+                                 "terminate" if context.tools.terminated else "step_limit")
+            observe_completion(context.tools, terminal_path, content is not None)
             if content is not None:
                 await context.emit("summary", content, state["step"])
                 return {"answer": content, "finished": True}

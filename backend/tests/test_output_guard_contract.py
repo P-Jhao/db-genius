@@ -12,7 +12,7 @@ from app.agent import output_guard
 from app.agent.graph import RunContext, run_graph
 from app.agent.output_guard import OutputArtifacts, bound_json
 from app.agent.streaming import ModelStream
-from app.agent.tools import RunTools
+from app.agent.tools import OutputInput, RunTools
 from app.agent.types import ChatRequest, Usage
 from app.core.config import Settings
 from app.services import database_tools
@@ -48,6 +48,28 @@ def test_override_environment_supports_source_pairs_and_json(monkeypatch: pytest
     assert Settings().tool_output_per_tool_max_characters == {"readFile": 6000}
     monkeypatch.setenv("SQLCHAT_TOOL_OUTPUT_PER_TOOL_MAX_CHARACTERS", '{"readFile": 7000}')
     assert Settings().tool_output_per_tool_max_characters == {"readFile": 7000}
+
+
+def test_paging_tool_and_artifact_describe_actual_next_offset(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(output_guard, "get_settings", lambda: Settings(tool_output_max_characters=950))
+    artifacts = OutputArtifacts(1, "paging-contract")
+    envelope = json.loads(bound_json({"notes": "x" * 5000}, artifacts, tool_name="getDatabaseSchema"))
+    instruction = envelope["instruction"]
+    assert "returned nextOffset" in instruction and "length cap may shrink" in instruction
+    assert "hasMore=false" in instruction and "tail≠no gaps" in instruction
+    tools = RunTools(1, ChatRequest.model_validate({"message": "synthetic"}))
+    definition = next(tool for tool in tools.for_intent("sql_query") if tool.name == "readToolOutput")
+    assert "returned nextOffset" in definition.description and "offset + requested length" in definition.description
+    assert "hasMore=false" in definition.description and "earlier gaps" in definition.description
+    properties = OutputInput.model_json_schema()["properties"]
+    assert "returned nextOffset" in properties["offset"]["description"]
+    assert "upper bound" in properties["length"]["description"]
+    first = json.loads(artifacts.read(envelope["artifactId"], user_id=1, task_id="paging-contract",
+                                    offset=0, length=8000))
+    assert first["nextOffset"] < 8000
+    second = json.loads(artifacts.read(envelope["artifactId"], user_id=1, task_id="paging-contract",
+                                     offset=first["nextOffset"], length=8000))
+    assert second["offset"] == first["nextOffset"]
 
 
 class QueryModel:

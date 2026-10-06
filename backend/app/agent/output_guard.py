@@ -148,7 +148,9 @@ def bound_json(value: object, artifacts: OutputArtifacts, *, tool_name: str | No
     metadata: dict[str, object] = {
         "marker": "[TRUNCATED:TOOL_OUTPUT_TOO_LONG]", "artifactId": artifact_id,
         "totalCharacters": len(full), "truncated": True, **source_markers,
-        "instruction": "Use readToolOutput to page the complete tool result.",
+        "instruction": (
+            "0→returned nextOffset, not offset+length; length cap may shrink; hasMore=false: tail≠no gaps"
+        ),
     }
     row_set = _row_set(normalized, metadata, limit)
     if row_set is not None:

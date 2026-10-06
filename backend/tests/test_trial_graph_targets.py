@@ -1,5 +1,6 @@
 """Real PG/MySQL data effects with a controlled HTTP model and production tools."""
 
+import json
 import threading
 from uuid import uuid4
 
@@ -65,7 +66,8 @@ async def test_trial_graph_reads_rejects_writes_and_normal_graph_commits_allowed
 
     try:
         monkeypatch.setattr(get_settings(), "trial_enabled", True)
-        provider.replies = [goal_reply(), dsml(f"SELECT id, label FROM {quoted}"), _reply("One original row.")]
+        provider.replies = [goal_reply(), dsml(f"SELECT id, label FROM {quoted}"), _reply("One original row."),
+                            _reply(json.dumps({"report": "One original row.", "complete": True}))]
         read = context()
         assert (await run_graph(read))["answer"] == "One original row."
         assert read.tools.last_result == {"success": True, "data": [{"id": 1, "label": "original"}],
@@ -81,7 +83,9 @@ async def test_trial_graph_reads_rejects_writes_and_normal_graph_commits_allowed
         assert adapter.execute(target, f"SELECT label FROM {quoted}", trial_mode=True)["data"] == [
             {"label": "original"}]
         monkeypatch.setattr(get_settings(), "trial_enabled", False)
-        provider.replies = [goal_reply(), dsml(f"UPDATE {quoted} SET label = 'committed' WHERE id = 1"), _reply("Updated one row.")]
+        provider.replies = [goal_reply(), dsml(f"UPDATE {quoted} SET label = 'committed' WHERE id = 1"),
+                            _reply("Updated one row."),
+                            _reply(json.dumps({"report": "Updated one row.", "complete": True}))]
         ordinary = context()
         assert (await run_graph(ordinary))["answer"] == "Updated one row."
         assert ordinary.tools.completed_write_count == 1 and ordinary.tools.statements_executed == 1

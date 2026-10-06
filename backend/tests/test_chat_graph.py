@@ -56,10 +56,13 @@ async def test_classification_and_simple_chat(provider: Provider) -> None:
     assert usage.totalTokens == 12
 
 
+@pytest.mark.parametrize(("confidence", "needs_clarification"), [(0.4, False), (0.99, True)])
 @pytest.mark.asyncio
-async def test_low_confidence_clarifies_without_executing(provider: Provider) -> None:
-    provider.replies = [response(json.dumps({"intent": "sql_query", "confidence": 0.4,
-                                              "reasoning": "ambiguous", "needsClarification": False,
+async def test_unclear_classification_clarifies_without_executing(
+    provider: Provider, confidence: float, needs_clarification: bool,
+) -> None:
+    provider.replies = [response(json.dumps({"intent": "sql_query", "confidence": confidence,
+                                              "reasoning": "ambiguous", "needsClarification": needs_clarification,
                                               "taskGoal": goal_value([], clarify=True)}))]
     events: list[str] = []
 
@@ -114,6 +117,7 @@ async def test_confirmed_sql_reads_schema_then_executes(provider: Provider,
                                                                       "statement": "SELECT COUNT(*) FROM orders"})}}]}}]}),
          frame("[DONE]")],
         response("There are 3 orders."),
+        response(json.dumps({"report": "There are 3 orders.", "complete": True})),
     ]
     events: list[tuple[str, object]] = []
 
@@ -127,7 +131,9 @@ async def test_confirmed_sql_reads_schema_then_executes(provider: Provider,
     result = await run_graph(context)
     assert calls == ["schema", "execute"]
     assert result["answer"] == "There are 3 orders."
-    assert [event[0] for event in events] == ["routing", "step", "thinking", "step", "thinking", "summary"]
+    assert [event[0] for event in events] == ["routing", "step", "thinking", "step", "thinking",
+                                            "summary_delta", "summary"]
+    assert len(provider.requests) == 4
     first_messages = provider.requests[1]["messages"]
     assert isinstance(first_messages, list)
     assert "orders" in json.dumps(first_messages)
@@ -136,20 +142,25 @@ async def test_confirmed_sql_reads_schema_then_executes(provider: Provider,
     assert any(message["role"] == "tool" and "count" in message["content"] for message in next_messages)
 
 
+@pytest.mark.parametrize("database_ids", [None, []])
 @pytest.mark.asyncio
-async def test_confirmed_sql_still_requires_database(provider: Provider) -> None:
+async def test_confirmed_sql_still_requires_database(provider: Provider,
+                                                     database_ids: list[int] | None) -> None:
     events: list[str] = []
 
     async def emit(kind: str, _content: object, _step: int) -> None:
         events.append(kind)
 
-    request = ChatRequest(message="Count orders", confirmedIntent="sql_query")
-    context = RunContext(request, [], "en", ModelStream(model(provider), emit, Usage()),
+    request = ChatRequest(message="Count orders", dbConfigIds=database_ids, confirmedIntent="sql_query")
+    usage = Usage()
+    context = RunContext(request, [], "en", ModelStream(model(provider), emit, usage),
                          RunTools(7, request), emit)
-    result = await run_graph(context)
-    assert result["clarification"] is not None
-    assert events == ["clarify"]
+    with pytest.raises(BusinessError, match="error.chat.sqlQueryNoDbConfig") as error:
+        await run_graph(context)
+    assert error.value.code == 400
+    assert events == []
     assert provider.requests == []
+    assert usage.callCount == 0
 
 
 @pytest.mark.asyncio

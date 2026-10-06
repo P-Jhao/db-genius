@@ -42,7 +42,7 @@ async def test_sql_fact_rules_preserve_string_zero_without_extra_branch_probe(
     provider.replies.extend(
         [tool_reply("doTerminate", {"reason": "Done"}),
          final_reply(json.dumps({"report": report, "complete": True}))]
-        if framed else [final_reply(report)]
+        if framed else [final_reply(report), final_reply(json.dumps({"report": report, "complete": True}))]
     )
     events: list[tuple[str, object]] = []
 
@@ -57,7 +57,7 @@ async def test_sql_fact_rules_preserve_string_zero_without_extra_branch_probe(
                                         tools, emit))
     assert result["answer"] == report and events[-1] == ("summary", report)
     assert statements == [statement] and tools.statements_attempted == 1 and tools.completed_write_count == 0
-    assert len(provider.requests) == usage.callCount == (4 if framed else 3)
+    assert len(provider.requests) == usage.callCount == 4
     assert usage.totalTokens == 6 * usage.callCount
     for payload in provider.requests[1:]:
         messages = payload["messages"]
@@ -69,4 +69,4 @@ async def test_sql_fact_rules_preserve_string_zero_without_extra_branch_probe(
                     if item["role"] == "tool" and item["tool_call_id"] == "executeSql"]
     assert tool_results == [observed]
     assert isinstance(tool_results[0]["data"][0]["total_amount"], str)
-    assert (final_messages[-1]["content"] == REPORT_CONTRACT) is framed
+    assert final_messages[-1]["content"] == REPORT_CONTRACT

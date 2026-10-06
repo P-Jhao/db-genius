@@ -41,8 +41,14 @@ class CompareInput(BaseModel):
 
 class OutputInput(BaseModel):
     artifact_id: str
-    offset: int = Field(default=0, ge=0)
-    length: int = Field(default=8000, ge=1, le=16000)
+    offset: int = Field(default=0, ge=0, description=(
+        "Start at 0, then use the previous page's returned nextOffset. "
+        "Never advance by requested length."
+    ))
+    length: int = Field(default=8000, ge=1, le=16000, description=(
+        "Requested character upper bound; the actual returned page may be shorter. "
+        "Use returned nextOffset for the next page."
+    ))
 
 
 class TerminateInput(BaseModel):
@@ -216,7 +222,11 @@ class RunTools:
         definitions: list[tuple[str, str, type[BaseModel], Callable[..., Awaitable[str]]]] = [
             ("getDatabaseSchema", "Read selected database schema before generating statements.", DatabaseInput, self.schema),
             ("executeSql", "Execute SQL or MongoDB command on a selected database. Follow server safety rules.", StatementInput, self.comparison_read if intent == "db_compare" else self.execute),
-            ("readToolOutput", "Page a large output using its artifactId.", OutputInput, self.read_output),
+            ("readToolOutput", (
+                "Page an artifact from offset 0, advancing by returned nextOffset, never offset + requested length. "
+                "length is an upper bound; actual pages may be shorter. hasMore=false means this page reaches "
+                "the end, not that earlier gaps were read. Read all intervals without gaps."
+            ), OutputInput, self.read_output),
             ("doTerminate", "Finish tool execution and summarize results.", TerminateInput, self.terminate),
         ]
         if intent == "sql_query" and self.task_goal is not None and self.task_goal.mode == "metadata_only":

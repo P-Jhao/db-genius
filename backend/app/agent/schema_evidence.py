@@ -12,23 +12,44 @@ class SchemaObservation:
     delivered: bool
     artifact_id: str | None = None
     pages: dict[int, str] = field(default_factory=dict)
+    total_characters: int | None = None
 
 
 @dataclass
 class SchemaEvidence:
     observations: dict[int, SchemaObservation] = field(default_factory=dict)
+    artifacts: dict[str, tuple[int, SchemaObservation]] = field(default_factory=dict)
 
     def register(self, db_id: int, result: object, output: str) -> None:
         visible: object = json.loads(output)
         artifact_id = visible.get("artifactId") if isinstance(visible, dict) else None
         if artifact_id is not None and not isinstance(artifact_id, str):
             raise TypeError("Schema artifact identity must be text")
-        self.observations[db_id] = SchemaObservation(result, artifact_id is None, artifact_id)
+        delivered = artifact_id is None or any(
+            owner == db_id and previous.delivered and previous.result == result
+            for owner, previous in self.artifacts.values()
+        )
+        current = self.observations.get(db_id)
+        if current is not None and current.delivered and current.result == result:
+            delivered = True
+        observation = SchemaObservation(result, delivered, artifact_id)
+        if artifact_id is not None:
+            existing = self.artifacts.get(artifact_id)
+            if existing is not None:
+                owner, previous = existing
+                if owner != db_id or previous.result != result:
+                    raise ValueError("Schema artifact was registered for a different source")
+                observation = previous
+                observation.delivered = observation.delivered or delivered
+            else:
+                self.artifacts[artifact_id] = (db_id, observation)
+        self.observations[db_id] = observation
 
     def observe_page(self, artifact_id: str, page: object) -> None:
-        matches = [value for value in self.observations.values() if value.artifact_id == artifact_id]
-        if not matches:
+        registered = self.artifacts.get(artifact_id)
+        if registered is None:
             return
+        db_id, observation = registered
         if not isinstance(page, dict):
             raise TypeError("Schema artifact page must be an object")
         offset, content = page.get("offset"), page.get("content")
@@ -36,20 +57,27 @@ class SchemaEvidence:
         if (type(offset) is not int or not isinstance(content, str) or type(total) is not int
                 or type(next_offset) is not int or next_offset != offset + len(content)):
             raise TypeError("Schema artifact page coordinates are invalid")
-        for observation in matches:
-            observation.pages[offset] = content
-            chunks: list[str] = []
-            position = 0
-            while position in observation.pages:
-                chunk = observation.pages[position]
-                if not chunk:
-                    break
-                chunks.append(chunk)
-                position += len(chunk)
-            if position == total:
-                if json.loads("".join(chunks)) != observation.result:
-                    raise ValueError("Paged metadata differs from its registered schema")
-                observation.delivered = True
+        if offset < 0 or total < 0 or next_offset > total:
+            raise ValueError("Schema artifact page coordinates are out of bounds")
+        if observation.total_characters is not None and observation.total_characters != total:
+            raise ValueError("Schema artifact page total changed")
+        previous = observation.pages.get(offset)
+        if previous is not None and previous[:len(content)] != content[:len(previous)]:
+            raise ValueError("Schema artifact pages have conflicting overlap")
+        pages = dict(observation.pages)
+        if previous is None or len(content) > len(previous):
+            pages[offset] = content
+        segments = _merge_pages(pages)
+        complete = len(segments) == 1 and segments[0][0] == 0 and len(segments[0][1]) == total
+        if complete and json.loads(segments[0][1]) != observation.result:
+            raise ValueError("Paged metadata differs from its registered schema")
+        observation.pages = pages
+        observation.total_characters = total
+        if complete:
+            observation.delivered = True
+            current = self.observations.get(db_id)
+            if current is not None and current.result == observation.result:
+                current.delivered = True
 
     def status(self, goal: TaskGoal) -> dict[str, object]:
         databases: list[dict[str, object]] = []
@@ -113,3 +141,21 @@ class SchemaEvidence:
                 omitted.append(path)
             elif value[attribute] is None:
                 known_null.append(path)
+
+
+def _merge_pages(pages: dict[int, str]) -> list[tuple[int, str]]:
+    """Merge observed intervals, rejecting overlap with different characters."""
+    segments: list[tuple[int, str]] = []
+    for offset, chunk in sorted(pages.items()):
+        if not chunk:
+            continue
+        if not segments or offset > segments[-1][0] + len(segments[-1][1]):
+            segments.append((offset, chunk))
+            continue
+        start, observed = segments[-1]
+        relative = offset - start
+        overlap = min(len(observed) - relative, len(chunk))
+        if observed[relative:relative + overlap] != chunk[:overlap]:
+            raise ValueError("Schema artifact pages have conflicting overlap")
+        segments[-1] = (start, observed + chunk[overlap:])
+    return segments

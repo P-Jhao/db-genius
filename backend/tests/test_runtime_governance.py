@@ -1,6 +1,7 @@
 """T-27/T-28: real bounds, ownership, context governance, and loop convergence."""
 
 import json
+import logging
 from collections.abc import Sequence
 from typing import cast
 
@@ -198,6 +199,8 @@ class CompactingModel:
     async def call(self, messages: list[BaseMessage], **kwargs: object) -> AIMessage:
         if kwargs.get("json_contract") == "task_goal":
             return AIMessage(content=json.dumps(goal_value()))
+        if kwargs.get("final_report") is True:
+            return AIMessage(content="Queries finished.")
         if kwargs.get("tools") is None:
             self.summaries += 1
             self.summary_messages.append(messages)
@@ -252,7 +255,9 @@ async def test_graph_emits_compaction_phase_events(
 
 
 @pytest.mark.asyncio
-async def test_repeated_call_stops_before_fifth_execution(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_repeated_call_stops_before_fifth_execution(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture,
+) -> None:
     from app.services import database_tools
     executions = 0
     def execute(_user: int, _db: int, _sql: str) -> dict[str, object]:
@@ -270,19 +275,23 @@ async def test_repeated_call_stops_before_fifth_execution(monkeypatch: pytest.Mo
                                           "confirmedIntent": "sql_query"})
     tools = RunTools(7, request)
     context = RunContext(request, [], "en", cast(ModelStream, model), tools, emit)
-    result = await run_graph(context)
+    with caplog.at_level(logging.INFO, logger="app.agent.sql_terminal_diagnostics"):
+        result = await run_graph(context)
     assert executions == 4
     assert model.calls == 6
     assert any("Change strategy" in str(message.content) for message in model.messages[3]
                if isinstance(message, SystemMessage))
     assert tools.loop_stop_reason is not None
+    assert '"terminalPath": "loop_stop"' in caplog.text
     assert "unfinished work" in result["answer"].lower()
     assert any(kind == "summary" and "unfinished work" in str(content).lower()
                for kind, content in events)
 
 
 @pytest.mark.asyncio
-async def test_step_limit_reports_unfinished(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_step_limit_reports_unfinished(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture,
+) -> None:
     from app.agent import graph
     from app.services import database_tools
 
@@ -297,8 +306,10 @@ async def test_step_limit_reports_unfinished(monkeypatch: pytest.MonkeyPatch) ->
 
     request = ChatRequest.model_validate({"message": "Run query", "dbConfigIds": [12],
                                           "confirmedIntent": "sql_query"})
-    result = await run_graph(RunContext(request, [], "en", cast(ModelStream, model),
-                                        RunTools(7, request), emit))
+    with caplog.at_level(logging.INFO, logger="app.agent.sql_terminal_diagnostics"):
+        result = await run_graph(RunContext(request, [], "en", cast(ModelStream, model),
+                                            RunTools(7, request), emit))
     assert model.calls == 2
     assert result["step"] == 1
     assert "Step limit reached" in result["answer"]
+    assert '"terminalPath": "step_limit"' in caplog.text

@@ -200,7 +200,8 @@ async def test_read_only_drop_literal_executes_normally(
     monkeypatch.setattr(database_tools, "execute_statement", execute)
     statement = "SELECT 'DROP TABLE orders' AS note"
     provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": statement}),
-                        text_reply("DROP TABLE orders")]
+                        text_reply("DROP TABLE orders"),
+                        text_reply(json.dumps({"report": "DROP TABLE orders", "complete": True}))]
     answer, tools = await run_sql(provider, statement)
     assert answer == "DROP TABLE orders"
     assert statements == [statement] and tools.statements_executed == 1
@@ -226,7 +227,7 @@ async def test_join_projection_instruction_reaches_http_model_and_exact_result(
 
     monkeypatch.setattr(database_tools, "execute_statement", execute)
     provider.replies = [tool_reply("executeSql", {"db_id": 12, "statement": statement}),
-                        text_reply("Ada: 15")]
+                        text_reply("Ada: 15"), text_reply(json.dumps({"report": "Ada: 15", "complete": True}))]
     answer, tools = await run_sql(provider, "Return customer_name and total_amount only; order by customers.id")
     messages = provider.requests[1]["messages"]
     assert isinstance(messages, list)
