@@ -125,6 +125,8 @@ test('original chat page posts to FastAPI SSE and replays persisted history', as
     assert.ok(frames.some((event) => event.type === 'summary' &&
       event.content === 'There are 2 rows in the browser fixture.'),
     `Backend did not return the expected summary: ${JSON.stringify(frames)}\n${fixtureOutput()}`)
+    assert.equal(frames.filter((event) => event.type === 'summary_delta').map((event) => event.content).join(''),
+      'There are 2 rows in the browser fixture.', 'decoded final-report deltas must match the terminal summary')
     await page.locator('.summary-card').getByText('There are 2 rows in the browser fixture.').waitFor()
     assert.equal(await page.locator('.streaming-indicator').count(), 0)
     assert.equal(chatPosts.length, 1, 'the page must submit the write-capable POST once')
@@ -163,6 +165,8 @@ test('original chat page posts to FastAPI SSE and replays persisted history', as
     assert.ok(secondFrames.some((event) => event.type === 'summary' &&
       event.content === 'The continued query also found 2 rows.'),
     `Follow-up returned an unexpected SSE sequence: ${JSON.stringify(secondFrames)}\n${fixtureOutput()}`)
+    assert.equal(secondFrames.filter((event) => event.type === 'summary_delta').map((event) => event.content).join(''),
+      'The continued query also found 2 rows.', 'follow-up final-report deltas must match the terminal summary')
     assert.equal(secondFrames.find((event) => event.type === 'conversation')?.content, conversationId)
     await page.locator('.summary-card').last().getByText('The continued query also found 2 rows.').waitFor()
     assert.equal(chatPosts.length, 2)
