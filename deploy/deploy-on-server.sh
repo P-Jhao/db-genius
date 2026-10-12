@@ -87,8 +87,8 @@ echo "Pulling release ${SQLCHAT_IMAGE_TAG} before stopping application services.
 existing_postgres=$("${compose[@]}" ps --all -q postgres)
 existing_api=$("${compose[@]}" ps --all -q api)
 "${compose[@]}" pull
-if ! docker network inspect --format '{{.Name}}' promptforge_promptforge >/dev/null; then
-    echo 'Required external network promptforge_promptforge is missing or inaccessible; SQLChat services have not been stopped.' >&2
+if ! docker network inspect --format '{{.Name}}' gateway_proxy >/dev/null 2>&1; then
+    echo 'Required external network gateway_proxy is missing or inaccessible; SQLChat services have not been stopped.' >&2
     exit 1
 fi
 # Cold-start the capped demo database before interrupting the current application.

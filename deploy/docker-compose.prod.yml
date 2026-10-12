@@ -245,7 +245,7 @@ services:
     logging: *bounded-logging
     networks:
       web:
-      promptforge_proxy:
+      gateway_proxy:
         aliases: [sqlchat-frontend]
 
 volumes:
@@ -258,6 +258,6 @@ volumes:
 networks:
   web:
   backend:
-  promptforge_proxy:
+  gateway_proxy:
     external: true
-    name: promptforge_promptforge
+    name: gateway_proxy
